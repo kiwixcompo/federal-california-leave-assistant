@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Federal & California Leave Assistant</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div id="app">
+        <!-- Loading spinner -->
+        <div id="loading" class="loading-overlay hidden">
+            <div class="spinner"></div>
+        </div>
+
+        <!-- Login Page -->
+        <div id="loginPage" class="page hidden">
+            <div class="auth-container">
+                <div class="auth-card">
+                    <h1>Federal & California Leave Assistant</h1>
+                    <p class="subtitle">HR Compliance Tool</p>
+                    
+                    <form id="loginForm">
+                        <div class="form-group">
+                            <label for="loginEmail">Work Email</label>
+                            <input type="email" id="loginEmail" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="loginPassword">Password</label>
+                            <input type="password" id="loginPassword" required>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Sign In</button>
+                    </form>
+                    
+                    <p class="auth-link">
+                        Don't have an account? <a href="#" id="showRegister">Sign up</a>
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Register Page -->
+        <div id="registerPage" class="page hidden">
+            <div class="auth-container">
+                <div class="auth-card">
+                    <h1>Create Account</h1>
+                    <p class="subtitle">Join the HR Compliance Tool</p>
+                    
+                    <form id="registerForm">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="firstName">First Name</label>
+                                <input type="text" id="firstName" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="lastName">Last Name</label>
+                                <input type="text" id="lastName" required>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="registerEmail">Work Email</label>
+                            <input type="email" id="registerEmail" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="registerPassword">Password (min 6 characters)</label>
+                            <input type="password" id="registerPassword" required minlength="6">
+                        </div>
+                        <div class="form-group">
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="termsAccepted" required>
+                                I am using this tool for internal HR/business purposes and will not provide legal advice.
+                            </label>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Create Account</button>
+                    </form>
+                    
+                    <p class="auth-link">
+                        Already have an account? <a href="#" id="showLogin">Sign in</a>
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Dashboard -->
+        <div id="dashboard" class="page hidden">
+            <nav class="navbar">
+                <div class="nav-brand">
+                    <h2>Federal & California Leave Assistant</h2>
+                </div>
+                <div class="nav-menu">
+                    <button id="settingsBtn" class="btn btn-secondary">Settings</button>
+                    <button id="logoutBtn" class="btn btn-secondary">Sign Out</button>
+                </div>
+            </nav>
+
+            <div class="dashboard-container">
+                <div class="tool-selection">
+                    <h1>Select Your Tool</h1>
+                    <div class="tool-cards">
+                        <div class="tool-card" id="federalTool">
+                            <h3>Federal Leave Assistant</h3>
+                            <p>FMLA compliance support for federal leave requirements</p>
+                            <button class="btn btn-primary">Use Tool</button>
+                        </div>
+                        <div class="tool-card" id="californiaTool">
+                            <h3>California Leave Assistant</h3>
+                            <p>FMLA, CFRA, and PDL compliance for California employees</p>
+                            <button class="btn btn-primary">Use Tool</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Federal Tool Page -->
+        <div id="federalPage" class="page hidden">
+            <nav class="navbar">
+                <div class="nav-brand">
+                    <h2>Federal Leave Assistant</h2>
+                </div>
+                <div class="nav-menu">
+                    <button id="backToDashboard1" class="btn btn-secondary">Dashboard</button>
+                    <button id="settingsBtn2" class="btn btn-secondary">Settings</button>
+                </div>
+            </nav>
+
+            <div class="tool-container">
+                <div class="tool-header">
+                    <div class="mode-selector">
+                        <button id="federalEmailMode" class="mode-btn active">Employee Email</button>
+                        <button id="federalQuestionMode" class="mode-btn">Quick Question</button>
+                    </div>
+                </div>
+
+                <div class="tool-content">
+                    <div class="input-section">
+                        <label for="federalInput" id="federalInputLabel">Paste employee email:</label>
+                        <textarea id="federalInput" placeholder="Paste the employee's email here..."></textarea>
+                        <button id="federalSubmit" class="btn btn-primary">Generate Response</button>
+                    </div>
+
+                    <div class="output-section">
+                        <div class="output-header">
+                            <label>Generated Response:</label>
+                            <div class="output-actions">
+                                <button id="federalCopy" class="btn btn-secondary">Copy to Clipboard</button>
+                                <button id="federalClear" class="btn btn-secondary">Clear</button>
+                            </div>
+                        </div>
+                        <div id="federalOutput" class="output-content"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- California Tool Page -->
+        <div id="californiaPage" class="page hidden">
+            <nav class="navbar">
+                <div class="nav-brand">
+                    <h2>California Leave Assistant</h2>
+                </div>
+                <div class="nav-menu">
+                    <button id="backToDashboard2" class="btn btn-secondary">Dashboard</button>
+                    <button id="settingsBtn3" class="btn btn-secondary">Settings</button>
+                </div>
+            </nav>
+
+            <div class="tool-container">
+                <div class="tool-header">
+                    <div class="mode-selector">
+                        <button id="californiaEmailMode" class="mode-btn active">Employee Email</button>
+                        <button id="californiaQuestionMode" class="mode-btn">Quick Question</button>
+                    </div>
+                </div>
+
+                <div class="tool-content">
+                    <div class="input-section">
+                        <label for="californiaInput" id="californiaInputLabel">Paste employee email:</label>
+                        <textarea id="californiaInput" placeholder="Paste the employee's email here..."></textarea>
+                        <button id="californiaSubmit" class="btn btn-primary">Generate Response</button>
+                    </div>
+
+                    <div class="output-section">
+                        <div class="output-header">
+                            <label>Generated Response:</label>
+                            <div class="output-actions">
+                                <button id="californiaCopy" class="btn btn-secondary">Copy to Clipboard</button>
+                                <button id="californiaClear" class="btn btn-secondary">Clear</button>
+                            </div>
+                        </div>
+                        <div id="californiaOutput" class="output-content"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Settings Modal -->
+        <div id="settingsModal" class="modal hidden">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>Settings</h3>
+                    <button id="closeSettings" class="close-btn">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <form id="settingsForm">
+                        <div class="form-group">
+                            <label for="openaiApiKey">OpenAI API Key</label>
+                            <input type="password" id="openaiApiKey" placeholder="Enter your OpenAI API key or type 'demo' for mock responses">
+                            <small>
+                                <strong>For demo:</strong> Type "demo" to use mock responses<br>
+                                <strong>For real AI:</strong> Get your API key from <a href="https://platform.openai.com/api-keys" target="_blank">OpenAI Platform</a><br>
+                                Your key is stored securely in your browser only.
+                            </small>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="newPassword">Change Password</label>
+                            <input type="password" id="newPassword" placeholder="Enter new password (optional)">
+                        </div>
+                        
+                        <button type="submit" class="btn btn-primary">Save Settings</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Admin Dashboard -->
+        <div id="adminDashboard" class="page hidden">
+            <nav class="navbar">
+                <div class="nav-brand">
+                    <h2>Admin Dashboard</h2>
+                </div>
+                <div class="nav-menu">
+                    <button id="adminLogoutBtn" class="btn btn-secondary">Sign Out</button>
+                </div>
+            </nav>
+
+            <div class="admin-container">
+                <h1>User Management</h1>
+                <div id="usersList" class="users-list">
+                    <div class="user-card">
+                        <div class="user-info">
+                            <h4>Demo User</h4>
+                            <p>demo@example.com</p>
+                            <p>Joined: Today</p>
+                        </div>
+                        <div class="user-status">
+                            <span class="status-badge active">Has Access</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
