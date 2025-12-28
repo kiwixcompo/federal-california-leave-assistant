@@ -3,8 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Federal & California Leave Assistant</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <title>Federal & California Leave Assistant - Professional HR Compliance Tool</title>
+    <meta name="description" content="Professional HR compliance tool for Federal FMLA and California leave law assistance">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -19,22 +22,22 @@
             <div class="auth-container">
                 <div class="auth-card">
                     <h1>Federal & California Leave Assistant</h1>
-                    <p class="subtitle">HR Compliance Tool</p>
+                    <p class="subtitle">Professional HR Compliance Platform</p>
                     
                     <form id="loginForm">
                         <div class="form-group">
-                            <label for="loginEmail">Work Email</label>
-                            <input type="email" id="loginEmail" required>
+                            <label for="loginEmail">Work Email Address</label>
+                            <input type="email" id="loginEmail" required placeholder="Enter your work email">
                         </div>
                         <div class="form-group">
                             <label for="loginPassword">Password</label>
-                            <input type="password" id="loginPassword" required>
+                            <input type="password" id="loginPassword" required placeholder="Enter your password">
                         </div>
-                        <button type="submit" class="btn btn-primary">Sign In</button>
+                        <button type="submit" class="btn btn-primary">Sign In to Platform</button>
                     </form>
                     
                     <p class="auth-link">
-                        Don't have an account? <a href="#" id="showRegister">Sign up</a>
+                        Don't have an account? <a href="#" id="showRegister">Create Account</a>
                     </p>
                 </div>
             </div>
@@ -44,27 +47,28 @@
         <div id="registerPage" class="page hidden">
             <div class="auth-container">
                 <div class="auth-card">
-                    <h1>Create Account</h1>
-                    <p class="subtitle">Join the HR Compliance Tool</p>
+                    <h1>Create Professional Account</h1>
+                    <p class="subtitle">Join the HR Compliance Platform</p>
                     
                     <form id="registerForm">
                         <div class="form-row">
                             <div class="form-group">
                                 <label for="firstName">First Name</label>
-                                <input type="text" id="firstName" required>
+                                <input type="text" id="firstName" required placeholder="Enter first name">
                             </div>
                             <div class="form-group">
                                 <label for="lastName">Last Name</label>
-                                <input type="text" id="lastName" required>
+                                <input type="text" id="lastName" required placeholder="Enter last name">
                             </div>
                         </div>
                         <div class="form-group">
-                            <label for="registerEmail">Work Email</label>
-                            <input type="email" id="registerEmail" required>
+                            <label for="registerEmail">Professional Email</label>
+                            <input type="email" id="registerEmail" required placeholder="Enter your work email">
+                            <small>Please use an email from a recognized provider (Gmail, Yahoo, Outlook, etc.) or your company domain</small>
                         </div>
                         <div class="form-group">
-                            <label for="registerPassword">Password (min 6 characters)</label>
-                            <input type="password" id="registerPassword" required minlength="6">
+                            <label for="registerPassword">Secure Password</label>
+                            <input type="password" id="registerPassword" required minlength="6" placeholder="Minimum 6 characters">
                         </div>
                         <div class="form-group">
                             <label class="checkbox-label">
@@ -72,41 +76,65 @@
                                 I am using this tool for internal HR/business purposes and will not provide legal advice.
                             </label>
                         </div>
-                        <button type="submit" class="btn btn-primary">Create Account</button>
+                        <button type="submit" class="btn btn-primary">Create Professional Account</button>
                     </form>
                     
                     <p class="auth-link">
-                        Already have an account? <a href="#" id="showLogin">Sign in</a>
+                        Already have an account? <a href="#" id="showLogin">Sign in here</a>
                     </p>
                 </div>
             </div>
         </div>
 
-        <!-- Dashboard -->
+        <!-- Email Verification Page -->
+        <div id="verificationPage" class="page hidden">
+            <div class="auth-container">
+                <div class="auth-card">
+                    <h1>Email Verification Required</h1>
+                    <p class="subtitle">Please check your email</p>
+                    
+                    <div style="text-align: center; margin: 20px 0;">
+                        <div style="font-size: 48px; color: #666666; margin-bottom: 15px;">📧</div>
+                        <p>We've sent a verification email to your address.</p>
+                        <p>Please click the link in the email to verify your account.</p>
+                    </div>
+                    
+                    <div style="background-color: #f9f9f9; padding: 15px; border: 1px solid #cccccc; margin: 20px 0;">
+                        <p><strong>Demo Mode:</strong> In this demo version, verification happens automatically after registration.</p>
+                        <p>In a real application, you would receive an actual email with a verification link.</p>
+                    </div>
+                    
+                    <div style="text-align: center; margin-top: 20px;">
+                        <button id="backToLogin" class="btn btn-secondary">Back to Login</button>
+                        <button id="resendVerification" class="btn btn-primary" style="margin-left: 10px;">Resend Email</button>
+                    </div>
+                </div>
+            </div>
+        </div>
         <div id="dashboard" class="page hidden">
             <nav class="navbar">
                 <div class="nav-brand">
                     <h2>Federal & California Leave Assistant</h2>
                 </div>
                 <div class="nav-menu">
-                    <button id="settingsBtn" class="btn btn-secondary">Settings</button>
+                    <button id="settingsBtn" class="btn btn-secondary">Account Settings</button>
                     <button id="logoutBtn" class="btn btn-secondary">Sign Out</button>
                 </div>
             </nav>
 
             <div class="dashboard-container">
                 <div class="tool-selection">
-                    <h1>Select Your Tool</h1>
+                    <h1>Choose Your Compliance Tool</h1>
                     <div class="tool-cards">
                         <div class="tool-card" id="federalTool">
-                            <h3>Federal Leave Assistant</h3>
-                            <p>FMLA compliance support for federal leave requirements</p>
-                            <button class="btn btn-primary">Use Tool</button>
+                            <h3>🇺🇸 Federal Leave Assistant</h3>
+                            <p>FMLA compliance support for federal leave requirements. Professional guidance for HR teams managing federal family and medical leave requests.</p>
+                            <button class="btn btn-primary">Access Federal Tool</button>
                         </div>
                         <div class="tool-card" id="californiaTool">
-                            <h3>California Leave Assistant</h3>
-                            <p>FMLA, CFRA, and PDL compliance for California employees</p>
-                            <button class="btn btn-primary">Use Tool</button>
+                            <h3>🏛️ California Leave Assistant</h3>
+                            <p>Comprehensive FMLA, CFRA, and PDL compliance for California employees. Navigate complex state-specific leave requirements with confidence.</p>
+                            <button class="btn btn-primary">Access California Tool</button>
                         </div>
                     </div>
                 </div>
@@ -117,10 +145,10 @@
         <div id="federalPage" class="page hidden">
             <nav class="navbar">
                 <div class="nav-brand">
-                    <h2>Federal Leave Assistant</h2>
+                    <h2>🇺🇸 Federal Leave Assistant</h2>
                 </div>
                 <div class="nav-menu">
-                    <button id="backToDashboard1" class="btn btn-secondary">Dashboard</button>
+                    <button id="backToDashboard1" class="btn btn-secondary">← Dashboard</button>
                     <button id="settingsBtn2" class="btn btn-secondary">Settings</button>
                 </div>
             </nav>
@@ -128,24 +156,24 @@
             <div class="tool-container">
                 <div class="tool-header">
                     <div class="mode-selector">
-                        <button id="federalEmailMode" class="mode-btn active">Employee Email</button>
-                        <button id="federalQuestionMode" class="mode-btn">Quick Question</button>
+                        <button id="federalEmailMode" class="mode-btn active">Employee Email Response</button>
+                        <button id="federalQuestionMode" class="mode-btn">Quick HR Question</button>
                     </div>
                 </div>
 
                 <div class="tool-content">
                     <div class="input-section">
-                        <label for="federalInput" id="federalInputLabel">Paste employee email:</label>
-                        <textarea id="federalInput" placeholder="Paste the employee's email here..."></textarea>
-                        <button id="federalSubmit" class="btn btn-primary">Generate Response</button>
+                        <label for="federalInput" id="federalInputLabel">Paste Employee Email:</label>
+                        <textarea id="federalInput" placeholder="Paste the employee's email here for professional response drafting..."></textarea>
+                        <button id="federalSubmit" class="btn btn-primary">Generate Professional Response</button>
                     </div>
 
                     <div class="output-section">
                         <div class="output-header">
-                            <label>Generated Response:</label>
+                            <label>Generated HR Response:</label>
                             <div class="output-actions">
-                                <button id="federalCopy" class="btn btn-secondary">Copy to Clipboard</button>
-                                <button id="federalClear" class="btn btn-secondary">Clear</button>
+                                <button id="federalCopy" class="btn btn-secondary">📋 Copy Response</button>
+                                <button id="federalClear" class="btn btn-secondary">🗑️ Clear</button>
                             </div>
                         </div>
                         <div id="federalOutput" class="output-content"></div>
@@ -158,10 +186,10 @@
         <div id="californiaPage" class="page hidden">
             <nav class="navbar">
                 <div class="nav-brand">
-                    <h2>California Leave Assistant</h2>
+                    <h2>🏛️ California Leave Assistant</h2>
                 </div>
                 <div class="nav-menu">
-                    <button id="backToDashboard2" class="btn btn-secondary">Dashboard</button>
+                    <button id="backToDashboard2" class="btn btn-secondary">← Dashboard</button>
                     <button id="settingsBtn3" class="btn btn-secondary">Settings</button>
                 </div>
             </nav>
@@ -169,24 +197,24 @@
             <div class="tool-container">
                 <div class="tool-header">
                     <div class="mode-selector">
-                        <button id="californiaEmailMode" class="mode-btn active">Employee Email</button>
-                        <button id="californiaQuestionMode" class="mode-btn">Quick Question</button>
+                        <button id="californiaEmailMode" class="mode-btn active">Employee Email Response</button>
+                        <button id="californiaQuestionMode" class="mode-btn">Quick HR Question</button>
                     </div>
                 </div>
 
                 <div class="tool-content">
                     <div class="input-section">
-                        <label for="californiaInput" id="californiaInputLabel">Paste employee email:</label>
-                        <textarea id="californiaInput" placeholder="Paste the employee's email here..."></textarea>
-                        <button id="californiaSubmit" class="btn btn-primary">Generate Response</button>
+                        <label for="californiaInput" id="californiaInputLabel">Paste Employee Email:</label>
+                        <textarea id="californiaInput" placeholder="Paste the employee's email here for professional response drafting..."></textarea>
+                        <button id="californiaSubmit" class="btn btn-primary">Generate Professional Response</button>
                     </div>
 
                     <div class="output-section">
                         <div class="output-header">
-                            <label>Generated Response:</label>
+                            <label>Generated HR Response:</label>
                             <div class="output-actions">
-                                <button id="californiaCopy" class="btn btn-secondary">Copy to Clipboard</button>
-                                <button id="californiaClear" class="btn btn-secondary">Clear</button>
+                                <button id="californiaCopy" class="btn btn-secondary">📋 Copy Response</button>
+                                <button id="californiaClear" class="btn btn-secondary">🗑️ Clear</button>
                             </div>
                         </div>
                         <div id="californiaOutput" class="output-content"></div>
@@ -195,31 +223,193 @@
             </div>
         </div>
 
-        <!-- Settings Modal -->
+        <!-- Admin Settings Modal -->
+        <div id="adminSettingsModal" class="modal hidden">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>Admin Settings</h3>
+                    <button id="closeAdminSettings" class="close-btn">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="admin-settings-tabs">
+                        <button class="tab-btn active" data-tab="password">Change Password</button>
+                        <button class="tab-btn" data-tab="profile">Admin Profile</button>
+                        <button class="tab-btn" data-tab="system">System Config</button>
+                    </div>
+
+                    <!-- Password Change Tab -->
+                    <div id="passwordTab" class="tab-content active">
+                        <form id="adminPasswordForm">
+                            <div class="form-group">
+                                <label for="adminCurrentPassword">Current Password</label>
+                                <input type="password" id="adminCurrentPassword" required>
+                                <small>Enter your current password (default: Password@123)</small>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="adminNewPassword">New Password</label>
+                                <input type="password" id="adminNewPassword" required minlength="6">
+                                <small>Minimum 6 characters</small>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="adminConfirmPassword">Confirm New Password</label>
+                                <input type="password" id="adminConfirmPassword" required minlength="6">
+                            </div>
+                            
+                            <button type="submit" class="btn btn-primary">Change Password</button>
+                        </form>
+                    </div>
+
+                    <!-- Admin Profile Tab -->
+                    <div id="profileTab" class="tab-content hidden">
+                        <form id="adminProfileForm">
+                            <div class="form-group">
+                                <label for="adminFirstName">First Name</label>
+                                <input type="text" id="adminFirstName" required>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="adminLastName">Last Name</label>
+                                <input type="text" id="adminLastName" required>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="adminEmail">Email Address</label>
+                                <input type="email" id="adminEmail" readonly>
+                                <small>Email cannot be changed for security reasons</small>
+                            </div>
+                            
+                            <button type="submit" class="btn btn-primary">Update Profile</button>
+                        </form>
+                    </div>
+
+                    <!-- System Config Tab -->
+                    <div id="systemTab" class="tab-content hidden">
+                        <div class="system-info">
+                            <h4>Application Information</h4>
+                            <div class="info-grid">
+                                <div class="info-item">
+                                    <label>Version:</label>
+                                    <span>1.0.0</span>
+                                </div>
+                                <div class="info-item">
+                                    <label>Total Storage Used:</label>
+                                    <span id="storageUsed">Calculating...</span>
+                                </div>
+                                <div class="info-item">
+                                    <label>Last Backup:</label>
+                                    <span>Manual backup only</span>
+                                </div>
+                            </div>
+                            
+                            <div class="system-actions">
+                                <button id="clearAllData" class="btn btn-danger">Clear All Data</button>
+                                <button id="downloadBackup" class="btn btn-secondary">Download Backup</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- User Edit Modal -->
+        <div id="userEditModal" class="modal hidden">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>Edit User</h3>
+                    <button id="closeUserEdit" class="close-btn">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <form id="userEditForm">
+                        <input type="hidden" id="editUserId">
+                        
+                        <div class="form-group">
+                            <label for="editUserFirstName">First Name</label>
+                            <input type="text" id="editUserFirstName" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="editUserLastName">Last Name</label>
+                            <input type="text" id="editUserLastName" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="editUserEmail">Email</label>
+                            <input type="email" id="editUserEmail" readonly>
+                            <small>Email cannot be changed after registration</small>
+                        </div>
+
+                        <div class="form-group">
+                            <h4>Access Control</h4>
+                            
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="editUserComped">
+                                Comped Access (Free access bypass)
+                            </label>
+                            
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="editUserConferenceAccess">
+                                Conference Access
+                            </label>
+                            
+                            <div id="conferenceDateRange" class="date-range hidden">
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="conferenceStartDate">Start Date</label>
+                                        <input type="date" id="conferenceStartDate">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="conferenceEndDate">End Date</label>
+                                        <input type="date" id="conferenceEndDate">
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="editUserSubscriptionActive">
+                                Active Subscription (Simulated)
+                            </label>
+                            
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="editUserEmailVerified">
+                                Email Verified
+                            </label>
+                        </div>
+
+                        <div class="form-actions">
+                            <button type="submit" class="btn btn-primary">Save Changes</button>
+                            <button type="button" id="deleteUser" class="btn btn-danger">Delete User</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
         <div id="settingsModal" class="modal hidden">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h3>Settings</h3>
+                    <h3>⚙️ Account Settings</h3>
                     <button id="closeSettings" class="close-btn">&times;</button>
                 </div>
                 <div class="modal-body">
                     <form id="settingsForm">
                         <div class="form-group">
-                            <label for="openaiApiKey">OpenAI API Key</label>
+                            <label for="openaiApiKey">OpenAI API Configuration</label>
                             <input type="password" id="openaiApiKey" placeholder="Enter your OpenAI API key or type 'demo' for mock responses">
                             <small>
-                                <strong>For demo:</strong> Type "demo" to use mock responses<br>
-                                <strong>For real AI:</strong> Get your API key from <a href="https://platform.openai.com/api-keys" target="_blank">OpenAI Platform</a><br>
-                                Your key is stored securely in your browser only.
+                                <strong>🎭 Demo Mode:</strong> Type "demo" to use mock responses<br>
+                                <strong>🤖 AI Mode:</strong> Get your API key from <a href="https://platform.openai.com/api-keys" target="_blank">OpenAI Platform</a><br>
+                                <strong>🔒 Security:</strong> Your key is stored securely in your browser only.
                             </small>
                         </div>
                         
                         <div class="form-group">
-                            <label for="newPassword">Change Password</label>
+                            <label for="newPassword">Change Account Password</label>
                             <input type="password" id="newPassword" placeholder="Enter new password (optional)">
+                            <small>Leave blank to keep current password</small>
                         </div>
                         
-                        <button type="submit" class="btn btn-primary">Save Settings</button>
+                        <button type="submit" class="btn btn-primary">💾 Save Settings</button>
                     </form>
                 </div>
             </div>
@@ -229,24 +419,96 @@
         <div id="adminDashboard" class="page hidden">
             <nav class="navbar">
                 <div class="nav-brand">
-                    <h2>Admin Dashboard</h2>
+                    <h2>👑 Admin Dashboard</h2>
                 </div>
                 <div class="nav-menu">
+                    <button id="adminSettingsBtn" class="btn btn-secondary">⚙️ Admin Settings</button>
                     <button id="adminLogoutBtn" class="btn btn-secondary">Sign Out</button>
                 </div>
             </nav>
 
             <div class="admin-container">
-                <h1>User Management</h1>
-                <div id="usersList" class="users-list">
-                    <div class="user-card">
-                        <div class="user-info">
-                            <h4>Demo User</h4>
-                            <p>demo@example.com</p>
-                            <p>Joined: Today</p>
+                <!-- Admin Stats -->
+                <div class="admin-stats">
+                    <div class="stat-card">
+                        <h3 id="totalUsers">0</h3>
+                        <p>Total Users</p>
+                    </div>
+                    <div class="stat-card">
+                        <h3 id="verifiedUsers">0</h3>
+                        <p>Verified Users</p>
+                    </div>
+                    <div class="stat-card">
+                        <h3 id="activeSubscriptions">0</h3>
+                        <p>Active Access</p>
+                    </div>
+                    <div class="stat-card">
+                        <h3 id="compedUsers">0</h3>
+                        <p>Comped Users</p>
+                    </div>
+                </div>
+
+                <!-- Admin Actions -->
+                <div class="admin-actions">
+                    <h2>📊 Quick Actions</h2>
+                    <div class="action-buttons">
+                        <button id="refreshUsers" class="btn btn-primary">🔄 Refresh User List</button>
+                        <button id="exportUsers" class="btn btn-secondary">📊 Export User Data (CSV)</button>
+                        <button id="cleanupExpired" class="btn btn-secondary">🧹 Cleanup Expired Tokens</button>
+                    </div>
+                </div>
+
+                <!-- User Management -->
+                <div class="user-management">
+                    <div class="section-header">
+                        <h2>👥 User Management</h2>
+                        <div class="user-filters">
+                            <select id="userFilter">
+                                <option value="all">All Users</option>
+                                <option value="verified">Verified Only</option>
+                                <option value="unverified">Unverified Only</option>
+                                <option value="comped">Comped Users</option>
+                                <option value="conference">Conference Access</option>
+                                <option value="subscribed">Active Subscriptions</option>
+                            </select>
+                            <input type="text" id="userSearch" placeholder="🔍 Search users...">
                         </div>
-                        <div class="user-status">
-                            <span class="status-badge active">Has Access</span>
+                    </div>
+                    
+                    <div id="usersList" class="users-list">
+                        <!-- Users will be populated here -->
+                    </div>
+                </div>
+
+                <!-- Pending Verifications -->
+                <div class="pending-verifications">
+                    <h2>📧 Pending Email Verifications</h2>
+                    <div id="pendingList" class="pending-list">
+                        <!-- Pending verifications will be populated here -->
+                    </div>
+                </div>
+
+                <!-- System Settings -->
+                <div class="system-settings">
+                    <h2>⚙️ System Configuration</h2>
+                    <div class="settings-grid">
+                        <div class="setting-item">
+                            <label for="allowRegistration">
+                                <input type="checkbox" id="allowRegistration" checked>
+                                Allow New User Registrations
+                            </label>
+                        </div>
+                        <div class="setting-item">
+                            <label for="requireEmailVerification">
+                                <input type="checkbox" id="requireEmailVerification" checked>
+                                Require Email Verification for New Users
+                            </label>
+                        </div>
+                        <div class="setting-item">
+                            <label for="autoGrantAccess">
+                                <input type="checkbox" id="autoGrantAccess" checked>
+                                Auto-Grant Access to New Users (Demo Mode)
+                            </label>
                         </div>
                     </div>
                 </div>
