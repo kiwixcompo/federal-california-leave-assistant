@@ -233,8 +233,11 @@
                     <div class="form-group">
                         <label>AI Provider Selection</label>
                         <select id="aiProvider" class="form-control">
-                            <option value="openai">OpenAI (Requires Key)</option>
+                            <option value="openai">OpenAI GPT (Requires Key)</option>
                             <option value="gemini">Google Gemini (Free Tier)</option>
+                            <option value="huggingface">Hugging Face (Free Tier)</option>
+                            <option value="cohere">Cohere (Free Tier)</option>
+                            <option value="anthropic">Anthropic Claude (Free Tier)</option>
                             <option value="demo">Demo Mode (Mock Data)</option>
                         </select>
                     </div>
@@ -251,7 +254,31 @@
                         <div class="form-group">
                             <label>Google Gemini API Key</label>
                             <input type="password" id="geminiApiKey" placeholder="AIza...">
-                            <small>Leave blank to use System Free Tier (if available).</small>
+                            <small>Get free API key from Google AI Studio.</small>
+                        </div>
+                    </div>
+
+                    <div id="huggingfaceKeySection" class="api-key-section hidden">
+                        <div class="form-group">
+                            <label>Hugging Face API Key</label>
+                            <input type="password" id="huggingfaceApiKey" placeholder="hf_...">
+                            <small>Get free API key from Hugging Face Hub.</small>
+                        </div>
+                    </div>
+
+                    <div id="cohereKeySection" class="api-key-section hidden">
+                        <div class="form-group">
+                            <label>Cohere API Key</label>
+                            <input type="password" id="cohereApiKey" placeholder="...">
+                            <small>Get free API key from Cohere Dashboard.</small>
+                        </div>
+                    </div>
+
+                    <div id="anthropicKeySection" class="api-key-section hidden">
+                        <div class="form-group">
+                            <label>Anthropic Claude API Key</label>
+                            <input type="password" id="anthropicApiKey" placeholder="sk-ant-...">
+                            <small>Get API key from Anthropic Console.</small>
                         </div>
                     </div>
 

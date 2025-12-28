@@ -56,10 +56,12 @@ body {
 .auth-container {
     min-height: 100vh;
     display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
     background: var(--primary-gradient);
-    padding: 1rem;
+    padding: 2rem 1rem;
+    gap: 2rem;
 }
 
 .auth-container .card {
@@ -74,10 +76,22 @@ body {
 .logo-area {
     text-align: center;
     color: white;
-    margin-bottom: 2rem;
+    margin-bottom: 0; /* Remove bottom margin since we have gap in container */
 }
-.logo-area i { margin-bottom: 1rem; }
-.logo-area h1 { font-size: 2rem; font-weight: 800; }
+.logo-area i { 
+    margin-bottom: 1rem; 
+    display: block;
+}
+.logo-area h1 { 
+    font-size: 2rem; 
+    font-weight: 800; 
+    margin-bottom: 0.5rem;
+}
+.logo-area p {
+    font-size: 1.1rem;
+    opacity: 0.9;
+    margin: 0;
+}
 
 .trial-text {
     background: #ecfdf5;
@@ -88,6 +102,23 @@ body {
     font-weight: 600;
     margin-bottom: 1.5rem;
     border: 1px solid #a7f3d0;
+}
+
+.auth-links {
+    text-align: center;
+    margin-top: 1.5rem;
+}
+
+.auth-links a {
+    color: #4f46e5;
+    text-decoration: none;
+    font-weight: 500;
+    padding: 0.5rem;
+    display: inline-block;
+}
+
+.auth-links a:hover {
+    text-decoration: underline;
 }
 
 /* Forms */
@@ -130,6 +161,24 @@ small.hint {
     margin-top: 0.25rem;
     color: var(--text-secondary);
     font-size: 0.8rem;
+}
+
+.form-check {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 1.25rem;
+}
+
+.form-check input[type="checkbox"] {
+    width: auto;
+    margin: 0;
+}
+
+.form-check label {
+    margin: 0;
+    font-weight: 500;
+    cursor: pointer;
 }
 
 /* Buttons */
