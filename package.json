@@ -2,11 +2,18 @@
   "name": "federal-california-leave-assistant",
   "version": "1.0.0",
   "description": "A compliance-focused HR tool for drafting employee responses regarding FMLA and California leave laws",
-  "main": "index.html",
+  "main": "server.js",
   "scripts": {
-    "start": "echo 'Open index.html in your web browser or serve via web server'",
+    "start": "node server.js",
+    "dev": "node server.js",
+    "install-deps": "npm install",
     "serve": "python -m http.server 8000",
     "serve-php": "php -S localhost:8000"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "cors": "^2.8.5",
+    "node-fetch": "^3.3.2"
   },
   "keywords": [
     "hr",
