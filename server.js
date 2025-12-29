@@ -95,158 +95,6 @@ app.post('/api/gemini', async (req, res) => {
     }
 });
 
-// Hugging Face API proxy (Free tier available)
-app.post('/api/huggingface', async (req, res) => {
-    try {
-        const { apiKey, prompt, systemPrompt, model = 'microsoft/DialoGPT-medium' } = req.body;
-
-        if (!apiKey) {
-            return res.status(400).json({ error: 'Valid Hugging Face API key required.' });
-        }
-
-        const fetch = (await import('node-fetch')).default;
-
-        console.log(`🤖 Attempting Hugging Face API call with ${model}...`);
-        const url = `https://api-inference.huggingface.co/models/${model}`;
-        
-        const response = await fetch(url, {
-            method: 'POST',
-            headers: { 
-                'Authorization': `Bearer ${apiKey}`,
-                'Content-Type': 'application/json' 
-            },
-            body: JSON.stringify({
-                inputs: `${systemPrompt}\n\nUser: ${prompt}\nAssistant:`,
-                parameters: {
-                    max_new_tokens: 512,
-                    temperature: 0.3,
-                    return_full_text: false
-                }
-            })
-        });
-
-        const data = await response.json();
-        
-        if (response.ok && data && data[0]?.generated_text) {
-            console.log('✅ Hugging Face API success');
-            return res.json({ 
-                choices: [{ message: { content: data[0].generated_text.trim() } }] 
-            });
-        } else {
-            console.error('❌ Hugging Face API error:', data);
-            return res.status(response.status || 400).json({ 
-                error: data.error || 'Hugging Face API request failed',
-                details: data 
-            });
-        }
-
-    } catch (error) {
-        console.error('❌ Hugging Face Server Error:', error);
-        res.status(500).json({ error: 'Internal server error', message: error.message });
-    }
-});
-
-// Cohere API proxy (Free tier available)
-app.post('/api/cohere', async (req, res) => {
-    try {
-        const { apiKey, prompt, systemPrompt } = req.body;
-
-        if (!apiKey) {
-            return res.status(400).json({ error: 'Valid Cohere API key required.' });
-        }
-
-        const fetch = (await import('node-fetch')).default;
-
-        console.log('🤖 Attempting Cohere API call...');
-        const url = 'https://api.cohere.ai/v1/generate';
-        
-        const response = await fetch(url, {
-            method: 'POST',
-            headers: { 
-                'Authorization': `Bearer ${apiKey}`,
-                'Content-Type': 'application/json' 
-            },
-            body: JSON.stringify({
-                model: 'command-light',
-                prompt: `${systemPrompt}\n\nUser Query: ${prompt}\n\nResponse:`,
-                max_tokens: 512,
-                temperature: 0.3,
-                stop_sequences: ['\n\nUser:', '\nUser:']
-            })
-        });
-
-        const data = await response.json();
-        
-        if (response.ok && data.generations && data.generations[0]?.text) {
-            console.log('✅ Cohere API success');
-            return res.json({ 
-                choices: [{ message: { content: data.generations[0].text.trim() } }] 
-            });
-        } else {
-            console.error('❌ Cohere API error:', data);
-            return res.status(response.status || 400).json({ 
-                error: data.message || 'Cohere API request failed',
-                details: data 
-            });
-        }
-
-    } catch (error) {
-        console.error('❌ Cohere Server Error:', error);
-        res.status(500).json({ error: 'Internal server error', message: error.message });
-    }
-});
-
-// Anthropic Claude API proxy (Has free tier)
-app.post('/api/anthropic', async (req, res) => {
-    try {
-        const { apiKey, prompt, systemPrompt } = req.body;
-
-        if (!apiKey) {
-            return res.status(400).json({ error: 'Valid Anthropic API key required.' });
-        }
-
-        const fetch = (await import('node-fetch')).default;
-
-        console.log('🤖 Attempting Anthropic Claude API call...');
-        const url = 'https://api.anthropic.com/v1/messages';
-        
-        const response = await fetch(url, {
-            method: 'POST',
-            headers: { 
-                'x-api-key': apiKey,
-                'Content-Type': 'application/json',
-                'anthropic-version': '2023-06-01'
-            },
-            body: JSON.stringify({
-                model: 'claude-3-haiku-20240307',
-                max_tokens: 512,
-                messages: [
-                    { role: 'user', content: `${systemPrompt}\n\nUser Query: ${prompt}` }
-                ]
-            })
-        });
-
-        const data = await response.json();
-        
-        if (response.ok && data.content && data.content[0]?.text) {
-            console.log('✅ Anthropic API success');
-            return res.json({ 
-                choices: [{ message: { content: data.content[0].text } }] 
-            });
-        } else {
-            console.error('❌ Anthropic API error:', data);
-            return res.status(response.status || 400).json({ 
-                error: data.error?.message || 'Anthropic API request failed',
-                details: data 
-            });
-        }
-
-    } catch (error) {
-        console.error('❌ Anthropic Server Error:', error);
-        res.status(500).json({ error: 'Internal server error', message: error.message });
-    }
-});
-
 // Subscription Payment Endpoint
 app.post('/api/subscribe', (req, res) => {
     const { userId, paymentMethod, amount } = req.body;
@@ -261,6 +109,48 @@ app.post('/api/subscribe', (req, res) => {
 
 app.get('/api/health', (req, res) => {
     res.json({ status: 'OK', message: 'Leave Assistant backend is running' });
+});
+
+// Email verification endpoint (simulated)
+app.post('/api/send-verification', (req, res) => {
+    const { email, token, firstName, verificationLink } = req.body;
+    
+    // In a real app, you would integrate with an email service like:
+    // - SendGrid, Mailgun, AWS SES, etc.
+    // For now, we'll simulate the email sending
+    
+    console.log(`📧 Verification Email Sent to: ${email}`);
+    console.log(`🔗 Verification Link: ${verificationLink || `${req.headers.origin || 'http://localhost'}?verify=${token}`}`);
+    console.log(`👤 User: ${firstName}`);
+    
+    // Simulate email content
+    const emailContent = `
+    Hi ${firstName},
+    
+    Thank you for registering with Leave Assistant!
+    
+    Please click the link below to verify your email address:
+    ${verificationLink || `${req.headers.origin || 'http://localhost'}?verify=${token}`}
+    
+    This link will expire in 24 hours.
+    
+    If you didn't create this account, please ignore this email.
+    
+    Best regards,
+    Leave Assistant Team
+    `;
+    
+    console.log('📄 Email Content:', emailContent);
+    
+    // Simulate email sending delay
+    setTimeout(() => {
+        res.json({ 
+            success: true, 
+            message: 'Verification email sent successfully',
+            verificationLink: verificationLink || `${req.headers.origin || 'http://localhost'}?verify=${token}`,
+            emailContent: emailContent
+        });
+    }, 500);
 });
 
 // ==========================================

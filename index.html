@@ -6,6 +6,7 @@
     <title>Leave Assistant - HR Compliance Tool</title>
     <link rel="stylesheet" href="styles.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://js.puter.com/v2/"></script>
 </head>
 <body>
     <div id="loading" class="loading-overlay hidden">
@@ -85,8 +86,24 @@
                 <h2>Verify Email</h2>
                 <p>We've sent a verification link to your email address.</p>
                 <p>Please check your inbox (and spam folder) to complete registration.</p>
-                <button id="resendVerification" class="btn btn-secondary">Resend Email</button>
-                <button id="backToLogin" class="btn btn-text">Back to Login</button>
+                
+                <!-- Demo verification section -->
+                <div id="demoVerificationSection" class="demo-verification hidden">
+                    <hr>
+                    <h4>Demo Mode - Development Only</h4>
+                    <p><strong>Verification Link:</strong></p>
+                    <div class="verification-link-container">
+                        <input type="text" id="verificationLinkDisplay" readonly class="form-control" style="font-size: 0.8rem; margin-bottom: 1rem;">
+                        <button id="copyVerificationLink" class="btn btn-secondary btn-sm">📋 Copy Link</button>
+                    </div>
+                    <p><small>In production, this would be sent via email. For demo purposes, you can copy this link or use the auto-verify button below.</small></p>
+                </div>
+                
+                <div class="verification-actions">
+                    <button id="autoVerifyBtn" class="btn btn-success hidden">✅ Auto-Verify (Demo)</button>
+                    <button id="resendVerification" class="btn btn-secondary">📧 Resend Email</button>
+                    <button id="backToLogin" class="btn btn-text">← Back to Login</button>
+                </div>
             </div>
         </div>
     </div>
@@ -233,16 +250,14 @@
                     <div class="form-group">
                         <label>AI Provider Selection</label>
                         <select id="aiProvider" class="form-control">
+                            <option value="puter">Puter.js AI (Free - Default)</option>
                             <option value="openai">OpenAI GPT (Requires Key)</option>
-                            <option value="gemini">Google Gemini (Free Tier)</option>
-                            <option value="huggingface">Hugging Face (Free Tier)</option>
-                            <option value="cohere">Cohere (Free Tier)</option>
-                            <option value="anthropic">Anthropic Claude (Free Tier)</option>
+                            <option value="gemini">Google Gemini (Requires Key)</option>
                             <option value="demo">Demo Mode (Mock Data)</option>
                         </select>
                     </div>
 
-                    <div id="openaiKeySection" class="api-key-section">
+                    <div id="openaiKeySection" class="api-key-section hidden">
                         <div class="form-group">
                             <label>OpenAI API Key</label>
                             <input type="password" id="openaiApiKey" placeholder="sk-...">
@@ -255,30 +270,6 @@
                             <label>Google Gemini API Key</label>
                             <input type="password" id="geminiApiKey" placeholder="AIza...">
                             <small>Get free API key from Google AI Studio.</small>
-                        </div>
-                    </div>
-
-                    <div id="huggingfaceKeySection" class="api-key-section hidden">
-                        <div class="form-group">
-                            <label>Hugging Face API Key</label>
-                            <input type="password" id="huggingfaceApiKey" placeholder="hf_...">
-                            <small>Get free API key from Hugging Face Hub.</small>
-                        </div>
-                    </div>
-
-                    <div id="cohereKeySection" class="api-key-section hidden">
-                        <div class="form-group">
-                            <label>Cohere API Key</label>
-                            <input type="password" id="cohereApiKey" placeholder="...">
-                            <small>Get free API key from Cohere Dashboard.</small>
-                        </div>
-                    </div>
-
-                    <div id="anthropicKeySection" class="api-key-section hidden">
-                        <div class="form-group">
-                            <label>Anthropic Claude API Key</label>
-                            <input type="password" id="anthropicApiKey" placeholder="sk-ant-...">
-                            <small>Get API key from Anthropic Console.</small>
                         </div>
                     </div>
 

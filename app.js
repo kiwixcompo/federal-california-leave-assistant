@@ -5,6 +5,10 @@ class LeaveAssistantApp {
             this.currentUser = null;
             this.users = [];
             this.pendingVerifications = [];
+            this.idleTimer = null;
+            this.idleTimeout = 30 * 60 * 1000; // 30 minutes in milliseconds
+            this.currentVerificationToken = null;
+            this.currentVerificationEmail = null;
             
             // 1. Load Data
             try {
@@ -24,6 +28,7 @@ class LeaveAssistantApp {
             
             // 3. Start App
             this.init();
+            this.setupIdleTimer();
         } catch (error) {
             console.error('❌ Critical Init Error:', error);
             setTimeout(() => this.showPage('loginPage'), 100);
@@ -122,6 +127,12 @@ class LeaveAssistantApp {
         document.getElementById('backToDashboard1').onclick = () => this.showPage('dashboard');
         document.getElementById('backToDashboard2').onclick = () => this.showPage('dashboard');
 
+        // Verification page
+        document.getElementById('autoVerifyBtn').onclick = () => this.autoVerifyCurrentToken();
+        document.getElementById('copyVerificationLink').onclick = () => this.copyVerificationLink();
+        document.getElementById('resendVerification').onclick = () => this.resendVerificationEmail();
+        document.getElementById('backToLogin').onclick = () => this.showPage('loginPage');
+
         // Mode buttons for tools
         document.getElementById('federalEmailMode')?.addEventListener('click', () => this.setToolMode('federal', 'email'));
         document.getElementById('federalQuestionMode')?.addEventListener('click', () => this.setToolMode('federal', 'question'));
@@ -145,6 +156,7 @@ class LeaveAssistantApp {
 
         // Admin
         document.getElementById('refreshUsers').onclick = () => this.loadAdminDashboard();
+        document.getElementById('exportUsers').onclick = () => this.exportUsersCSV();
         document.getElementById('paymentSettingsForm').onsubmit = (e) => this.handlePaymentConfig(e);
         document.getElementById('bulkGrantBtn').onclick = () => this.showBulkGrantModal();
         document.getElementById('closeBulkGrant').onclick = () => document.getElementById('bulkGrantModal').classList.add('hidden');
@@ -167,6 +179,7 @@ class LeaveAssistantApp {
         if (this.currentUser.isAdmin) {
             this.loadAdminDashboard();
             this.showPage('adminDashboard');
+            this.resetIdleTimer(); // Start idle timer for admin
             return;
         }
 
@@ -176,9 +189,11 @@ class LeaveAssistantApp {
         if (status.active) {
             this.showPage('dashboard');
             this.updateTrialTimer(status);
+            this.resetIdleTimer(); // Start idle timer for regular users
         } else {
             this.showPage('subscriptionPage');
             this.loadSubscriptionPricing();
+            this.resetIdleTimer(); // Start idle timer even on subscription page
         }
     }
 
@@ -269,23 +284,24 @@ class LeaveAssistantApp {
 
     toggleKeyFields(provider) {
         // Hide all sections first
-        document.getElementById('openaiKeySection').classList.add('hidden');
-        document.getElementById('geminiKeySection').classList.add('hidden');
-        document.getElementById('huggingfaceKeySection').classList.add('hidden');
-        document.getElementById('cohereKeySection').classList.add('hidden');
-        document.getElementById('anthropicKeySection').classList.add('hidden');
+        const sections = ['openaiKeySection', 'geminiKeySection'];
+        sections.forEach(sectionId => {
+            const element = document.getElementById(sectionId);
+            if (element) element.classList.add('hidden');
+        });
         
         // Show the relevant section
+        let targetSection = '';
         if (provider === 'openai') {
-            document.getElementById('openaiKeySection').classList.remove('hidden');
+            targetSection = 'openaiKeySection';
         } else if (provider === 'gemini') {
-            document.getElementById('geminiKeySection').classList.remove('hidden');
-        } else if (provider === 'huggingface') {
-            document.getElementById('huggingfaceKeySection').classList.remove('hidden');
-        } else if (provider === 'cohere') {
-            document.getElementById('cohereKeySection').classList.remove('hidden');
-        } else if (provider === 'anthropic') {
-            document.getElementById('anthropicKeySection').classList.remove('hidden');
+            targetSection = 'geminiKeySection';
+        }
+        // Puter and demo don't need API key sections
+        
+        if (targetSection) {
+            const element = document.getElementById(targetSection);
+            if (element) element.classList.remove('hidden');
         }
     }
 
@@ -299,48 +315,31 @@ class LeaveAssistantApp {
         this.showLoading();
         
         try {
-            // Auto-detect API provider based on available keys
-            let provider = this.currentUser.aiProvider || 'openai';
+            // Determine which provider to use
+            let provider = this.currentUser.aiProvider || 'puter';
             let apiKey = '';
             
-            // Check for API keys and auto-detect provider
+            // Check for API keys and validate them
             const keys = {
                 openai: this.currentUser.openaiApiKey,
-                gemini: this.currentUser.geminiApiKey || this.paymentConfig.systemGeminiKey,
-                huggingface: this.currentUser.huggingfaceApiKey,
-                cohere: this.currentUser.cohereApiKey,
-                anthropic: this.currentUser.anthropicApiKey
+                gemini: this.currentUser.geminiApiKey || this.paymentConfig.systemGeminiKey
             };
             
-            // Auto-detect based on key format and availability
-            if (keys.openai && keys.openai.startsWith('sk-')) {
-                provider = 'openai';
+            // If user selected a specific provider, validate they have the key
+            if (provider === 'openai' && (!keys.openai || !keys.openai.startsWith('sk-'))) {
+                // Fall back to Puter.js if OpenAI key is invalid
+                console.log('⚠️ OpenAI selected but no valid key found, falling back to Puter.js');
+                provider = 'puter';
+            } else if (provider === 'gemini' && (!keys.gemini || !keys.gemini.startsWith('AIza'))) {
+                // Fall back to Puter.js if Gemini key is invalid
+                console.log('⚠️ Gemini selected but no valid key found, falling back to Puter.js');
+                provider = 'puter';
+            } else if (provider === 'openai') {
                 apiKey = keys.openai;
-            } else if (keys.gemini && keys.gemini.startsWith('AIza')) {
-                provider = 'gemini';
+            } else if (provider === 'gemini') {
                 apiKey = keys.gemini;
-            } else if (keys.huggingface && keys.huggingface.startsWith('hf_')) {
-                provider = 'huggingface';
-                apiKey = keys.huggingface;
-            } else if (keys.cohere && keys.cohere.length > 10) {
-                provider = 'cohere';
-                apiKey = keys.cohere;
-            } else if (keys.anthropic && keys.anthropic.startsWith('sk-ant-')) {
-                provider = 'anthropic';
-                apiKey = keys.anthropic;
-            } else if (provider === 'demo') {
-                // Keep demo mode
-            } else {
-                throw new Error('No valid API key found. Please add an API key for any supported provider in Settings.');
             }
-
-            // Check server status for non-demo modes
-            if (provider !== 'demo' && !this.serverRunning) {
-                await this.checkServerStatus();
-                if (!this.serverRunning) {
-                    throw new Error('❌ Server Connection Required: Please start the server by running "node server.js"');
-                }
-            }
+            // For 'puter' and 'demo', no API key needed
 
             let responseText = '';
             const systemPrompts = {
@@ -351,7 +350,41 @@ class LeaveAssistantApp {
             if (provider === 'demo') {
                 await new Promise(r => setTimeout(r, 1000));
                 responseText = "DEMO RESPONSE: This is a simulated response. Please configure an AI provider in settings for real results.";
-            } else {
+            } 
+            else if (provider === 'puter') {
+                // Use Puter.js AI - no API key required!
+                try {
+                    console.log('🤖 Using Puter.js AI (Free)...');
+                    
+                    // Create the full prompt with system context
+                    const fullPrompt = `${systemPrompts[toolName]}\n\nUser Query: ${input}\n\nPlease provide a helpful, compliant response:`;
+                    
+                    // Use Puter.js AI chat function
+                    const response = await puter.ai.chat(fullPrompt, {
+                        model: 'gpt-4o-mini', // Use a reliable model
+                        max_tokens: 800,
+                        temperature: 0.3
+                    });
+                    
+                    responseText = response || 'No response received from Puter.js AI';
+                    console.log('✅ Puter.js AI success');
+                    
+                } catch (puterError) {
+                    console.error('❌ Puter.js AI error:', puterError);
+                    // If Puter.js fails, fall back to demo mode
+                    console.log('⚠️ Puter.js failed, falling back to demo mode');
+                    responseText = "DEMO RESPONSE: Puter.js AI is temporarily unavailable. This is a simulated response. Please try again later or configure an API key in settings.";
+                }
+            }
+            else {
+                // Check server status for API-based providers
+                if (!this.serverRunning) {
+                    await this.checkServerStatus();
+                    if (!this.serverRunning) {
+                        throw new Error('❌ Server Connection Required: Please start the server by running "node server.js"');
+                    }
+                }
+
                 // Call the appropriate API endpoint
                 const endpoint = this.getApiUrl(provider);
                 const requestBody = {
@@ -397,7 +430,7 @@ class LeaveAssistantApp {
                             throw new Error('Invalid response format from Gemini API');
                         }
                     } else {
-                        // OpenAI, Hugging Face, Cohere, Anthropic use standardized format
+                        // OpenAI uses standardized format
                         responseText = data.choices?.[0]?.message?.content || 'No response received';
                     }
 
@@ -453,42 +486,131 @@ class LeaveAssistantApp {
         }
     }
 
-    handleRegister(e) {
+    async handleRegister(e) {
         e.preventDefault();
+        this.showLoading();
+
         const email = document.getElementById('registerEmail').value.trim().toLowerCase();
+        const firstName = document.getElementById('firstName').value.trim();
+        const lastName = document.getElementById('lastName').value.trim();
+        const password = document.getElementById('registerPassword').value;
         
         // Disposable Email Check
         const domain = email.split('@')[1];
         if (this.disposableDomains.includes(domain)) {
+            this.hideLoading();
             return this.showError('❌ Registration Rejected: Disposable emails are not allowed.');
         }
 
-        // Standard Register Logic...
-        const password = document.getElementById('registerPassword').value;
-        const firstName = document.getElementById('firstName').value;
-        const lastName = document.getElementById('lastName').value;
+        if (this.findUser(email)) {
+            this.hideLoading();
+            return this.showError('User exists');
+        }
 
-        if (this.findUser(email)) return this.showError('User exists');
-
-        const token = Math.random().toString(36).substring(7);
+        const token = Math.random().toString(36).substring(2) + Date.now().toString(36);
         const newUser = {
             firstName, lastName, email, password,
             isAdmin: false, emailVerified: false,
-            createdAt: Date.now(), aiProvider: 'openai'
+            createdAt: Date.now(), aiProvider: 'puter'  // Default to Puter.js AI
         };
 
         this.pendingVerifications.push({ token, userData: newUser, createdAt: Date.now() });
         this.savePendingVerifications(this.pendingVerifications);
 
-        console.log('Verify Link:', `?verify=${token}`);
+        // Store current token for verification
+        this.currentVerificationToken = token;
+        this.currentVerificationEmail = email;
+
+        // Create verification link
+        const verificationLink = `${window.location.origin}${window.location.pathname}?verify=${token}`;
+
+        // Send verification email (simulated)
+        try {
+            const response = await fetch(this.getApiUrl('send-verification'), {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    email: email,
+                    firstName: firstName,
+                    token: token,
+                    verificationLink: verificationLink
+                })
+            });
+
+            const result = await response.json();
+            
+            if (result.success) {
+                console.log(`📨 Verification email sent to: ${email}`);
+                console.log(`🔗 Verification link: ${verificationLink}`);
+            }
+        } catch (error) {
+            console.error('Email sending error:', error);
+        }
+
+        // Show verification page with link
+        this.showVerificationPage(verificationLink, email);
+        this.hideLoading();
+    }
+
+    showVerificationPage(verificationLink, email) {
+        // Show the verification page
         this.showPage('verificationPage');
         
-        // Auto verify for demo
-        setTimeout(() => {
-            if (confirm('DEMO: Click OK to auto-verify email')) {
-                this.verifyEmailToken(token);
-            }
-        }, 1000);
+        // Display the verification link in demo mode
+        document.getElementById('verificationLinkDisplay').value = verificationLink;
+        document.getElementById('demoVerificationSection').classList.remove('hidden');
+        document.getElementById('autoVerifyBtn').classList.remove('hidden');
+        
+        // Update the email message
+        const emailMessage = document.querySelector('#verificationPage p');
+        if (emailMessage) {
+            emailMessage.textContent = `We've sent a verification link to ${email}.`;
+        }
+        
+        this.showSuccess(`Registration successful! Verification link created for ${email}`);
+    }
+
+    autoVerifyCurrentToken() {
+        if (this.currentVerificationToken) {
+            this.verifyEmailToken(this.currentVerificationToken);
+        } else {
+            this.showError('No verification token available');
+        }
+    }
+
+    copyVerificationLink() {
+        const linkInput = document.getElementById('verificationLinkDisplay');
+        linkInput.select();
+        linkInput.setSelectionRange(0, 99999); // For mobile devices
+        
+        try {
+            document.execCommand('copy');
+            this.showSuccess('Verification link copied to clipboard!');
+        } catch (err) {
+            // Fallback for modern browsers
+            navigator.clipboard.writeText(linkInput.value).then(() => {
+                this.showSuccess('Verification link copied to clipboard!');
+            }).catch(() => {
+                this.showError('Failed to copy link. Please copy manually.');
+            });
+        }
+    }
+
+    resendVerificationEmail() {
+        if (this.currentVerificationEmail && this.currentVerificationToken) {
+            const verificationLink = `${window.location.origin}${window.location.pathname}?verify=${this.currentVerificationToken}`;
+            
+            // Simulate resending
+            console.log(`📨 Resending verification email to: ${this.currentVerificationEmail}`);
+            console.log(`🔗 Verification link: ${verificationLink}`);
+            
+            // Update the displayed link
+            document.getElementById('verificationLinkDisplay').value = verificationLink;
+            
+            this.showSuccess('Verification email resent! Check the link above.');
+        } else {
+            this.showError('No verification email to resend. Please register again.');
+        }
     }
 
     handleLogin(e) {
@@ -501,6 +623,7 @@ class LeaveAssistantApp {
         if (user && user.password === password) {
             this.currentUser = user;
             localStorage.setItem('currentUser', JSON.stringify(user));
+            this.resetIdleTimer(); // Start idle timer on login
             this.checkSubscriptionAndRedirect();
         } else {
             this.showError('Invalid credentials');
@@ -529,19 +652,56 @@ class LeaveAssistantApp {
     logout() {
         this.currentUser = null;
         localStorage.removeItem('currentUser');
+        this.clearIdleTimer();
         this.showPage('loginPage');
+    }
+
+    // ==========================================
+    // IDLE TIMER FUNCTIONALITY
+    // ==========================================
+
+    setupIdleTimer() {
+        // Events that reset the idle timer
+        const events = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart', 'click'];
+        
+        events.forEach(event => {
+            document.addEventListener(event, () => this.resetIdleTimer(), true);
+        });
+        
+        this.resetIdleTimer();
+    }
+
+    resetIdleTimer() {
+        // Only track idle time if user is logged in
+        if (!this.currentUser) return;
+        
+        this.clearIdleTimer();
+        
+        this.idleTimer = setTimeout(() => {
+            this.showError('Session expired due to inactivity. Please log in again.');
+            setTimeout(() => this.logout(), 2000);
+        }, this.idleTimeout);
+    }
+
+    clearIdleTimer() {
+        if (this.idleTimer) {
+            clearTimeout(this.idleTimer);
+            this.idleTimer = null;
+        }
     }
 
     handleSettings(e) {
         e.preventDefault();
         
-        // Get all API keys
+        // Get AI provider
         this.currentUser.aiProvider = document.getElementById('aiProvider').value;
-        this.currentUser.openaiApiKey = document.getElementById('openaiApiKey').value;
-        this.currentUser.geminiApiKey = document.getElementById('geminiApiKey').value;
-        this.currentUser.huggingfaceApiKey = document.getElementById('huggingfaceApiKey').value;
-        this.currentUser.cohereApiKey = document.getElementById('cohereApiKey').value;
-        this.currentUser.anthropicApiKey = document.getElementById('anthropicApiKey').value;
+        
+        // Only get API keys from fields that exist
+        const openaiField = document.getElementById('openaiApiKey');
+        const geminiField = document.getElementById('geminiApiKey');
+        
+        if (openaiField) this.currentUser.openaiApiKey = openaiField.value;
+        if (geminiField) this.currentUser.geminiApiKey = geminiField.value;
         
         const newPass = document.getElementById('newPassword').value;
         if (newPass) this.currentUser.password = newPass;
@@ -551,7 +711,11 @@ class LeaveAssistantApp {
         // Show which provider is active
         const provider = this.currentUser.aiProvider;
         let providerName = provider.charAt(0).toUpperCase() + provider.slice(1);
-        if (provider === 'huggingface') providerName = 'Hugging Face';
+        if (provider === 'puter') providerName = 'Puter.js AI (Free)';
+        
+        this.showSuccess(`Settings Saved (${providerName} Active)`);
+        this.hideSettings();
+    } = 'Puter.js AI (Free)';
         
         this.showSuccess(`Settings Saved (${providerName} Active)`);
         this.hideSettings();
@@ -595,7 +759,15 @@ class LeaveAssistantApp {
 
     // Bulk Actions
     toggleSelectAll(checked) { document.querySelectorAll('.user-select-cb').forEach(cb => cb.checked = checked); }
-    showBulkGrantModal() { document.getElementById('bulkGrantModal').classList.remove('hidden'); }
+    
+    showBulkGrantModal() { 
+        const selected = document.querySelectorAll('.user-select-cb:checked');
+        if (selected.length === 0) return this.showError('No users selected');
+        
+        document.getElementById('bulkCount').textContent = selected.length;
+        document.getElementById('bulkGrantModal').classList.remove('hidden'); 
+    }
+    
     handleBulkGrant(e) {
         e.preventDefault();
         const duration = document.getElementById('grantDuration').value;
@@ -614,6 +786,59 @@ class LeaveAssistantApp {
         this.showSuccess('Access Granted!');
     }
 
+    switchAdminTab(tab) {
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.add('hidden'));
+        document.getElementById(`${tab}Tab`).classList.remove('hidden');
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.querySelector(`button[data-tab="${tab}"]`).classList.add('active');
+    }
+
+    exportUsersCSV() {
+        const nonAdmins = this.users.filter(u => !u.isAdmin);
+        const csvData = [
+            ['Name', 'Email', 'Verified', 'Status', 'Created', 'Subscription Expiry']
+        ];
+        
+        nonAdmins.forEach(u => {
+            const status = this.getSubscriptionStatus(u);
+            const statusText = status.type === 'trial' ? 'Trial' : (status.type === 'subscription' ? 'Premium' : 'Expired');
+            csvData.push([
+                `${u.firstName} ${u.lastName}`,
+                u.email,
+                u.emailVerified ? 'Yes' : 'No',
+                statusText,
+                new Date(u.createdAt).toLocaleDateString(),
+                u.subscriptionExpiry ? new Date(u.subscriptionExpiry).toLocaleDateString() : 'N/A'
+            ]);
+        });
+        
+        const csvContent = csvData.map(row => 
+            row.map(field => `"${field}"`).join(',')
+        ).join('\n');
+        
+        const blob = new Blob([csvContent], { type: 'text/csv' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `users_export_${new Date().toISOString().split('T')[0]}.csv`;
+        a.click();
+        window.URL.revokeObjectURL(url);
+        
+        this.showSuccess('Users exported to CSV');
+    }
+
+    resetUserPassword(userId) {
+        const user = this.users.find(u => u.id === userId);
+        if (!user) return;
+        
+        const newPassword = 'TempPass123!';
+        user.password = newPassword;
+        this.saveUsers(this.users);
+        
+        alert(`Password reset for ${user.email}\nNew password: ${newPassword}\nUser should change this immediately.`);
+        this.showSuccess('Password reset successfully');
+    }
+
     // Data Loaders
     loadUsers() { const u = localStorage.getItem('users'); return u ? JSON.parse(u) : [{ id: '1', email: 'talk2char@gmail.com', password: 'Password@123', isAdmin: true, firstName:'Super', lastName:'Admin', emailVerified: true }]; }
     saveUsers(u) { localStorage.setItem('users', JSON.stringify(u)); }
@@ -625,16 +850,19 @@ class LeaveAssistantApp {
     showPage(id) { document.querySelectorAll('.page').forEach(p => p.classList.add('hidden')); document.getElementById(id).classList.remove('hidden'); }
     showSettings() { 
         // Populate current values
-        document.getElementById('aiProvider').value = this.currentUser.aiProvider || 'openai';
-        document.getElementById('openaiApiKey').value = this.currentUser.openaiApiKey || '';
-        document.getElementById('geminiApiKey').value = this.currentUser.geminiApiKey || '';
-        document.getElementById('huggingfaceApiKey').value = this.currentUser.huggingfaceApiKey || '';
-        document.getElementById('cohereApiKey').value = this.currentUser.cohereApiKey || '';
-        document.getElementById('anthropicApiKey').value = this.currentUser.anthropicApiKey || '';
-        document.getElementById('newPassword').value = '';
+        document.getElementById('aiProvider').value = this.currentUser.aiProvider || 'puter';
+        
+        // Only populate fields that exist in the HTML
+        const openaiField = document.getElementById('openaiApiKey');
+        const geminiField = document.getElementById('geminiApiKey');
+        const passwordField = document.getElementById('newPassword');
+        
+        if (openaiField) openaiField.value = this.currentUser.openaiApiKey || '';
+        if (geminiField) geminiField.value = this.currentUser.geminiApiKey || '';
+        if (passwordField) passwordField.value = '';
         
         // Show/hide appropriate sections
-        this.toggleKeyFields(this.currentUser.aiProvider || 'openai');
+        this.toggleKeyFields(this.currentUser.aiProvider || 'puter');
         
         document.getElementById('settingsModal').classList.remove('hidden'); 
     }

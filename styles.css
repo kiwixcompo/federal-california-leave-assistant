@@ -121,6 +121,43 @@ body {
     text-decoration: underline;
 }
 
+/* Verification Page Enhancements */
+.demo-verification {
+    background: #f0f9ff;
+    border: 1px solid #0ea5e9;
+    border-radius: 0.5rem;
+    padding: 1rem;
+    margin: 1rem 0;
+}
+
+.verification-link-container {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.verification-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    margin-top: 1.5rem;
+}
+
+.verification-actions .btn {
+    width: 100%;
+}
+
+@media (max-width: 480px) {
+    .verification-link-container {
+        flex-direction: column;
+    }
+    
+    .verification-link-container input {
+        font-size: 0.7rem !important;
+    }
+}
+
 /* Forms */
 .form-group { margin-bottom: 1.25rem; }
 .row { display: flex; gap: 1rem; }

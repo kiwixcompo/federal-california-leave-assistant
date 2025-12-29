@@ -1,68 +1,80 @@
-# 🤖 Multi-LLM Provider Integration Guide
+# 🤖 AI Provider Integration Guide
 
 ## ✅ **Supported AI Providers**
 
-### 1. **OpenAI GPT** (Premium)
+### 1. **Puter.js AI** (Free - Default) ⭐
+- **API Key Required**: ❌ No API key needed!
+- **Models**: GPT-4o-mini, Claude, Gemini, and 500+ models
+- **Setup**: Automatic - works out of the box
+- **Free Usage**: Unlimited with user-pays model
+- **Perfect For**: New users, 24-hour trial period, no setup required
+
+### 2. **OpenAI GPT** (Premium)
 - **API Key Format**: `sk-...`
 - **Models**: GPT-4o-mini (fast & cost-effective)
 - **Get Key**: [OpenAI Platform](https://platform.openai.com/api-keys)
 - **Cost**: Pay-per-use
+- **Perfect For**: Production use, advanced features
 
-### 2. **Google Gemini** (Free Tier Available)
+### 3. **Google Gemini** (API Key Required)
 - **API Key Format**: `AIza...`
 - **Models**: gemini-pro (stable & reliable)
 - **Get Key**: [Google AI Studio](https://makersuite.google.com/app/apikey)
 - **Free Tier**: 60 requests/minute
+- **Perfect For**: Google ecosystem integration
 
-### 3. **Hugging Face** (Free Tier Available)
-- **API Key Format**: `hf_...`
-- **Models**: DialoGPT-medium (conversational AI)
-- **Get Key**: [Hugging Face Hub](https://huggingface.co/settings/tokens)
-- **Free Tier**: Rate-limited but generous
-
-### 4. **Cohere** (Free Tier Available)
-- **API Key Format**: Various formats
-- **Models**: command-light (fast responses)
-- **Get Key**: [Cohere Dashboard](https://dashboard.cohere.ai/api-keys)
-- **Free Tier**: 100 calls/month
-
-### 5. **Anthropic Claude** (Free Tier Available)
-- **API Key Format**: `sk-ant-...`
-- **Models**: claude-3-haiku (fast & efficient)
-- **Get Key**: [Anthropic Console](https://console.anthropic.com/)
-- **Free Tier**: Limited monthly usage
-
-### 6. **Demo Mode**
+### 4. **Demo Mode**
 - No API key required
 - Returns mock responses for testing
 - Perfect for development and demos
 
 ## 🚀 **How It Works**
 
-1. **Auto-Detection**: The app automatically detects which provider to use based on your API keys
-2. **Seamless Switching**: Add multiple keys and the app will use the best available option
-3. **Fallback Support**: If one provider fails, you can easily switch to another
-4. **Free Testing**: Use free-tier providers to test the app without costs
+### **Default Experience (Puter.js AI)**
+- **New Users**: Automatically use Puter.js AI (free, no setup)
+- **24-Hour Trial**: Full access with Puter.js AI during trial period
+- **No Configuration**: Works immediately after registration
+- **Multiple Models**: Access to GPT, Claude, Gemini through one interface
+
+### **Upgrade Options**
+- **Add OpenAI Key**: For dedicated OpenAI access and advanced features
+- **Add Gemini Key**: For Google's latest AI models
+- **Keep Puter.js**: Continue using the free service indefinitely
 
 ## 📝 **Setup Instructions**
 
+### **For New Users (Recommended)**
+1. **Register** for an account
+2. **Verify Email** 
+3. **Start Using**: Puter.js AI works immediately - no setup needed!
+4. **24-Hour Trial**: Full access to all features
+
+### **For Advanced Users**
 1. Go to **Settings** in the app
 2. Select your preferred **AI Provider**
-3. Enter your **API Key** for that provider
-4. The app will automatically use that provider for responses
+3. Enter your **API Key** (if using OpenAI or Gemini)
+4. The app will automatically use your preferred provider
 
 ## 💡 **Pro Tips**
 
-- **For Testing**: Use Gemini (free 60 requests/minute)
-- **For Production**: Use OpenAI GPT (best quality)
-- **For Budget**: Use Hugging Face or Cohere (free tiers)
-- **For Privacy**: Use Anthropic Claude (privacy-focused)
+- **For Beginners**: Stick with Puter.js AI (free, no setup)
+- **For Production**: Add OpenAI API key for dedicated access
+- **For Google Users**: Add Gemini API key for Google ecosystem
+- **For Testing**: Use Demo mode for development
 
 ## 🔧 **Troubleshooting**
 
-- **"No API key found"**: Add at least one valid API key in Settings
-- **"Connection Error"**: Ensure the server is running (`node server.js`)
-- **"Invalid key format"**: Check the key format matches the provider requirements
-- **"Quota exceeded"**: Switch to a different provider or wait for quota reset
+- **"No response"**: Check internet connection (Puter.js requires internet)
+- **"Invalid key format"**: Ensure OpenAI keys start with `sk-`, Gemini with `AIza`
+- **"Connection Error"**: For OpenAI/Gemini, ensure server is running (`node server.js`)
+- **Puter.js Issues**: Try refreshing the page or switching to Demo mode temporarily
 
-All providers are integrated seamlessly - just add your keys and start using!
+## 🌟 **Why Puter.js AI is Default**
+
+- **Zero Setup**: Works immediately after registration
+- **No API Keys**: No need to sign up for multiple services
+- **Multiple Models**: Access to GPT, Claude, Gemini, and 500+ models
+- **User-Pays Model**: Users cover their own AI costs, no developer overhead
+- **Perfect for Trials**: Ideal for the 24-hour trial period
+
+The app now provides the best of both worlds: immediate access with Puter.js AI and the option to upgrade to dedicated API providers when needed!
