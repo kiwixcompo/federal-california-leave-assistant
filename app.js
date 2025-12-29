@@ -9,6 +9,7 @@ class LeaveAssistantApp {
             this.idleTimeout = 30 * 60 * 1000; // 30 minutes in milliseconds
             this.currentVerificationToken = null;
             this.currentVerificationEmail = null;
+            this.trialTimerInterval = null; // For countdown timer
             
             // 1. Load Data
             try {
@@ -39,6 +40,12 @@ class LeaveAssistantApp {
     // API CONNECTION HELPER (The Fix)
     // ==========================================
     getApiUrl(endpoint) {
+        // For production/Netlify deployment, don't try to connect to localhost
+        if (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+            console.warn('⚠️ Production environment detected. Server endpoints not available.');
+            return null; // This will force fallback to client-only mode
+        }
+        
         // If the app is loaded from port 3001, use relative path
         if (window.location.port === '3001') {
             return `/api/${endpoint}`;
@@ -55,58 +62,91 @@ class LeaveAssistantApp {
     // ==========================================
 
     async init() {
-        // Hide pages
-        document.querySelectorAll('.page').forEach(p => p.classList.add('hidden'));
-        document.querySelectorAll('.modal').forEach(m => m.classList.add('hidden'));
-        
-        this.bindEvents();
-        
-        // Check server status
-        this.checkServerStatus();
-        
-        // URL Token Check
-        const urlParams = new URLSearchParams(window.location.search);
-        if (urlParams.get('verify')) {
-            this.verifyEmailToken(urlParams.get('verify'));
-            window.history.replaceState({}, document.title, window.location.pathname);
-            return;
-        }
-        
-        // Session Check
-        const currentUser = localStorage.getItem('currentUser');
-        if (currentUser) {
-            this.currentUser = JSON.parse(currentUser);
-            // Refresh user data
-            const freshUser = this.users.find(u => u.id === this.currentUser.id);
-            if (freshUser) {
-                this.currentUser = freshUser;
-                localStorage.setItem('currentUser', JSON.stringify(freshUser));
+        try {
+            console.log('🔄 Starting initialization...');
+            
+            // Hide pages
+            document.querySelectorAll('.page').forEach(p => p.classList.add('hidden'));
+            document.querySelectorAll('.modal').forEach(m => m.classList.add('hidden'));
+            
+            this.bindEvents();
+            console.log('✅ Events bound successfully');
+            
+            // Check server status
+            this.checkServerStatus();
+            
+            // URL Token Check
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.get('verify')) {
+                console.log('🔗 Email verification token detected');
+                this.verifyEmailToken(urlParams.get('verify'));
+                window.history.replaceState({}, document.title, window.location.pathname);
+                return;
             }
+            
+            // Session Check
+            const currentUser = localStorage.getItem('currentUser');
+            if (currentUser) {
+                console.log('👤 Existing user session found');
+                this.currentUser = JSON.parse(currentUser);
+                // Refresh user data
+                const freshUser = this.users.find(u => u.id === this.currentUser.id);
+                if (freshUser) {
+                    this.currentUser = freshUser;
+                    localStorage.setItem('currentUser', JSON.stringify(freshUser));
+                }
 
-            if (!this.currentUser.emailVerified) {
-                this.showPage('verificationPage');
+                if (!this.currentUser.emailVerified) {
+                    console.log('📧 User needs email verification');
+                    this.showPage('verificationPage');
+                } else {
+                    console.log('✅ User verified, checking subscription');
+                    this.checkSubscriptionAndRedirect();
+                }
             } else {
-                this.checkSubscriptionAndRedirect();
+                console.log('🆕 No existing session, showing login');
+                this.showPage('loginPage');
             }
-        } else {
+            
+            this.hideLoading();
+            console.log('✅ Initialization complete');
+            
+        } catch (error) {
+            console.error('❌ Initialization Error:', error);
+            this.hideLoading();
             this.showPage('loginPage');
+            this.showError('Application failed to initialize. Please refresh the page.');
         }
-        
-        this.hideLoading();
     }
 
     async checkServerStatus() {
         try {
             const url = this.getApiUrl('health');
+            
+            // If no URL (production environment), skip server check
+            if (!url) {
+                console.log('🌐 Production environment - running in client-only mode');
+                this.serverRunning = false;
+                return;
+            }
+            
             console.log(`📡 Connecting to backend at: ${url}`);
             
-            const response = await fetch(url, { method: 'GET' });
+            const response = await fetch(url, { 
+                method: 'GET',
+                timeout: 5000 // 5 second timeout
+            });
+            
             if (response.ok) {
                 console.log('✅ Server connection established');
                 this.serverRunning = true;
+            } else {
+                console.warn('⚠️ Server responded with error:', response.status);
+                this.serverRunning = false;
             }
         } catch (error) {
-            console.warn('⚠️ Server check failed. Ensure "node server.js" is running.');
+            console.warn('⚠️ Server check failed. Running in client-only mode.');
+            console.warn('Error details:', error.message);
             this.serverRunning = false;
         }
     }
@@ -219,15 +259,68 @@ class LeaveAssistantApp {
         const timerEl = document.getElementById('trialTimer');
         if (status.type === 'trial') {
             const timeLeft = new Date(status.expiry).getTime() - Date.now();
-            const hoursLeft = Math.ceil(timeLeft / (1000 * 60 * 60));
-            timerEl.textContent = `Trial Active: ${hoursLeft}h remaining`;
-            timerEl.classList.remove('hidden');
+            
+            if (timeLeft > 0) {
+                const hours = Math.floor(timeLeft / (1000 * 60 * 60));
+                const minutes = Math.floor((timeLeft % (1000 * 60 * 60)) / (1000 * 60));
+                const seconds = Math.floor((timeLeft % (1000 * 60)) / 1000);
+                
+                timerEl.textContent = `Trial: ${hours}h ${minutes}m ${seconds}s remaining`;
+                timerEl.classList.remove('hidden');
+                timerEl.style.background = '#f59e0b';
+                timerEl.style.color = 'white';
+                
+                // Update every second
+                if (!this.trialTimerInterval) {
+                    this.trialTimerInterval = setInterval(() => {
+                        const currentStatus = this.getSubscriptionStatus(this.currentUser);
+                        if (currentStatus.type !== 'trial') {
+                            clearInterval(this.trialTimerInterval);
+                            this.trialTimerInterval = null;
+                            // Redirect to subscription page when trial expires
+                            this.showPage('subscriptionPage');
+                            this.loadSubscriptionPricing();
+                            this.showError('Your 24-hour free trial has expired. Please subscribe to continue.');
+                        } else {
+                            this.updateTrialTimer(currentStatus);
+                        }
+                    }, 1000);
+                }
+            } else {
+                // Trial expired
+                timerEl.textContent = 'Trial Expired';
+                timerEl.classList.remove('hidden');
+                timerEl.style.background = '#ef4444';
+                timerEl.style.color = 'white';
+                
+                if (this.trialTimerInterval) {
+                    clearInterval(this.trialTimerInterval);
+                    this.trialTimerInterval = null;
+                }
+                
+                // Redirect to subscription page
+                setTimeout(() => {
+                    this.showPage('subscriptionPage');
+                    this.loadSubscriptionPricing();
+                    this.showError('Your 24-hour free trial has expired. Please subscribe to continue.');
+                }, 2000);
+            }
         } else if (status.type === 'subscription') {
             timerEl.textContent = 'Premium Active 👑';
             timerEl.classList.remove('hidden');
             timerEl.style.background = '#10b981';
+            timerEl.style.color = 'white';
+            
+            if (this.trialTimerInterval) {
+                clearInterval(this.trialTimerInterval);
+                this.trialTimerInterval = null;
+            }
         } else {
             timerEl.classList.add('hidden');
+            if (this.trialTimerInterval) {
+                clearInterval(this.trialTimerInterval);
+                this.trialTimerInterval = null;
+            }
         }
     }
 
@@ -236,8 +329,20 @@ class LeaveAssistantApp {
         if (!status.active) {
             this.showPage('subscriptionPage');
             this.loadSubscriptionPricing();
+            this.showError('Your trial has expired. Please subscribe to continue using the tools.');
             return;
         }
+        
+        // Check if trial is about to expire (less than 1 hour left)
+        if (status.type === 'trial') {
+            const timeLeft = new Date(status.expiry).getTime() - Date.now();
+            const hoursLeft = timeLeft / (1000 * 60 * 60);
+            
+            if (hoursLeft < 1) {
+                this.showError(`Trial expires in ${Math.ceil(hoursLeft * 60)} minutes. Consider subscribing to avoid interruption.`);
+            }
+        }
+        
         this.showPage(pageId);
     }
 
@@ -251,23 +356,37 @@ class LeaveAssistantApp {
         this.showLoading();
         
         try {
-            const url = this.getApiUrl('subscribe');
-            const response = await fetch(url, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    userId: this.currentUser.id,
-                    paymentMethod: method,
-                    amount: fee
-                })
-            });
+            const endpoint = this.getApiUrl('subscribe');
             
-            const data = await response.json();
-            
-            if (data.success) {
-                this.currentUser.subscriptionExpiry = data.expiryDate;
+            if (endpoint && this.serverRunning) {
+                const response = await fetch(endpoint, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        userId: this.currentUser.id,
+                        paymentMethod: method,
+                        amount: fee
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    this.currentUser.subscriptionExpiry = data.expiryDate;
+                    this.updateUserRecord(this.currentUser);
+                    this.showSuccess('Payment Successful! Subscription activated.');
+                    setTimeout(() => this.checkSubscriptionAndRedirect(), 1500);
+                }
+            } else {
+                // In production without server, simulate payment for demo
+                console.log(`💰 Simulating payment: User ${this.currentUser.id} via ${method} (${fee})`);
+                
+                // Grant 30 days subscription
+                const expiryDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+                this.currentUser.subscriptionExpiry = expiryDate;
                 this.updateUserRecord(this.currentUser);
-                this.showSuccess('Payment Successful! Subscription activated.');
+                
+                this.showSuccess('Payment Successful! Subscription activated. (Demo Mode)');
                 setTimeout(() => this.checkSubscriptionAndRedirect(), 1500);
             }
         } catch (error) {
@@ -356,15 +475,25 @@ class LeaveAssistantApp {
                 try {
                     console.log('🤖 Using Puter.js AI (Free)...');
                     
+                    // Check if Puter.js is available and initialized
+                    if (typeof puter === 'undefined' || !puter.ai) {
+                        throw new Error('Puter.js not available');
+                    }
+                    
                     // Create the full prompt with system context
                     const fullPrompt = `${systemPrompts[toolName]}\n\nUser Query: ${input}\n\nPlease provide a helpful, compliant response:`;
                     
-                    // Use Puter.js AI chat function
-                    const response = await puter.ai.chat(fullPrompt, {
-                        model: 'gpt-4o-mini', // Use a reliable model
-                        max_tokens: 800,
-                        temperature: 0.3
-                    });
+                    // Use Puter.js AI chat function with timeout
+                    const response = await Promise.race([
+                        puter.ai.chat(fullPrompt, {
+                            model: 'gpt-4o-mini',
+                            max_tokens: 800,
+                            temperature: 0.3
+                        }),
+                        new Promise((_, reject) => 
+                            setTimeout(() => reject(new Error('Puter.js timeout')), 15000)
+                        )
+                    ]);
                     
                     responseText = response || 'No response received from Puter.js AI';
                     console.log('✅ Puter.js AI success');
@@ -373,72 +502,99 @@ class LeaveAssistantApp {
                     console.error('❌ Puter.js AI error:', puterError);
                     // If Puter.js fails, fall back to demo mode
                     console.log('⚠️ Puter.js failed, falling back to demo mode');
-                    responseText = "DEMO RESPONSE: Puter.js AI is temporarily unavailable. This is a simulated response. Please try again later or configure an API key in settings.";
+                    responseText = `DEMO RESPONSE: Puter.js AI is temporarily unavailable (${puterError.message}). This is a simulated response for ${toolName === 'federal' ? 'Federal FMLA' : 'California Leave'} compliance. Please try again later or configure an API key in settings for reliable service.`;
                 }
             }
             else {
                 // Check server status for API-based providers
-                if (!this.serverRunning) {
-                    await this.checkServerStatus();
-                    if (!this.serverRunning) {
-                        throw new Error('❌ Server Connection Required: Please start the server by running "node server.js"');
-                    }
-                }
-
-                // Call the appropriate API endpoint
                 const endpoint = this.getApiUrl(provider);
-                const requestBody = {
-                    apiKey: apiKey,
-                    prompt: input,
-                    systemPrompt: systemPrompts[toolName]
-                };
-
-                // Add model-specific parameters
-                if (provider === 'openai') {
-                    requestBody.messages = [
-                        { role: 'system', content: systemPrompts[toolName] },
-                        { role: 'user', content: input }
-                    ];
-                    requestBody.model = 'gpt-4o-mini';
-                }
-
-                try {
-                    const res = await fetch(endpoint, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(requestBody)
-                    });
-                    
-                    // Handle both JSON and HTML error responses
-                    let data;
-                    const contentType = res.headers.get('content-type');
-                    if (contentType && contentType.includes('application/json')) {
-                        data = await res.json();
+                
+                if (!endpoint || !this.serverRunning) {
+                    if (!endpoint) {
+                        console.warn('⚠️ Server endpoints not available in production. Falling back to Puter.js/Demo mode.');
                     } else {
-                        throw new Error(`Server Error (${res.status}): Unable to connect to ${provider} API endpoint.`);
+                        await this.checkServerStatus();
+                        if (!this.serverRunning) {
+                            console.warn('⚠️ Server not running. Falling back to Puter.js/Demo mode.');
+                        }
                     }
                     
-                    if (!res.ok || data.error) {
-                        throw new Error(data.error?.message || data.error || `API Error: ${res.status}`);
-                    }
-                    
-                    // Parse response based on provider
-                    if (provider === 'gemini') {
-                        if (data.candidates && data.candidates[0]?.content?.parts?.[0]?.text) {
-                            responseText = data.candidates[0].content.parts[0].text;
-                        } else {
-                            throw new Error('Invalid response format from Gemini API');
+                    // Fall back to Puter.js or demo mode
+                    if (typeof puter !== 'undefined' && puter.ai) {
+                        console.log('🔄 Falling back to Puter.js AI...');
+                        provider = 'puter';
+                        // Retry with Puter.js
+                        try {
+                            const fullPrompt = `${systemPrompts[toolName]}\n\nUser Query: ${input}\n\nPlease provide a helpful, compliant response:`;
+                            const response = await puter.ai.chat(fullPrompt, {
+                                model: 'gpt-4o-mini',
+                                max_tokens: 800,
+                                temperature: 0.3
+                            });
+                            responseText = response || 'No response received from Puter.js AI';
+                        } catch (puterFallbackError) {
+                            console.error('❌ Puter.js fallback failed:', puterFallbackError);
+                            responseText = `DEMO RESPONSE: Server unavailable and Puter.js failed. This is a simulated response for ${toolName === 'federal' ? 'Federal FMLA' : 'California Leave'} compliance. Please try again later.`;
                         }
                     } else {
-                        // OpenAI uses standardized format
-                        responseText = data.choices?.[0]?.message?.content || 'No response received';
+                        console.log('🔄 Falling back to demo mode...');
+                        responseText = `DEMO RESPONSE: Server unavailable. This is a simulated response for ${toolName === 'federal' ? 'Federal FMLA' : 'California Leave'} compliance. Please configure the server or use Puter.js for real AI responses.`;
+                    }
+                } else {
+                    // Server is available, proceed with API call
+                    const requestBody = {
+                        apiKey: apiKey,
+                        prompt: input,
+                        systemPrompt: systemPrompts[toolName]
+                    };
+
+                    // Add model-specific parameters
+                    if (provider === 'openai') {
+                        requestBody.messages = [
+                            { role: 'system', content: systemPrompts[toolName] },
+                            { role: 'user', content: input }
+                        ];
+                        requestBody.model = 'gpt-4o-mini';
                     }
 
-                } catch (fetchError) {
-                    if (fetchError.message.includes('Failed to fetch') || fetchError.name === 'TypeError') {
-                        throw new Error(`❌ Connection Error: Cannot connect to ${provider} API. Please ensure the server is running.`);
+                    try {
+                        const res = await fetch(endpoint, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(requestBody)
+                        });
+                        
+                        // Handle both JSON and HTML error responses
+                        let data;
+                        const contentType = res.headers.get('content-type');
+                        if (contentType && contentType.includes('application/json')) {
+                            data = await res.json();
+                        } else {
+                            throw new Error(`Server Error (${res.status}): Unable to connect to ${provider} API endpoint.`);
+                        }
+                        
+                        if (!res.ok || data.error) {
+                            throw new Error(data.error?.message || data.error || `API Error: ${res.status}`);
+                        }
+                        
+                        // Parse response based on provider
+                        if (provider === 'gemini') {
+                            if (data.candidates && data.candidates[0]?.content?.parts?.[0]?.text) {
+                                responseText = data.candidates[0].content.parts[0].text;
+                            } else {
+                                throw new Error('Invalid response format from Gemini API');
+                            }
+                        } else {
+                            // OpenAI uses standardized format
+                            responseText = data.choices?.[0]?.message?.content || 'No response received';
+                        }
+
+                    } catch (fetchError) {
+                        if (fetchError.message.includes('Failed to fetch') || fetchError.name === 'TypeError') {
+                            throw new Error(`❌ Connection Error: Cannot connect to ${provider} API. Please ensure the server is running.`);
+                        }
+                        throw fetchError;
                     }
-                    throw fetchError;
                 }
             }
 
@@ -526,25 +682,34 @@ class LeaveAssistantApp {
 
         // Send verification email (simulated)
         try {
-            const response = await fetch(this.getApiUrl('send-verification'), {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    email: email,
-                    firstName: firstName,
-                    token: token,
-                    verificationLink: verificationLink
-                })
-            });
-
-            const result = await response.json();
+            const endpoint = this.getApiUrl('send-verification');
             
-            if (result.success) {
-                console.log(`📨 Verification email sent to: ${email}`);
+            if (endpoint && this.serverRunning) {
+                const response = await fetch(endpoint, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        email: email,
+                        firstName: firstName,
+                        token: token,
+                        verificationLink: verificationLink
+                    })
+                });
+
+                const result = await response.json();
+                
+                if (result.success) {
+                    console.log(`📨 Verification email sent to: ${email}`);
+                    console.log(`🔗 Verification link: ${verificationLink}`);
+                }
+            } else {
+                // In production or when server is not available, just log
+                console.log(`📨 Verification email would be sent to: ${email}`);
                 console.log(`🔗 Verification link: ${verificationLink}`);
             }
         } catch (error) {
             console.error('Email sending error:', error);
+            // Don't fail registration if email sending fails
         }
 
         // Show verification page with link
@@ -653,6 +818,13 @@ class LeaveAssistantApp {
         this.currentUser = null;
         localStorage.removeItem('currentUser');
         this.clearIdleTimer();
+        
+        // Clear trial timer
+        if (this.trialTimerInterval) {
+            clearInterval(this.trialTimerInterval);
+            this.trialTimerInterval = null;
+        }
+        
         this.showPage('loginPage');
     }
 
@@ -712,10 +884,6 @@ class LeaveAssistantApp {
         const provider = this.currentUser.aiProvider;
         let providerName = provider.charAt(0).toUpperCase() + provider.slice(1);
         if (provider === 'puter') providerName = 'Puter.js AI (Free)';
-        
-        this.showSuccess(`Settings Saved (${providerName} Active)`);
-        this.hideSettings();
-    } = 'Puter.js AI (Free)';
         
         this.showSuccess(`Settings Saved (${providerName} Active)`);
         this.hideSettings();
@@ -847,7 +1015,16 @@ class LeaveAssistantApp {
     loadPaymentConfig() { const c = localStorage.getItem('paymentConfig'); return c ? JSON.parse(c) : {}; }
 
     // UI Helpers
-    showPage(id) { document.querySelectorAll('.page').forEach(p => p.classList.add('hidden')); document.getElementById(id).classList.remove('hidden'); }
+    showPage(id) { 
+        console.log(`📄 Showing page: ${id}`);
+        document.querySelectorAll('.page').forEach(p => p.classList.add('hidden')); 
+        const targetPage = document.getElementById(id);
+        if (targetPage) {
+            targetPage.classList.remove('hidden');
+        } else {
+            console.error(`❌ Page not found: ${id}`);
+        }
+    }
     showSettings() { 
         // Populate current values
         document.getElementById('aiProvider').value = this.currentUser.aiProvider || 'puter';
@@ -897,4 +1074,20 @@ class LeaveAssistantApp {
 
 // Start
 let app;
-document.addEventListener('DOMContentLoaded', () => { app = new LeaveAssistantApp(); });
+document.addEventListener('DOMContentLoaded', () => { 
+    try {
+        console.log('🚀 DOM loaded, starting app...');
+        app = new LeaveAssistantApp(); 
+    } catch (error) {
+        console.error('❌ Failed to start app:', error);
+        // Show error message to user
+        document.body.innerHTML = `
+            <div style="display: flex; justify-content: center; align-items: center; height: 100vh; flex-direction: column; font-family: Arial, sans-serif;">
+                <h2 style="color: #ef4444;">Application Error</h2>
+                <p>Failed to initialize the Leave Assistant application.</p>
+                <p style="font-size: 0.9rem; color: #666;">Error: ${error.message}</p>
+                <button onclick="window.location.reload()" style="padding: 10px 20px; background: #3b82f6; color: white; border: none; border-radius: 5px; cursor: pointer;">Reload Page</button>
+            </div>
+        `;
+    }
+});
