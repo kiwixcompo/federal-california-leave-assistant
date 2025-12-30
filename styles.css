@@ -250,6 +250,38 @@ small.hint {
 .nav-menu .btn-text { color: white; }
 .nav-menu .btn-text:hover { background: rgba(255,255,255,0.15); }
 
+/* Logo Styles */
+.app-logo {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-bottom: 1.5rem;
+}
+
+.logo-image {
+    width: 120px;
+    height: 120px;
+    max-width: 120px;
+    max-height: 120px;
+    object-fit: contain;
+}
+
+.nav-logo {
+    width: 32px;
+    height: 32px;
+    margin-right: 0.75rem;
+    object-fit: contain;
+    flex-shrink: 0;
+}
+
+.nav-title {
+    font-size: 1.25rem;
+    font-weight: 700;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
 /* Navigation */
 .navbar {
     background: #1f2937;
@@ -262,14 +294,22 @@ small.hint {
     top: 0;
     z-index: 50;
     box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+    min-height: 70px;
 }
 
 .nav-brand {
-    font-size: 1.25rem;
-    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex: 1;
+    min-width: 0; /* Allow text truncation */
+}
+
+.nav-menu {
     display: flex;
     align-items: center;
     gap: 1rem;
+    flex-shrink: 0;
 }
 
 /* Dashboard */
@@ -540,22 +580,68 @@ small.hint {
     .container { padding: 1.5rem 1rem; }
     .tools-grid { grid-template-columns: 1fr; gap: 1.5rem; }
     .admin-stats { grid-template-columns: repeat(2, 1fr); }
+    
+    /* Logo adjustments for tablets */
+    .logo-image {
+        width: 100px;
+        height: 100px;
+        max-width: 100px;
+        max-height: 100px;
+    }
 }
 
 @media (max-width: 768px) {
     /* Navigation */
     .navbar {
-        padding: 1rem;
-        flex-wrap: wrap;
-        gap: 1rem;
+        padding: 0.75rem 1rem;
+        flex-wrap: nowrap;
+        min-height: 60px;
     }
-    .nav-brand { font-size: 1.1rem; }
+    
+    .nav-brand {
+        gap: 0.5rem;
+        min-width: 0;
+        flex: 1;
+    }
+    
+    .nav-logo {
+        width: 28px;
+        height: 28px;
+        margin-right: 0.5rem;
+    }
+    
+    .nav-title {
+        font-size: 1rem;
+        display: none; /* Hide title on very small screens */
+    }
+    
     .nav-menu { 
         display: flex; 
         gap: 0.5rem; 
-        flex-wrap: wrap;
+        flex-shrink: 0;
     }
-    .nav-menu .btn { padding: 0.5rem 1rem; font-size: 0.9rem; }
+    
+    .nav-menu .btn { 
+        padding: 0.5rem 0.75rem; 
+        font-size: 0.85rem;
+        white-space: nowrap;
+    }
+    
+    /* Show abbreviated nav title on mobile */
+    .nav-brand::after {
+        content: "Leave Assistant";
+        font-size: 1rem;
+        font-weight: 700;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        min-width: 0;
+    }
+    
+    /* Hide the span title and show the pseudo element instead */
+    .nav-title {
+        display: none;
+    }
 
     /* Tool Interface */
     .split-view { 
@@ -582,9 +668,15 @@ small.hint {
     .half { flex: none; }
     
     /* Auth */
-    .auth-container { padding: 0.5rem; }
+    .auth-container { padding: 1rem 0.5rem; }
     .auth-container .card { padding: 1.5rem; }
     .logo-area h1 { font-size: 1.5rem; }
+    .logo-image {
+        width: 80px;
+        height: 80px;
+        max-width: 80px;
+        max-height: 80px;
+    }
     
     /* Admin */
     .toolbar { 
@@ -596,10 +688,14 @@ small.hint {
     .admin-tabs {
         flex-wrap: wrap;
         gap: 0.5rem;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
     }
     .tab-btn {
         padding: 0.75rem 1rem;
         font-size: 0.9rem;
+        white-space: nowrap;
+        flex-shrink: 0;
     }
     .admin-stats { 
         grid-template-columns: 1fr; 
@@ -616,35 +712,72 @@ small.hint {
         font-size: 0.85rem;
     }
     .data-table th, .data-table td {
-        padding: 0.75rem 1rem;
+        padding: 0.75rem 0.5rem;
     }
     
     /* Modals */
     .modal-content {
         width: 95%;
         margin: 1rem;
+        max-height: 90vh;
+        overflow-y: auto;
     }
     .modal-body { padding: 1rem; }
     
     /* Buttons */
     .btn {
-        padding: 0.75rem 1.25rem;
+        padding: 0.75rem 1rem;
         font-size: 0.9rem;
     }
     .btn-block {
         width: 100%;
         margin-bottom: 0.75rem;
     }
+    
+    /* Trial Timer */
+    .trial-badge {
+        font-size: 0.8rem;
+        padding: 0.25rem 0.5rem;
+        white-space: nowrap;
+    }
 }
 
 @media (max-width: 480px) {
     /* Extra small screens */
     .navbar {
-        padding: 0.75rem;
+        padding: 0.5rem 0.75rem;
+        min-height: 56px;
     }
-    .nav-brand {
-        font-size: 1rem;
+    
+    .nav-logo {
+        width: 24px;
+        height: 24px;
+        margin-right: 0.25rem;
     }
+    
+    .nav-brand::after {
+        font-size: 0.9rem;
+    }
+    
+    .nav-menu .btn {
+        padding: 0.5rem;
+        font-size: 0.8rem;
+    }
+    
+    .nav-menu .btn i {
+        margin-right: 0;
+    }
+    
+    /* Hide button text, show only icons */
+    .nav-menu .btn span,
+    .nav-menu .btn:not(.btn-icon) {
+        font-size: 0;
+    }
+    
+    .nav-menu .btn:not(.btn-icon)::before {
+        font-size: 0.8rem;
+    }
+    
     .container {
         padding: 1rem 0.75rem;
     }
@@ -668,12 +801,92 @@ small.hint {
     .auth-container .card {
         padding: 1rem;
     }
+    .logo-image {
+        width: 60px;
+        height: 60px;
+        max-width: 60px;
+        max-height: 60px;
+    }
     .price-box .amount {
         font-size: 2.5rem;
     }
     .btn {
         padding: 0.75rem 1rem;
         font-size: 0.85rem;
+    }
+    
+    /* Admin tabs scroll */
+    .admin-tabs {
+        padding-bottom: 0.5rem;
+    }
+    
+    /* Form improvements */
+    .form-group {
+        margin-bottom: 1rem;
+    }
+    
+    /* Better touch targets */
+    input, select, textarea, button {
+        min-height: 44px;
+    }
+}
+
+/* Tablet specific optimizations */
+@media (min-width: 768px) and (max-width: 1024px) {
+    .split-view {
+        grid-template-columns: 1fr 1fr;
+        gap: 1.5rem;
+    }
+    
+    .nav-title {
+        display: inline;
+        font-size: 1.1rem;
+    }
+    
+    .nav-brand::after {
+        display: none;
+    }
+    
+    .admin-tabs {
+        justify-content: center;
+    }
+    
+    .tools-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 2rem;
+    }
+}
+
+/* Landscape phone optimizations */
+@media (max-width: 768px) and (orientation: landscape) {
+    .auth-container {
+        padding: 0.5rem;
+    }
+    
+    .logo-image {
+        width: 60px;
+        height: 60px;
+        max-width: 60px;
+        max-height: 60px;
+    }
+    
+    .logo-area h1 {
+        font-size: 1.25rem;
+        margin-bottom: 0.25rem;
+    }
+    
+    .logo-area p {
+        font-size: 0.9rem;
+        margin-bottom: 0.5rem;
+    }
+    
+    .split-view {
+        grid-template-columns: 1fr 1fr;
+        gap: 1rem;
+    }
+    
+    .input-section, .output-section {
+        min-height: 250px;
     }
 }
 
@@ -687,6 +900,7 @@ textarea {
     color: #000 !important; /* Force black text */
     background: #fff !important; /* Force white background */
     font-weight: 500; /* Slightly bolder for better visibility */
+    font-size: 16px; /* Prevent zoom on iOS */
 }
 
 input:focus, select:focus, textarea:focus {
@@ -727,16 +941,150 @@ input:focus, select:focus, textarea:focus {
         min-height: 120px;
         cursor: pointer;
         -webkit-tap-highlight-color: rgba(79, 70, 229, 0.1);
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    
+    .tool-card:active {
+        transform: translateY(-2px);
     }
     
     .btn {
         min-height: 44px; /* iOS recommended touch target */
         -webkit-tap-highlight-color: rgba(0, 0, 0, 0.1);
+        transition: all 0.2s ease;
+    }
+    
+    .btn:active {
+        transform: scale(0.98);
     }
     
     input, select, textarea {
         min-height: 44px;
         font-size: 16px; /* Prevents zoom on iOS */
+    }
+    
+    /* Better spacing for touch */
+    .form-group {
+        margin-bottom: 1.25rem;
+    }
+    
+    /* Improved modal for mobile */
+    .modal {
+        padding: 1rem;
+    }
+    
+    .modal-content {
+        border-radius: 1rem;
+        max-height: calc(100vh - 2rem);
+        overflow-y: auto;
+    }
+    
+    /* Better table scrolling */
+    .table-container {
+        border-radius: 0.5rem;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+    
+    /* Improved admin tabs */
+    .admin-tabs {
+        background: #f9fafb;
+        padding: 0.5rem;
+        border-radius: 0.5rem;
+        margin-bottom: 1.5rem;
+    }
+    
+    .tab-btn {
+        border-radius: 0.375rem;
+        transition: all 0.2s ease;
+    }
+    
+    .tab-btn:active {
+        transform: scale(0.98);
+    }
+}
+
+/* iOS Safari specific fixes */
+@supports (-webkit-touch-callout: none) {
+    .navbar {
+        padding-top: max(1rem, env(safe-area-inset-top));
+    }
+    
+    .auth-container {
+        padding-top: max(1rem, env(safe-area-inset-top));
+        padding-bottom: max(1rem, env(safe-area-inset-bottom));
+    }
+    
+    .container {
+        padding-left: max(1rem, env(safe-area-inset-left));
+        padding-right: max(1rem, env(safe-area-inset-right));
+    }
+}
+
+/* Dark mode support for system preference */
+@media (prefers-color-scheme: dark) {
+    :root {
+        --background-color: #111827;
+        --surface-color: #1f2937;
+        --text-main: #f9fafb;
+        --text-secondary: #d1d5db;
+        --border-color: #374151;
+    }
+    
+    /* Only apply dark mode to non-critical elements */
+    .welcome-banner h2,
+    .welcome-banner p {
+        color: var(--text-main);
+    }
+    
+    /* Keep forms light for better usability */
+    input, select, textarea, .response-box {
+        background: #fff !important;
+        color: #000 !important;
+    }
+}
+
+/* Print styles */
+@media print {
+    .navbar,
+    .nav-menu,
+    .btn,
+    .modal,
+    .loading-overlay {
+        display: none !important;
+    }
+    
+    .page {
+        display: block !important;
+    }
+    
+    .container {
+        max-width: none;
+        padding: 0;
+    }
+    
+    .response-box {
+        border: 1px solid #000;
+        background: #fff !important;
+        color: #000 !important;
+    }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+    
+    .spinner {
+        animation: none;
+    }
+    
+    .tool-card:hover {
+        transform: none;
     }
 }
 
@@ -824,21 +1172,43 @@ input:focus, select:focus, textarea:focus {
     border-top: 1px solid var(--border-color);
 }
 
+/* Mobile optimizations for admin profile */
 @media (max-width: 768px) {
     .profile-container {
         padding: 1rem;
+    }
+    
+    .profile-header {
+        margin-bottom: 2rem;
+    }
+    
+    .profile-avatar {
+        width: 80px;
+        height: 80px;
     }
     
     .profile-form-container {
         padding: 1.5rem;
     }
     
+    .form-section {
+        margin-bottom: 1.5rem;
+        padding-bottom: 1.5rem;
+    }
+    
     .form-actions {
         flex-direction: column;
+        gap: 0.75rem;
     }
     
     .info-grid {
         grid-template-columns: 1fr;
+        gap: 0.75rem;
+    }
+    
+    .form-section h3 {
+        font-size: 1.1rem;
+        margin-bottom: 1rem;
     }
 }
 .admin-nav {

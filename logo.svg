@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="200" height="200" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+  <!-- Robot Head -->
+  <circle cx="100" cy="80" r="35" fill="#E8F4FD" stroke="#4A90E2" stroke-width="3"/>
+  
+  <!-- Robot Face -->
+  <path d="M75 70 Q75 65 85 65 Q95 65 95 70 Q95 75 85 75 Q75 75 75 70 Z" fill="#2E5BBA"/>
+  <path d="M105 70 Q105 65 115 65 Q125 65 125 70 Q125 75 115 75 Q105 75 105 70 Z" fill="#2E5BBA"/>
+  
+  <!-- Robot Eyes -->
+  <circle cx="85" cy="70" r="3" fill="#7DD3FC"/>
+  <circle cx="115" cy="70" r="3" fill="#7DD3FC"/>
+  
+  <!-- Robot Smile -->
+  <path d="M85 85 Q100 95 115 85" stroke="#2E5BBA" stroke-width="2" fill="none"/>
+  
+  <!-- Robot Antenna -->
+  <line x1="100" y1="45" x2="100" y2="35" stroke="#4A90E2" stroke-width="2"/>
+  <circle cx="100" cy="32" r="3" fill="#7DD3FC"/>
+  
+  <!-- Robot Headphones -->
+  <path d="M65 75 Q60 75 60 80 Q60 85 65 85" stroke="#4A90E2" stroke-width="4" fill="none"/>
+  <path d="M135 75 Q140 75 140 80 Q140 85 135 85" stroke="#4A90E2" stroke-width="4" fill="none"/>
+  
+  <!-- Robot Body -->
+  <rect x="80" y="110" width="40" height="50" rx="10" fill="#E8F4FD" stroke="#4A90E2" stroke-width="3"/>
+  
+  <!-- Robot Arms -->
+  <rect x="50" y="120" width="25" height="15" rx="7" fill="#E8F4FD" stroke="#4A90E2" stroke-width="2"/>
+  <rect x="125" y="120" width="25" height="15" rx="7" fill="#E8F4FD" stroke="#4A90E2" stroke-width="2"/>
+  
+  <!-- Robot Hand (waving) -->
+  <circle cx="160" cy="127" r="8" fill="#E8F4FD" stroke="#4A90E2" stroke-width="2"/>
+  <path d="M155 120 L158 115 M160 118 L163 113 M165 120 L168 115" stroke="#4A90E2" stroke-width="2"/>
+  
+  <!-- Robot Legs -->
+  <rect x="85" y="160" width="12" height="25" rx="6" fill="#E8F4FD" stroke="#4A90E2" stroke-width="2"/>
+  <rect x="103" y="160" width="12" height="25" rx="6" fill="#E8F4FD" stroke="#4A90E2" stroke-width="2"/>
+  
+  <!-- Robot Feet -->
+  <ellipse cx="91" cy="190" rx="8" ry="5" fill="#7DD3FC"/>
+  <ellipse cx="109" cy="190" rx="8" ry="5" fill="#7DD3FC"/>
+</svg>
