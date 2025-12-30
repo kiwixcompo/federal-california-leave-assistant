@@ -190,6 +190,22 @@ class LeaveAssistantApp {
         // Verification page
         document.getElementById('resendVerification').onclick = () => this.resendVerificationEmail();
         document.getElementById('backToLogin').onclick = () => this.showPage('loginPage');
+        
+        // Copy verification link functionality
+        document.getElementById('copyVerificationLink').onclick = () => {
+            const linkInput = document.getElementById('verificationLinkInput');
+            if (linkInput) {
+                linkInput.select();
+                linkInput.setSelectionRange(0, 99999); // For mobile devices
+                navigator.clipboard.writeText(linkInput.value).then(() => {
+                    this.showSuccess('Verification link copied to clipboard!');
+                }).catch(() => {
+                    // Fallback for older browsers
+                    document.execCommand('copy');
+                    this.showSuccess('Verification link copied to clipboard!');
+                });
+            }
+        };
 
         // Mode buttons for tools
         document.getElementById('federalEmailMode')?.addEventListener('click', () => this.setToolMode('federal', 'email'));
@@ -733,7 +749,7 @@ class LeaveAssistantApp {
         }
     }
 
-    showVerificationPage(email) {
+    showVerificationPage(email, verificationLink = null) {
         // Show the verification page
         this.showPage('verificationPage');
         
@@ -741,6 +757,19 @@ class LeaveAssistantApp {
         const emailMessage = document.querySelector('#verificationPage p');
         if (emailMessage) {
             emailMessage.textContent = `We've sent a verification link to ${email}.`;
+        }
+        
+        // Show verification link if provided
+        if (verificationLink) {
+            const linkSection = document.getElementById('verificationLinkSection');
+            const linkButton = document.getElementById('verificationLinkButton');
+            const linkInput = document.getElementById('verificationLinkInput');
+            
+            if (linkSection && linkButton && linkInput) {
+                linkSection.classList.remove('hidden');
+                linkButton.href = verificationLink;
+                linkInput.value = verificationLink;
+            }
         }
         
         this.showSuccess(`Registration successful! Verification email sent to ${email}`);
@@ -820,9 +849,8 @@ class LeaveAssistantApp {
             const data = await response.json();
             
             if (response.ok && data.success) {
-                // Show verification page
-                this.showVerificationPage(email);
-                this.showSuccess(`Registration successful! Verification email sent to ${email}`);
+                // Show verification page with link
+                this.showVerificationPage(email, data.verificationLink);
             } else {
                 this.showError(data.error || 'Registration failed');
             }
@@ -988,6 +1016,7 @@ class LeaveAssistantApp {
             
             if (response.ok) {
                 const data = await response.json();
+                this.users = data.users; // Store users for CSV export
                 this.populateUserTable(data.users);
                 this.updatePagination(data.pagination);
             }
@@ -1054,14 +1083,45 @@ class LeaveAssistantApp {
         tbody.innerHTML = users.map(u => {
             const status = u.status;
             const statusIcon = u.emailVerified ? '✅' : '❌';
-            const statusText = status.active ? (status.type === 'trial' ? '🆓 Trial' : '💎 Premium') : '⏰ Expired';
-            const expiryText = status.expiry ? new Date(status.expiry).toLocaleDateString() : 'N/A';
+            const isAdmin = u.isAdmin;
+            
+            // Different status display for admin users
+            let statusText, expiryText;
+            if (isAdmin) {
+                statusText = '👑 Admin';
+                expiryText = 'Permanent';
+            } else {
+                statusText = status.active ? (status.type === 'trial' ? '🆓 Trial' : '💎 Premium') : '⏰ Expired';
+                expiryText = status.expiry ? new Date(status.expiry).toLocaleDateString() : 'N/A';
+            }
+            
+            // Different actions for admin users
+            const userActions = isAdmin ? `
+                <div class="btn-group">
+                    <button class="btn btn-sm btn-primary" onclick="app.editUser('${u.id}')">
+                        <i class="fa-solid fa-edit"></i> Edit
+                    </button>
+                    <span class="badge badge-admin">Admin User</span>
+                </div>
+            ` : `
+                <div class="btn-group">
+                    <button class="btn btn-sm btn-primary" onclick="app.editUser('${u.id}')">
+                        <i class="fa-solid fa-edit"></i> Edit
+                    </button>
+                    <button class="btn btn-sm btn-success" onclick="app.grantAccess('${u.id}')">
+                        <i class="fa-solid fa-key"></i> Grant
+                    </button>
+                    <button class="btn btn-sm btn-danger" onclick="app.deleteUser('${u.id}')">
+                        <i class="fa-solid fa-trash"></i> Delete
+                    </button>
+                </div>
+            `;
             
             return `
-                <tr data-user-id="${u.id}">
-                    <td><input type="checkbox" class="user-select-cb" value="${u.id}"></td>
+                <tr data-user-id="${u.id}" ${isAdmin ? 'class="admin-user-row"' : ''}>
+                    <td><input type="checkbox" class="user-select-cb" value="${u.id}" ${isAdmin ? 'disabled' : ''}></td>
                     <td>
-                        <strong>${u.firstName} ${u.lastName}</strong><br>
+                        <strong>${u.firstName} ${u.lastName}</strong>${isAdmin ? ' 👑' : ''}<br>
                         <small>${u.email}</small><br>
                         <small class="text-muted">Joined: ${new Date(u.createdAt).toLocaleDateString()}</small>
                     </td>
@@ -1071,17 +1131,7 @@ class LeaveAssistantApp {
                         <small>Expires: ${expiryText}</small>
                     </td>
                     <td>
-                        <div class="btn-group">
-                            <button class="btn btn-sm btn-primary" onclick="app.editUser('${u.id}')">
-                                <i class="fa-solid fa-edit"></i> Edit
-                            </button>
-                            <button class="btn btn-sm btn-success" onclick="app.grantAccess('${u.id}')">
-                                <i class="fa-solid fa-key"></i> Grant
-                            </button>
-                            <button class="btn btn-sm btn-danger" onclick="app.deleteUser('${u.id}')">
-                                <i class="fa-solid fa-trash"></i> Delete
-                            </button>
-                        </div>
+                        ${userActions}
                     </td>
                 </tr>
             `;
@@ -1487,21 +1537,36 @@ class LeaveAssistantApp {
     }
 
     exportUsersCSV() {
-        const nonAdmins = this.users.filter(u => !u.isAdmin);
+        // Get the current filter to determine which users to export
+        const currentFilter = document.getElementById('userFilter').value;
+        
+        // Use all users if "all" is selected, otherwise exclude admins
+        const usersToExport = currentFilter === 'all' ? this.users : this.users.filter(u => !u.isAdmin);
+        
         const csvData = [
-            ['Name', 'Email', 'Verified', 'Status', 'Created', 'Subscription Expiry']
+            ['Name', 'Email', 'Verified', 'Status', 'User Type', 'Created', 'Subscription Expiry']
         ];
         
-        nonAdmins.forEach(u => {
-            const status = this.getSubscriptionStatus(u);
-            const statusText = status.type === 'trial' ? 'Trial' : (status.type === 'subscription' ? 'Premium' : 'Expired');
+        usersToExport.forEach(u => {
+            let statusText, userType;
+            
+            if (u.isAdmin) {
+                statusText = 'Admin';
+                userType = 'Administrator';
+            } else {
+                const status = this.getSubscriptionStatus(u);
+                statusText = status.type === 'trial' ? 'Trial' : (status.type === 'subscription' ? 'Premium' : 'Expired');
+                userType = 'Regular User';
+            }
+            
             csvData.push([
                 `${u.firstName} ${u.lastName}`,
                 u.email,
                 u.emailVerified ? 'Yes' : 'No',
                 statusText,
+                userType,
                 new Date(u.createdAt).toLocaleDateString(),
-                u.subscriptionExpiry ? new Date(u.subscriptionExpiry).toLocaleDateString() : 'N/A'
+                u.isAdmin ? 'Permanent' : (u.subscriptionExpiry ? new Date(u.subscriptionExpiry).toLocaleDateString() : 'N/A')
             ]);
         });
         
@@ -1517,7 +1582,7 @@ class LeaveAssistantApp {
         a.click();
         window.URL.revokeObjectURL(url);
         
-        this.showSuccess('Users exported to CSV');
+        this.showSuccess(`${usersToExport.length} users exported to CSV`);
     }
 
     resetUserPassword(userId) {

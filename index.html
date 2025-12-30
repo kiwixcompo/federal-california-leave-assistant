@@ -99,6 +99,25 @@
                 <p>We've sent a verification link to your email address.</p>
                 <p>Please check your inbox (and spam folder) to complete registration.</p>
                 
+                <!-- Verification Link Display -->
+                <div id="verificationLinkSection" class="verification-link-section hidden">
+                    <div class="alert alert-info">
+                        <h4><i class="fa-solid fa-link"></i> Verification Link</h4>
+                        <p>You can also click the link below to verify your email:</p>
+                        <div class="verification-link-container">
+                            <a id="verificationLinkButton" href="#" class="btn btn-primary" target="_blank">
+                                <i class="fa-solid fa-check-circle"></i> Verify Email Now
+                            </a>
+                        </div>
+                        <div class="verification-link-copy">
+                            <input type="text" id="verificationLinkInput" readonly class="form-control">
+                            <button id="copyVerificationLink" class="btn btn-secondary">
+                                <i class="fa-solid fa-copy"></i> Copy Link
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
                 <div class="verification-actions">
                     <button id="resendVerification" class="btn btn-secondary">📧 Resend Email</button>
                     <button id="backToLogin" class="btn btn-text">← Back to Login</button>

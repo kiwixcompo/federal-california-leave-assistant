@@ -88,10 +88,37 @@ async function initializeEmailTransporter() {
         // In production, you would configure this with a real SMTP service
         console.log('� Emanil service initialized (Development Mode)');
         console.log('💡 Emails will be logged to console for development');
-        emailTransporter = { 
-            available: true,
-            service: 'development'
-        };
+        // Try to initialize Gmail SMTP
+        try {
+            emailTransporter = nodemailer.createTransport({
+                service: 'gmail',
+                host: 'smtp.gmail.com',
+                port: 587,
+                secure: false,
+                auth: {
+                    user: process.env.EMAIL_USER || 'hrla.leaveassistant@gmail.com',
+                    pass: process.env.EMAIL_PASS || 'your-16-char-app-password-here'
+                },
+                tls: {
+                    rejectUnauthorized: false
+                }
+            });
+
+            // Test the connection
+            await emailTransporter.verify();
+            console.log('📧 Gmail SMTP connected successfully');
+            console.log('✅ Ready to send real confirmation emails');
+            
+        } catch (smtpError) {
+            console.warn('⚠️ Gmail SMTP setup failed:', smtpError.message);
+            console.warn('📝 To enable real emails:');
+            console.warn('   1. Create a Gmail account for your app');
+            console.warn('   2. Enable 2-factor authentication');
+            console.warn('   3. Generate an App Password');
+            console.warn('   4. Set EMAIL_USER and EMAIL_PASS environment variables');
+            console.log('📧 Running in development mode - emails will be logged to console');
+            emailTransporter = null;
+        }
     } catch (error) {
         console.warn('⚠️ Email service failed to initialize:', error.message);
         emailTransporter = null;
@@ -145,6 +172,84 @@ async function sendEmailViaWebhook(to, subject, htmlContent, textContent) {
         console.error('❌ Email sending error:', error);
         throw error;
     }
+}
+
+// Real email sending function using Gmail SMTP
+async function sendConfirmationEmail(to, subject, htmlContent, textContent) {
+    try {
+        console.log('📧 Sending confirmation email to:', to);
+        
+        if (emailTransporter && typeof emailTransporter.sendMail === 'function') {
+            // Send real email using Gmail SMTP
+            try {
+                const info = await emailTransporter.sendMail({
+                    from: '"HRLA Leave Assistant" <hrla.leaveassistant@gmail.com>',
+                    to: to,
+                    subject: subject,
+                    text: textContent,
+                    html: htmlContent
+                });
+                
+                console.log('✅ Confirmation email sent successfully!');
+                console.log('📧 Message ID:', info.messageId);
+                
+                return {
+                    success: true,
+                    messageId: info.messageId,
+                    service: 'gmail-smtp'
+                };
+                
+            } catch (emailError) {
+                console.error('❌ Failed to send email:', emailError.message);
+                // Fall back to console logging
+                logEmailToConsole(to, subject, textContent);
+                return {
+                    success: true,
+                    messageId: 'fallback_' + Date.now(),
+                    service: 'console-fallback'
+                };
+            }
+        } else {
+            // Development mode - log email details
+            logEmailToConsole(to, subject, textContent);
+            return {
+                success: true,
+                messageId: 'dev_' + Date.now(),
+                service: 'development'
+            };
+        }
+        
+    } catch (error) {
+        console.error('❌ Email sending error:', error);
+        // Still log to console as fallback
+        logEmailToConsole(to, subject, textContent);
+        return {
+            success: true,
+            messageId: 'error_fallback_' + Date.now(),
+            service: 'error-fallback'
+        };
+    }
+}
+
+// Helper function to log email to console
+function logEmailToConsole(to, subject, textContent) {
+    console.log('\n' + '='.repeat(80));
+    console.log('📧 EMAIL CONFIRMATION REQUIRED');
+    console.log('='.repeat(80));
+    console.log('To:', to);
+    console.log('Subject:', subject);
+    console.log('\n📋 EMAIL CONTENT:');
+    console.log(textContent);
+    console.log('\n🔗 VERIFICATION LINK (Click or copy):');
+    
+    // Extract verification link from content
+    const linkMatch = textContent.match(/http[s]?:\/\/[^\s]+/);
+    if (linkMatch) {
+        console.log(linkMatch[0]);
+        console.log('\n✅ User can copy this link to verify their email');
+    }
+    
+    console.log('='.repeat(80) + '\n');
 }
 
 // Initialize payment systems
@@ -400,8 +505,8 @@ If you have any issues, please contact support.
 © 2024 Leave Assistant - HR Compliance Tool
         `;
 
-        // Send email using webhook service (no configuration needed)
-        await sendEmailViaWebhook(email, '✅ Verify your Leave Assistant account - Start your free trial', emailHtml, textContent);
+        // Send email using the new confirmation email function
+        await sendConfirmationEmail(email, '✅ Verify your Leave Assistant account - Start your free trial', emailHtml, textContent);
         
     } catch (error) {
         console.error('Email sending error:', error);
@@ -410,7 +515,9 @@ If you have any issues, please contact support.
     
     res.json({
         success: true,
-        message: 'Registration successful. Please check your email for verification.'
+        message: 'Registration successful. Please check your email for verification.',
+        verificationLink: verificationLink,
+        email: email
     });
 });
 
@@ -530,7 +637,9 @@ app.get('/api/admin/users', requireAdmin, (req, res) => {
     const users = loadData(USERS_FILE, []);
     const { search, filter, page = 1, limit = 50 } = req.query;
     
-    let filteredUsers = users.filter(u => !u.isAdmin);
+    // For "all" filter, include all users (including admins)
+    // For other filters, exclude admin users from the list
+    let filteredUsers = filter === 'all' ? users : users.filter(u => !u.isAdmin);
     
     // Apply search filter
     if (search) {
@@ -545,6 +654,11 @@ app.get('/api/admin/users', requireAdmin, (req, res) => {
     // Apply status filter
     if (filter && filter !== 'all') {
         filteredUsers = filteredUsers.filter(u => {
+            // Admin users are excluded from status-based filters
+            if (u.isAdmin) {
+                return false;
+            }
+            
             const now = Date.now();
             const hasActiveSubscription = u.subscriptionExpiry && new Date(u.subscriptionExpiry).getTime() > now;
             const trialDuration = 24 * 60 * 60 * 1000;
@@ -575,6 +689,19 @@ app.get('/api/admin/users', requireAdmin, (req, res) => {
     
     // Add status information
     const usersWithStatus = paginatedUsers.map(u => {
+        // Admin users have permanent access
+        if (u.isAdmin) {
+            return {
+                ...u,
+                status: {
+                    active: true,
+                    type: 'admin',
+                    expiry: null
+                }
+            };
+        }
+        
+        // Regular users - calculate trial/subscription status
         const now = Date.now();
         const hasActiveSubscription = u.subscriptionExpiry && new Date(u.subscriptionExpiry).getTime() > now;
         const trialDuration = 24 * 60 * 60 * 1000;

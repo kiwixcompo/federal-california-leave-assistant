@@ -54,5 +54,19 @@
       "createdAt": 1767094584435
     },
     "createdAt": 1767094584435
+  },
+  {
+    "token": "u8e5vslxlspmjsjtpwv",
+    "userData": {
+      "email": "williamskiwix@gmail.com",
+      "firstName": "Williams",
+      "lastName": "Kiwix",
+      "password": "Password@123",
+      "isAdmin": false,
+      "emailVerified": false,
+      "aiProvider": "puter",
+      "createdAt": 1767096826736
+    },
+    "createdAt": 1767096826736
   }
 ]
