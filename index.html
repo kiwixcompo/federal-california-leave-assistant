@@ -87,20 +87,7 @@
                 <p>We've sent a verification link to your email address.</p>
                 <p>Please check your inbox (and spam folder) to complete registration.</p>
                 
-                <!-- Demo verification section -->
-                <div id="demoVerificationSection" class="demo-verification hidden">
-                    <hr>
-                    <h4>Demo Mode - Development Only</h4>
-                    <p><strong>Verification Link:</strong></p>
-                    <div class="verification-link-container">
-                        <input type="text" id="verificationLinkDisplay" readonly class="form-control" style="font-size: 0.8rem; margin-bottom: 1rem;">
-                        <button id="copyVerificationLink" class="btn btn-secondary btn-sm">📋 Copy Link</button>
-                    </div>
-                    <p><small>In production, this would be sent via email. For demo purposes, you can copy this link or use the auto-verify button below.</small></p>
-                </div>
-                
                 <div class="verification-actions">
-                    <button id="autoVerifyBtn" class="btn btn-success hidden">✅ Auto-Verify (Demo)</button>
                     <button id="resendVerification" class="btn btn-secondary">📧 Resend Email</button>
                     <button id="backToLogin" class="btn btn-text">← Back to Login</button>
                 </div>
@@ -320,6 +307,96 @@
         </div>
     </div>
 
+    <div id="adminProfilePage" class="page hidden">
+        <nav class="navbar admin-nav">
+            <div class="nav-brand">
+                <button id="backToAdminDashboard" class="btn btn-icon"><i class="fa-solid fa-arrow-left"></i></button>
+                Admin Profile
+            </div>
+            <div class="nav-menu">
+                <button id="adminLogoutBtn2" class="btn btn-text">Logout</button>
+            </div>
+        </nav>
+        <div class="container">
+            <div class="profile-container">
+                <div class="profile-header">
+                    <div class="profile-avatar">
+                        <i class="fa-solid fa-user-shield fa-3x"></i>
+                    </div>
+                    <h2>Administrator Profile</h2>
+                </div>
+                
+                <div class="profile-form-container">
+                    <form id="adminProfileForm">
+                        <div class="form-section">
+                            <h3>Personal Information</h3>
+                            <div class="row">
+                                <div class="form-group half">
+                                    <label>First Name</label>
+                                    <input type="text" id="adminFirstName" required>
+                                </div>
+                                <div class="form-group half">
+                                    <label>Last Name</label>
+                                    <input type="text" id="adminLastName" required>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label>Email Address</label>
+                                <input type="email" id="adminEmail" required>
+                            </div>
+                        </div>
+                        
+                        <div class="form-section">
+                            <h3>Security</h3>
+                            <div class="form-group">
+                                <label>Current Password</label>
+                                <input type="password" id="adminCurrentPassword" placeholder="Enter current password to make changes">
+                            </div>
+                            <div class="form-group">
+                                <label>New Password</label>
+                                <input type="password" id="adminNewPassword" placeholder="Leave blank to keep current password">
+                            </div>
+                            <div class="form-group">
+                                <label>Confirm New Password</label>
+                                <input type="password" id="adminConfirmPassword" placeholder="Confirm new password">
+                            </div>
+                        </div>
+                        
+                        <div class="form-section">
+                            <h3>Account Information</h3>
+                            <div class="info-grid">
+                                <div class="info-item">
+                                    <label>Account Type</label>
+                                    <span class="info-value">Administrator</span>
+                                </div>
+                                <div class="info-item">
+                                    <label>Account Created</label>
+                                    <span class="info-value" id="adminCreatedDate">-</span>
+                                </div>
+                                <div class="info-item">
+                                    <label>Last Login</label>
+                                    <span class="info-value" id="adminLastLogin">Current Session</span>
+                                </div>
+                                <div class="info-item">
+                                    <label>User ID</label>
+                                    <span class="info-value" id="adminUserId">-</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="form-actions">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fa-solid fa-save"></i> Save Changes
+                            </button>
+                            <button type="button" id="cancelProfileChanges" class="btn btn-secondary">
+                                <i class="fa-solid fa-times"></i> Cancel
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
     <div id="adminDashboard" class="page hidden">
         <nav class="navbar admin-nav">
             <div class="nav-brand">Admin Console</div>
@@ -400,27 +477,28 @@
                             <input type="number" id="adminMonthlyFee" step="0.01" min="0" required>
                         </div>
                         <div class="form-group">
-                            <label>PayPal Email Address</label>
-                            <input type="email" id="adminPaypalEmail" placeholder="payments@company.com">
+                            <label>PayPal Client ID</label>
+                            <input type="text" id="adminPaypalClientId" placeholder="PayPal Client ID">
+                            <small>Get from PayPal Developer Dashboard</small>
                         </div>
                         <div class="form-group">
-                            <label>Stripe Public Key</label>
-                            <input type="text" id="adminStripeKey" placeholder="pk_test_...">
+                            <label>PayPal Client Secret</label>
+                            <input type="password" id="adminPaypalClientSecret" placeholder="PayPal Client Secret">
+                        </div>
+                        <div class="form-group">
+                            <label>Stripe Secret Key</label>
+                            <input type="password" id="adminStripeSecretKey" placeholder="sk_test_... or sk_live_...">
+                            <small>Get from Stripe Dashboard</small>
+                        </div>
+                        <div class="form-group">
+                            <label>Stripe Webhook Secret</label>
+                            <input type="password" id="adminStripeWebhookSecret" placeholder="whsec_...">
+                            <small>For webhook signature verification</small>
                         </div>
                         <div class="form-group">
                             <label>System Free API Key (Gemini)</label>
                             <input type="password" id="adminSystemGeminiKey" placeholder="Leave blank to disable system-wide free tier">
                             <small>If set, users can use "Google Gemini" without providing their own key.</small>
-                        </div>
-                        <div class="form-group">
-                            <label>Email Configuration</label>
-                            <div class="email-config">
-                                <input type="text" id="adminSmtpHost" placeholder="smtp.gmail.com">
-                                <input type="number" id="adminSmtpPort" placeholder="587">
-                                <input type="email" id="adminSmtpUser" placeholder="your-email@gmail.com">
-                                <input type="password" id="adminSmtpPass" placeholder="App Password">
-                                <small>Configure SMTP settings for real email sending. Leave blank to use development mode.</small>
-                            </div>
                         </div>
                         <button type="submit" class="btn btn-primary">Save Payment Settings</button>
                     </form>

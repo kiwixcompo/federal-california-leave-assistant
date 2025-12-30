@@ -1,1 +1,30 @@
-[]
+[
+  {
+    "token": "u6vy3wcbgo8mjsbsc2a",
+    "userData": {
+      "email": "williamskiwix@gmail.com",
+      "firstName": "Williams",
+      "lastName": "Kiwix",
+      "password": "Password@123",
+      "isAdmin": false,
+      "emailVerified": false,
+      "aiProvider": "puter",
+      "createdAt": 1767083325203
+    },
+    "createdAt": 1767083325203
+  },
+  {
+    "token": "f5l0ueh37fmjsby43i",
+    "userData": {
+      "email": "williamskiwix@gmail.com",
+      "firstName": "Williams",
+      "lastName": "Kiwix",
+      "password": "Password@123",
+      "isAdmin": false,
+      "emailVerified": false,
+      "aiProvider": "puter",
+      "createdAt": 1767083594815
+    },
+    "createdAt": 1767083594815
+  }
+]

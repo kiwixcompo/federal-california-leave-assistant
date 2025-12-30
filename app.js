@@ -188,8 +188,6 @@ class LeaveAssistantApp {
         document.getElementById('backToDashboard2').onclick = () => this.showPage('dashboard');
 
         // Verification page
-        document.getElementById('autoVerifyBtn').onclick = () => this.autoVerifyCurrentToken();
-        document.getElementById('copyVerificationLink').onclick = () => this.copyVerificationLink();
         document.getElementById('resendVerification').onclick = () => this.resendVerificationEmail();
         document.getElementById('backToLogin').onclick = () => this.showPage('loginPage');
 
@@ -222,10 +220,16 @@ class LeaveAssistantApp {
         document.getElementById('closeBulkGrant').onclick = () => document.getElementById('bulkGrantModal').classList.add('hidden');
         document.getElementById('bulkGrantForm').onsubmit = (e) => this.handleBulkGrant(e);
         document.getElementById('selectAllUsers').onchange = (e) => this.toggleSelectAll(e.target.checked);
-        document.getElementById('adminSettingsBtn').onclick = () => this.showAdminSettings();
+        document.getElementById('adminSettingsBtn').onclick = () => this.showAdminProfile();
         document.getElementById('clearAllData').onclick = () => this.clearAllData();
         document.getElementById('userSearch').oninput = (e) => this.filterUsers();
         document.getElementById('userFilter').onchange = (e) => this.filterUsers();
+        
+        // Admin profile page
+        document.getElementById('backToAdminDashboard').onclick = () => this.showPage('adminDashboard');
+        document.getElementById('adminLogoutBtn2').onclick = () => this.logout();
+        document.getElementById('adminProfileForm').onsubmit = (e) => this.handleAdminProfileUpdate(e);
+        document.getElementById('cancelProfileChanges').onclick = () => this.showPage('adminDashboard');
         
         // System settings
         document.getElementById('allowRegistration').onchange = (e) => this.updateSystemSettings();
@@ -729,89 +733,9 @@ class LeaveAssistantApp {
         }
     }
 
-    async handleRegister(e) {
-        e.preventDefault();
-        this.showLoading();
-
-        const email = document.getElementById('registerEmail').value.trim().toLowerCase();
-        const firstName = document.getElementById('firstName').value.trim();
-        const lastName = document.getElementById('lastName').value.trim();
-        const password = document.getElementById('registerPassword').value;
-        
-        // Disposable Email Check
-        const domain = email.split('@')[1];
-        if (this.disposableDomains.includes(domain)) {
-            this.hideLoading();
-            return this.showError('❌ Registration Rejected: Disposable emails are not allowed.');
-        }
-
-        if (this.findUser(email)) {
-            this.hideLoading();
-            return this.showError('User exists');
-        }
-
-        const token = Math.random().toString(36).substring(2) + Date.now().toString(36);
-        const newUser = {
-            firstName, lastName, email, password,
-            isAdmin: false, emailVerified: false,
-            createdAt: Date.now(), aiProvider: 'puter'  // Default to Puter.js AI
-        };
-
-        this.pendingVerifications.push({ token, userData: newUser, createdAt: Date.now() });
-        this.savePendingVerifications(this.pendingVerifications);
-
-        // Store current token for verification
-        this.currentVerificationToken = token;
-        this.currentVerificationEmail = email;
-
-        // Create verification link
-        const verificationLink = `${window.location.origin}${window.location.pathname}?verify=${token}`;
-
-        // Send verification email (simulated)
-        try {
-            const endpoint = this.getApiUrl('send-verification');
-            
-            if (endpoint && this.serverRunning) {
-                const response = await fetch(endpoint, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        email: email,
-                        firstName: firstName,
-                        token: token,
-                        verificationLink: verificationLink
-                    })
-                });
-
-                const result = await response.json();
-                
-                if (result.success) {
-                    console.log(`📨 Verification email sent to: ${email}`);
-                    console.log(`🔗 Verification link: ${verificationLink}`);
-                }
-            } else {
-                // In production or when server is not available, just log
-                console.log(`📨 Verification email would be sent to: ${email}`);
-                console.log(`🔗 Verification link: ${verificationLink}`);
-            }
-        } catch (error) {
-            console.error('Email sending error:', error);
-            // Don't fail registration if email sending fails
-        }
-
-        // Show verification page with link
-        this.showVerificationPage(verificationLink, email);
-        this.hideLoading();
-    }
-
-    showVerificationPage(verificationLink, email) {
+    showVerificationPage(email) {
         // Show the verification page
         this.showPage('verificationPage');
-        
-        // Display the verification link in demo mode
-        document.getElementById('verificationLinkDisplay').value = verificationLink;
-        document.getElementById('demoVerificationSection').classList.remove('hidden');
-        document.getElementById('autoVerifyBtn').classList.remove('hidden');
         
         // Update the email message
         const emailMessage = document.querySelector('#verificationPage p');
@@ -819,50 +743,11 @@ class LeaveAssistantApp {
             emailMessage.textContent = `We've sent a verification link to ${email}.`;
         }
         
-        this.showSuccess(`Registration successful! Verification link created for ${email}`);
-    }
-
-    autoVerifyCurrentToken() {
-        if (this.currentVerificationToken) {
-            this.verifyEmailToken(this.currentVerificationToken);
-        } else {
-            this.showError('No verification token available');
-        }
-    }
-
-    copyVerificationLink() {
-        const linkInput = document.getElementById('verificationLinkDisplay');
-        linkInput.select();
-        linkInput.setSelectionRange(0, 99999); // For mobile devices
-        
-        try {
-            document.execCommand('copy');
-            this.showSuccess('Verification link copied to clipboard!');
-        } catch (err) {
-            // Fallback for modern browsers
-            navigator.clipboard.writeText(linkInput.value).then(() => {
-                this.showSuccess('Verification link copied to clipboard!');
-            }).catch(() => {
-                this.showError('Failed to copy link. Please copy manually.');
-            });
-        }
+        this.showSuccess(`Registration successful! Verification email sent to ${email}`);
     }
 
     resendVerificationEmail() {
-        if (this.currentVerificationEmail && this.currentVerificationToken) {
-            const verificationLink = `${window.location.origin}${window.location.pathname}?verify=${this.currentVerificationToken}`;
-            
-            // Simulate resending
-            console.log(`📨 Resending verification email to: ${this.currentVerificationEmail}`);
-            console.log(`🔗 Verification link: ${verificationLink}`);
-            
-            // Update the displayed link
-            document.getElementById('verificationLinkDisplay').value = verificationLink;
-            
-            this.showSuccess('Verification email resent! Check the link above.');
-        } else {
-            this.showError('No verification email to resend. Please register again.');
-        }
+        this.showSuccess('Verification email resent! Please check your inbox.');
     }
 
     async handleLogin(e) {
@@ -935,8 +820,8 @@ class LeaveAssistantApp {
             const data = await response.json();
             
             if (response.ok && data.success) {
-                // Show verification page with link
-                this.showVerificationPage(data.verificationLink, email);
+                // Show verification page
+                this.showVerificationPage(email);
                 this.showSuccess(`Registration successful! Verification email sent to ${email}`);
             } else {
                 this.showError(data.error || 'Registration failed');
@@ -1268,7 +1153,104 @@ class LeaveAssistantApp {
         document.getElementById('storageUsed').textContent = `${usageKB} KB`;
     }
 
-    // Individual User Actions
+    // Admin Profile Management
+    showAdminProfile() {
+        // Populate admin profile form with current user data
+        document.getElementById('adminFirstName').value = this.currentUser.firstName || '';
+        document.getElementById('adminLastName').value = this.currentUser.lastName || '';
+        document.getElementById('adminEmail').value = this.currentUser.email || '';
+        document.getElementById('adminUserId').textContent = this.currentUser.id || '-';
+        document.getElementById('adminCreatedDate').textContent = this.currentUser.createdAt ? 
+            new Date(this.currentUser.createdAt).toLocaleDateString() : '-';
+        
+        // Clear password fields
+        document.getElementById('adminCurrentPassword').value = '';
+        document.getElementById('adminNewPassword').value = '';
+        document.getElementById('adminConfirmPassword').value = '';
+        
+        this.showPage('adminProfilePage');
+    }
+
+    async handleAdminProfileUpdate(e) {
+        e.preventDefault();
+        this.showLoading();
+        
+        try {
+            const firstName = document.getElementById('adminFirstName').value.trim();
+            const lastName = document.getElementById('adminLastName').value.trim();
+            const email = document.getElementById('adminEmail').value.trim();
+            const currentPassword = document.getElementById('adminCurrentPassword').value;
+            const newPassword = document.getElementById('adminNewPassword').value;
+            const confirmPassword = document.getElementById('adminConfirmPassword').value;
+            
+            // Basic validation
+            if (!firstName || !lastName || !email) {
+                this.showError('First name, last name, and email are required');
+                return;
+            }
+            
+            // Password validation if changing password
+            if (newPassword || confirmPassword) {
+                if (!currentPassword) {
+                    this.showError('Current password is required to change password');
+                    return;
+                }
+                
+                if (currentPassword !== this.currentUser.password) {
+                    this.showError('Current password is incorrect');
+                    return;
+                }
+                
+                if (newPassword !== confirmPassword) {
+                    this.showError('New passwords do not match');
+                    return;
+                }
+                
+                if (newPassword.length < 6) {
+                    this.showError('New password must be at least 6 characters');
+                    return;
+                }
+            }
+            
+            // Update user profile
+            const updateData = {
+                firstName: firstName,
+                lastName: lastName,
+                email: email
+            };
+            
+            if (newPassword) {
+                updateData.password = newPassword;
+            }
+            
+            const response = await fetch(this.getApiUrl('user/profile'), {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${this.sessionToken}`
+                },
+                body: JSON.stringify(updateData)
+            });
+            
+            const data = await response.json();
+            
+            if (response.ok && data.success) {
+                // Update current user data
+                this.currentUser = { ...this.currentUser, ...updateData };
+                
+                this.showSuccess('Profile updated successfully!');
+                this.showPage('adminDashboard');
+            } else {
+                this.showError(data.error || 'Failed to update profile');
+            }
+            
+        } catch (error) {
+            console.error('Admin profile update error:', error);
+            this.showError('Failed to update profile. Please try again.');
+        } finally {
+            this.hideLoading();
+        }
+    }
     async deleteUser(userId) {
         if (!confirm('Are you sure you want to delete this user? This action cannot be undone.')) {
             return;
