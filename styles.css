@@ -267,7 +267,7 @@ small.hint {
 }
 
 .nav-logo {
-    width: 32px;
+    width: 80px;
     height: 32px;
     margin-right: 0.75rem;
     object-fit: contain;
@@ -605,8 +605,8 @@ small.hint {
     }
     
     .nav-logo {
-        width: 28px;
-        height: 28px;
+        width: 60px;
+        height: 24px;
         margin-right: 0.5rem;
     }
     
@@ -629,7 +629,7 @@ small.hint {
     
     /* Show abbreviated nav title on mobile */
     .nav-brand::after {
-        content: "Leave Assistant";
+        content: "HRLA";
         font-size: 1rem;
         font-weight: 700;
         white-space: nowrap;
@@ -750,8 +750,8 @@ small.hint {
     }
     
     .nav-logo {
-        width: 24px;
-        height: 24px;
+        width: 50px;
+        height: 20px;
         margin-right: 0.25rem;
     }
     
@@ -897,41 +897,40 @@ input[type="password"],
 input[type="number"],
 select,
 textarea {
-    color: #000 !important; /* Force black text */
-    background: #fff !important; /* Force white background */
-    font-weight: 500; /* Slightly bolder for better visibility */
-    font-size: 16px; /* Prevent zoom on iOS */
+    color: #000;
+    background: #fff;
+    font-weight: 400;
 }
 
 input:focus, select:focus, textarea:focus {
-    color: #000 !important;
-    background: #fff !important;
+    color: #000;
+    background: #fff;
 }
 
 /* Ensure all text is visible */
 .response-box {
-    color: #1f2937 !important; /* Dark gray for better contrast */
-    background: #f9fafb !important;
-    font-weight: 500;
+    color: #374151;
+    background: #f9fafb;
+    font-weight: 400;
     line-height: 1.6;
 }
 
 .data-table td {
-    color: #1f2937 !important;
-    font-weight: 500;
+    color: #374151;
+    font-weight: 400;
 }
 
 /* Better button contrast on mobile */
 @media (max-width: 768px) {
     .btn-primary {
-        background: #3730a3 !important; /* Darker blue for better contrast */
+        background: #4f46e5;
         font-weight: 600;
     }
     .btn-secondary {
-        background: #f3f4f6 !important;
-        color: #1f2937 !important;
-        border: 2px solid #d1d5db !important;
-        font-weight: 600;
+        background: white;
+        color: var(--text-main);
+        border: 1px solid var(--border-color);
+        font-weight: 500;
     }
 }
 

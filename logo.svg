@@ -1,43 +1,73 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<svg width="200" height="200" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
-  <!-- Robot Head -->
-  <circle cx="100" cy="80" r="35" fill="#E8F4FD" stroke="#4A90E2" stroke-width="3"/>
+<svg width="400" height="300" viewBox="0 0 400 300" xmlns="http://www.w3.org/2000/svg">
+  <!-- Robot Character -->
+  <g transform="translate(200, 120)">
+    <!-- Robot Head -->
+    <circle cx="0" cy="-40" r="35" fill="#E8F4FD" stroke="#4A90E2" stroke-width="3"/>
+    
+    <!-- Robot Face Mask -->
+    <path d="M-25 -50 Q-25 -55 -15 -55 Q15 -55 25 -50 Q25 -40 15 -40 Q-15 -40 -25 -50 Z" fill="#2E5BBA"/>
+    
+    <!-- Robot Eyes -->
+    <circle cx="-12" cy="-45" r="4" fill="#7DD3FC"/>
+    <circle cx="12" cy="-45" r="4" fill="#7DD3FC"/>
+    
+    <!-- Robot Smile -->
+    <path d="M-12 -30 Q0 -25 12 -30" stroke="#2E5BBA" stroke-width="2" fill="none"/>
+    
+    <!-- Robot Antenna -->
+    <line x1="0" y1="-75" x2="0" y2="-85" stroke="#4A90E2" stroke-width="2"/>
+    <circle cx="0" cy="-88" r="3" fill="#7DD3FC"/>
+    
+    <!-- Robot Headphones -->
+    <path d="M-35 -45 Q-45 -45 -45 -40 Q-45 -35 -35 -35" stroke="#4A90E2" stroke-width="4" fill="none"/>
+    <path d="M35 -45 Q45 -45 45 -40 Q45 -35 35 -35" stroke="#4A90E2" stroke-width="4" fill="none"/>
+    
+    <!-- Robot Body -->
+    <rect x="-20" y="-5" width="40" height="50" rx="10" fill="#E8F4FD" stroke="#4A90E2" stroke-width="3"/>
+    
+    <!-- Robot Arms -->
+    <rect x="-50" y="5" width="25" height="15" rx="7" fill="#E8F4FD" stroke="#4A90E2" stroke-width="2"/>
+    <rect x="25" y="5" width="25" height="15" rx="7" fill="#E8F4FD" stroke="#4A90E2" stroke-width="2"/>
+    
+    <!-- Robot Hand (waving) -->
+    <circle cx="60" cy="12" r="8" fill="#E8F4FD" stroke="#4A90E2" stroke-width="2"/>
+    <path d="M55 5 L58 0 M60 3 L63 -2 M65 5 L68 0" stroke="#4A90E2" stroke-width="2"/>
+    
+    <!-- Robot Legs -->
+    <rect x="-10" y="45" width="12" height="25" rx="6" fill="#E8F4FD" stroke="#4A90E2" stroke-width="2"/>
+    <rect x="3" y="45" width="12" height="25" rx="6" fill="#E8F4FD" stroke="#4A90E2" stroke-width="2"/>
+    
+    <!-- Robot Feet -->
+    <ellipse cx="-4" cy="75" rx="8" ry="5" fill="#7DD3FC"/>
+    <ellipse cx="9" cy="75" rx="8" ry="5" fill="#7DD3FC"/>
+  </g>
   
-  <!-- Robot Face -->
-  <path d="M75 70 Q75 65 85 65 Q95 65 95 70 Q95 75 85 75 Q75 75 75 70 Z" fill="#2E5BBA"/>
-  <path d="M105 70 Q105 65 115 65 Q125 65 125 70 Q125 75 115 75 Q105 75 105 70 Z" fill="#2E5BBA"/>
+  <!-- HRLA Text -->
+  <g transform="translate(0, 220)">
+    <!-- H -->
+    <rect x="20" y="0" width="15" height="60" fill="#2E5BBA"/>
+    <rect x="20" y="22" width="40" height="15" fill="#2E5BBA"/>
+    <rect x="45" y="0" width="15" height="60" fill="#2E5BBA"/>
+    
+    <!-- R -->
+    <rect x="80" y="0" width="15" height="60" fill="#2E5BBA"/>
+    <rect x="80" y="0" width="35" height="15" fill="#2E5BBA"/>
+    <rect x="100" y="15" width="15" height="15" fill="#2E5BBA"/>
+    <rect x="80" y="22" width="35" height="15" fill="#2E5BBA"/>
+    <path d="M100 37 L115 60" stroke="#2E5BBA" stroke-width="15"/>
+    
+    <!-- L -->
+    <rect x="140" y="0" width="15" height="60" fill="#2E5BBA"/>
+    <rect x="140" y="45" width="40" height="15" fill="#2E5BBA"/>
+    
+    <!-- A -->
+    <path d="M200 60 L220 0 L240 60" stroke="#2E5BBA" stroke-width="15" fill="none"/>
+    <rect x="210" y="22" width="20" height="15" fill="#2E5BBA"/>
+  </g>
   
-  <!-- Robot Eyes -->
-  <circle cx="85" cy="70" r="3" fill="#7DD3FC"/>
-  <circle cx="115" cy="70" r="3" fill="#7DD3FC"/>
-  
-  <!-- Robot Smile -->
-  <path d="M85 85 Q100 95 115 85" stroke="#2E5BBA" stroke-width="2" fill="none"/>
-  
-  <!-- Robot Antenna -->
-  <line x1="100" y1="45" x2="100" y2="35" stroke="#4A90E2" stroke-width="2"/>
-  <circle cx="100" cy="32" r="3" fill="#7DD3FC"/>
-  
-  <!-- Robot Headphones -->
-  <path d="M65 75 Q60 75 60 80 Q60 85 65 85" stroke="#4A90E2" stroke-width="4" fill="none"/>
-  <path d="M135 75 Q140 75 140 80 Q140 85 135 85" stroke="#4A90E2" stroke-width="4" fill="none"/>
-  
-  <!-- Robot Body -->
-  <rect x="80" y="110" width="40" height="50" rx="10" fill="#E8F4FD" stroke="#4A90E2" stroke-width="3"/>
-  
-  <!-- Robot Arms -->
-  <rect x="50" y="120" width="25" height="15" rx="7" fill="#E8F4FD" stroke="#4A90E2" stroke-width="2"/>
-  <rect x="125" y="120" width="25" height="15" rx="7" fill="#E8F4FD" stroke="#4A90E2" stroke-width="2"/>
-  
-  <!-- Robot Hand (waving) -->
-  <circle cx="160" cy="127" r="8" fill="#E8F4FD" stroke="#4A90E2" stroke-width="2"/>
-  <path d="M155 120 L158 115 M160 118 L163 113 M165 120 L168 115" stroke="#4A90E2" stroke-width="2"/>
-  
-  <!-- Robot Legs -->
-  <rect x="85" y="160" width="12" height="25" rx="6" fill="#E8F4FD" stroke="#4A90E2" stroke-width="2"/>
-  <rect x="103" y="160" width="12" height="25" rx="6" fill="#E8F4FD" stroke="#4A90E2" stroke-width="2"/>
-  
-  <!-- Robot Feet -->
-  <ellipse cx="91" cy="190" rx="8" ry="5" fill="#7DD3FC"/>
-  <ellipse cx="109" cy="190" rx="8" ry="5" fill="#7DD3FC"/>
+  <!-- Subtitle -->
+  <text x="200" y="280" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="#2E5BBA">
+    HR LEAVE COMPLIANCE &amp; RESPONSE TOOL
+  </text>
 </svg>

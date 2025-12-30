@@ -84,12 +84,13 @@ function initializeData() {
 // Initialize email transporter using a free service
 async function initializeEmailTransporter() {
     try {
-        // Use a simple approach - we'll implement a webhook-based email service
-        console.log('📧 Email service initialized (Free Service)');
-        console.log('💡 Using webhook-based email delivery');
+        // For development and testing, we'll use console logging
+        // In production, you would configure this with a real SMTP service
+        console.log('� Emanil service initialized (Development Mode)');
+        console.log('💡 Emails will be logged to console for development');
         emailTransporter = { 
             available: true,
-            service: 'webhook'
+            service: 'development'
         };
     } catch (error) {
         console.warn('⚠️ Email service failed to initialize:', error.message);
@@ -100,39 +101,48 @@ async function initializeEmailTransporter() {
 // Free email sending function using a webhook service
 async function sendEmailViaWebhook(to, subject, htmlContent, textContent) {
     try {
-        // Using a free email service API (like Formspree, EmailJS, or similar)
-        // This is a simple implementation that works without configuration
-        
-        const emailData = {
-            to: to,
-            subject: subject,
-            html: htmlContent,
-            text: textContent,
-            from: 'Leave Assistant <noreply@leaveassistant.com>'
-        };
-        
-        // For now, we'll use a simple approach - log the email and return success
-        // In production, you would integrate with a free service like:
-        // - Formspree (https://formspree.io/)
-        // - EmailJS (https://www.emailjs.com/)
-        // - Netlify Forms
-        // - Vercel Email
-        
-        console.log('📧 Email would be sent to:', to);
+        console.log('📧 Preparing to send email to:', to);
         console.log('📧 Subject:', subject);
-        console.log('📧 Content preview:', textContent.substring(0, 100) + '...');
         
-        // Simulate email sending delay
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        // For development/demo purposes, we'll create a comprehensive log
+        // that includes the verification link prominently
+        console.log('\n' + '='.repeat(80));
+        console.log('📧 EMAIL VERIFICATION REQUIRED');
+        console.log('='.repeat(80));
+        console.log('To:', to);
+        console.log('Subject:', subject);
+        console.log('\n📋 EMAIL CONTENT:');
+        console.log(textContent);
+        console.log('\n� VEeRIFICATION LINK (Click or copy):');
+        
+        // Extract verification link from content
+        const linkMatch = textContent.match(/http[s]?:\/\/[^\s]+/);
+        if (linkMatch) {
+            console.log(linkMatch[0]);
+            console.log('\n✅ User can copy this link to verify their email');
+        }
+        
+        console.log('='.repeat(80) + '\n');
+        
+        // In a real production environment, you would integrate with:
+        // - SendGrid (free tier: 100 emails/day)
+        // - Mailgun (free tier: 5,000 emails/month)
+        // - AWS SES (free tier: 62,000 emails/month)
+        // - Resend (free tier: 3,000 emails/month)
+        // - EmailJS (client-side email service)
+        
+        // For now, simulate successful sending
+        await new Promise(resolve => setTimeout(resolve, 500));
         
         return {
             success: true,
-            messageId: 'webhook_' + Date.now(),
-            service: 'webhook'
+            messageId: 'dev_' + Date.now(),
+            service: 'development',
+            note: 'Email logged to console for development'
         };
         
     } catch (error) {
-        console.error('Email webhook error:', error);
+        console.error('❌ Email sending error:', error);
         throw error;
     }
 }
