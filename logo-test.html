@@ -3,22 +3,35 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HRLA Logo Test</title>
+    <title>HRLA Logo Test - Professional Theme</title>
     <style>
-        body { font-family: Arial, sans-serif; padding: 2rem; background: #f3f4f6; }
-        .test-section { margin: 2rem 0; padding: 2rem; background: white; border-radius: 1rem; }
-        .logo-large { width: 120px; height: auto; }
-        .logo-nav { width: 80px; height: 32px; }
-        .logo-small { width: 50px; height: 20px; }
+        body { font-family: Arial, sans-serif; padding: 2rem; background: #f8fafc; }
+        .test-section { margin: 2rem 0; padding: 2rem; background: white; border-radius: 1rem; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); }
+        .logo-large { width: 140px; height: auto; filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.1)); }
+        .logo-nav { width: 60px; height: 24px; }
+        .logo-small { width: 40px; height: 16px; }
         .nav-demo { background: #1f2937; color: white; padding: 1rem; border-radius: 0.5rem; display: flex; align-items: center; gap: 0.75rem; }
+        .auth-demo { 
+            background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%); 
+            padding: 3rem; 
+            border-radius: 1rem; 
+            text-align: center;
+            color: #1e293b;
+        }
+        .auth-demo h1 { color: #1e293b; margin: 1rem 0 0.5rem 0; }
+        .auth-demo p { color: #64748b; margin: 0; }
     </style>
 </head>
 <body>
-    <h1>HRLA Logo Test</h1>
+    <h1>HRLA Logo Test - Professional Clean Theme</h1>
     
     <div class="test-section">
-        <h2>Full Logo (Login/Homepage)</h2>
-        <img src="logo.svg" alt="HRLA - HR Leave Compliance & Response Tool" class="logo-large">
+        <h2>Homepage/Login Background Demo</h2>
+        <div class="auth-demo">
+            <img src="logo.svg" alt="HRLA - HR Leave Compliance & Response Tool" class="logo-large">
+            <h1>Leave Assistant</h1>
+            <p>HR Compliance & Response Tool</p>
+        </div>
     </div>
     
     <div class="test-section">
