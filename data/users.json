@@ -1,0 +1,13 @@
+[
+  {
+    "id": "1",
+    "email": "talk2char@gmail.com",
+    "password": "Password@123",
+    "isAdmin": true,
+    "firstName": "Super",
+    "lastName": "Admin",
+    "emailVerified": true,
+    "aiProvider": "puter",
+    "createdAt": 1767082422980
+  }
+]

@@ -1,18 +1,89 @@
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
+const fs = require('fs-extra');
 const nodemailer = require('nodemailer');
+const stripe = require('stripe');
+const { PayPalApi, OrdersController, PaymentsController } = require('@paypal/paypal-server-sdk');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
 
+// Data storage paths
+const DATA_DIR = path.join(__dirname, 'data');
+const USERS_FILE = path.join(DATA_DIR, 'users.json');
+const PENDING_FILE = path.join(DATA_DIR, 'pending.json');
+const CONFIG_FILE = path.join(DATA_DIR, 'config.json');
+const SESSIONS_FILE = path.join(DATA_DIR, 'sessions.json');
+const CONVERSATIONS_FILE = path.join(DATA_DIR, 'conversations.json');
+
+// Initialize data directory
+fs.ensureDirSync(DATA_DIR);
+
 // Email configuration
 let emailTransporter = null;
+
+// Payment configurations
+let stripeClient = null;
+let paypalClient = null;
+
+// Data storage functions
+function loadData(filePath, defaultData = []) {
+    try {
+        if (fs.existsSync(filePath)) {
+            return fs.readJsonSync(filePath);
+        }
+        return defaultData;
+    } catch (error) {
+        console.error(`Error loading ${filePath}:`, error);
+        return defaultData;
+    }
+}
+
+function saveData(filePath, data) {
+    try {
+        fs.writeJsonSync(filePath, data, { spaces: 2 });
+        return true;
+    } catch (error) {
+        console.error(`Error saving ${filePath}:`, error);
+        return false;
+    }
+}
+
+// Initialize default data
+function initializeData() {
+    // Initialize users with default admin
+    const users = loadData(USERS_FILE, [{
+        id: '1',
+        email: 'talk2char@gmail.com',
+        password: 'Password@123',
+        isAdmin: true,
+        firstName: 'Super',
+        lastName: 'Admin',
+        emailVerified: true,
+        aiProvider: 'puter',
+        createdAt: Date.now()
+    }]);
+    saveData(USERS_FILE, users);
+
+    // Initialize other data files
+    saveData(PENDING_FILE, loadData(PENDING_FILE, []));
+    saveData(CONFIG_FILE, loadData(CONFIG_FILE, {
+        monthlyFee: 29.99,
+        systemSettings: {
+            allowRegistration: true,
+            requireEmailVerification: true
+        }
+    }));
+    saveData(SESSIONS_FILE, loadData(SESSIONS_FILE, {}));
+    saveData(CONVERSATIONS_FILE, loadData(CONVERSATIONS_FILE, {}));
+
+    console.log('✅ Data files initialized');
+}
 
 // Initialize email transporter
 function initializeEmailTransporter() {
     try {
-        // Simple SMTP configuration for development
         emailTransporter = nodemailer.createTransport({
             host: 'smtp.ethereal.email',
             port: 587,
@@ -24,124 +95,214 @@ function initializeEmailTransporter() {
         });
         
         console.log('📧 Email transporter initialized (Development Mode)');
-        console.log('💡 Configure real SMTP settings in admin panel for production');
     } catch (error) {
         console.warn('⚠️ Email transporter failed to initialize:', error.message);
         emailTransporter = null;
     }
 }
 
-// Initialize email on startup
-initializeEmailTransporter();
+// Initialize payment systems
+function initializePayments() {
+    const config = loadData(CONFIG_FILE, {});
+    
+    // Initialize Stripe
+    if (config.stripeSecretKey) {
+        try {
+            stripeClient = stripe(config.stripeSecretKey);
+            console.log('💳 Stripe initialized');
+        } catch (error) {
+            console.warn('⚠️ Stripe initialization failed:', error.message);
+        }
+    }
+    
+    // Initialize PayPal
+    if (config.paypalClientId && config.paypalClientSecret) {
+        try {
+            paypalClient = new PayPalApi({
+                clientId: config.paypalClientId,
+                clientSecret: config.paypalClientSecret,
+                environment: config.paypalEnvironment || 'sandbox' // 'sandbox' or 'live'
+            });
+            console.log('💰 PayPal initialized');
+        } catch (error) {
+            console.warn('⚠️ PayPal initialization failed:', error.message);
+        }
+    }
+}
 
-// Enable CORS for all routes
+// Session management
+function generateSessionToken() {
+    return Math.random().toString(36).substring(2) + Date.now().toString(36);
+}
+
+function validateSession(sessionToken) {
+    const sessions = loadData(SESSIONS_FILE, {});
+    const session = sessions[sessionToken];
+    
+    if (!session) return null;
+    
+    // Check if session is expired (24 hours)
+    if (Date.now() - session.createdAt > 24 * 60 * 60 * 1000) {
+        delete sessions[sessionToken];
+        saveData(SESSIONS_FILE, sessions);
+        return null;
+    }
+    
+    return session;
+}
+
+function createSession(userId) {
+    const sessionToken = generateSessionToken();
+    const sessions = loadData(SESSIONS_FILE, {});
+    
+    sessions[sessionToken] = {
+        userId: userId,
+        createdAt: Date.now()
+    };
+    
+    saveData(SESSIONS_FILE, sessions);
+    return sessionToken;
+}
+
+// User conversation isolation
+function getUserConversations(userId) {
+    const conversations = loadData(CONVERSATIONS_FILE, {});
+    return conversations[userId] || [];
+}
+
+function saveUserConversation(userId, conversation) {
+    const conversations = loadData(CONVERSATIONS_FILE, {});
+    if (!conversations[userId]) {
+        conversations[userId] = [];
+    }
+    
+    conversations[userId].push({
+        ...conversation,
+        timestamp: Date.now(),
+        id: Math.random().toString(36).substring(2)
+    });
+    
+    // Keep only last 100 conversations per user
+    if (conversations[userId].length > 100) {
+        conversations[userId] = conversations[userId].slice(-100);
+    }
+    
+    saveData(CONVERSATIONS_FILE, conversations);
+}
+
+// Initialize everything
+initializeData();
+initializeEmailTransporter();
+initializePayments();
+
+// Enable CORS
 app.use(cors({
     origin: '*',
     credentials: true
 }));
 
-// Parse JSON bodies
 app.use(express.json());
 
 // ==========================================
-// API ROUTES
+// AUTHENTICATION MIDDLEWARE
 // ==========================================
 
-// OpenAI API proxy
-app.post('/api/openai', async (req, res) => {
-    try {
-        const { apiKey, messages, model = 'gpt-4o-mini', max_tokens = 1000, temperature = 0.3 } = req.body;
-
-        if (!apiKey || apiKey === 'demo') {
-            return res.status(400).json({ error: 'Valid OpenAI API key required.' });
-        }
-
-        const fetch = (await import('node-fetch')).default;
-
-        const response = await fetch('https://api.openai.com/v1/chat/completions', {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${apiKey}`,
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ model, messages, max_tokens, temperature })
-        });
-
-        const data = await response.json();
-        if (!response.ok) return res.status(response.status).json(data);
-        res.json(data);
-    } catch (error) {
-        console.error('❌ OpenAI Server Error:', error);
-        res.status(500).json({ error: 'Internal server error', message: error.message });
+function requireAuth(req, res, next) {
+    const sessionToken = req.headers.authorization?.replace('Bearer ', '');
+    const session = validateSession(sessionToken);
+    
+    if (!session) {
+        return res.status(401).json({ error: 'Authentication required' });
     }
-});
-
-// Google Gemini API proxy
-app.post('/api/gemini', async (req, res) => {
-    try {
-        const { apiKey, prompt, systemPrompt } = req.body;
-
-        if (!apiKey) {
-            return res.status(400).json({ error: 'Valid Gemini API key required.' });
-        }
-
-        const fetch = (await import('node-fetch')).default;
-
-        console.log('🤖 Attempting Gemini API call with gemini-pro (v1beta)...');
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${apiKey}`;
-        
-        const response = await fetch(url, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                contents: [{
-                    parts: [{ text: `${systemPrompt}\n\nUser Query: ${prompt}` }]
-                }],
-                generationConfig: {
-                    temperature: 0.3,
-                    maxOutputTokens: 1024,
-                }
-            })
-        });
-
-        const data = await response.json();
-        
-        if (response.ok && data.candidates && data.candidates.length > 0) {
-            console.log('✅ Gemini API success');
-            return res.json(data);
-        } else {
-            console.error('❌ Gemini API error:', data);
-            return res.status(response.status || 400).json({ 
-                error: data.error?.message || 'Gemini API request failed. Please check your API key.',
-                details: data 
-            });
-        }
-
-    } catch (error) {
-        console.error('❌ Gemini Server Error:', error);
-        res.status(500).json({ error: 'Internal server error', message: error.message });
+    
+    const users = loadData(USERS_FILE, []);
+    const user = users.find(u => u.id === session.userId);
+    
+    if (!user) {
+        return res.status(401).json({ error: 'User not found' });
     }
-});
+    
+    req.user = user;
+    req.sessionToken = sessionToken;
+    next();
+}
 
-// Subscription Payment Endpoint
-app.post('/api/subscribe', (req, res) => {
-    const { userId, paymentMethod, amount } = req.body;
-    console.log(`💰 Processing payment: User ${userId} via ${paymentMethod} (${amount})`);
-    res.json({ 
-        success: true, 
-        message: 'Payment processed successfully',
-        transactionId: 'tx_' + Math.random().toString(36).substr(2, 9),
-        expiryDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
+function requireAdmin(req, res, next) {
+    requireAuth(req, res, () => {
+        if (!req.user.isAdmin) {
+            return res.status(403).json({ error: 'Admin access required' });
+        }
+        next();
+    });
+}
+
+// ==========================================
+// AUTH ROUTES
+// ==========================================
+
+app.post('/api/auth/login', (req, res) => {
+    const { email, password } = req.body;
+    const users = loadData(USERS_FILE, []);
+    
+    const user = users.find(u => u.email.toLowerCase() === email.toLowerCase());
+    
+    if (!user || user.password !== password) {
+        return res.status(401).json({ error: 'Invalid credentials' });
+    }
+    
+    const sessionToken = createSession(user.id);
+    
+    res.json({
+        success: true,
+        user: {
+            id: user.id,
+            email: user.email,
+            firstName: user.firstName,
+            lastName: user.lastName,
+            isAdmin: user.isAdmin,
+            emailVerified: user.emailVerified,
+            aiProvider: user.aiProvider,
+            subscriptionExpiry: user.subscriptionExpiry,
+            createdAt: user.createdAt
+        },
+        sessionToken: sessionToken
     });
 });
 
-// Email verification endpoint
-app.post('/api/send-verification', async (req, res) => {
-    const { email, token, firstName, verificationLink } = req.body;
+app.post('/api/auth/register', async (req, res) => {
+    const { email, firstName, lastName, password } = req.body;
+    const users = loadData(USERS_FILE, []);
     
+    // Check if user exists
+    if (users.find(u => u.email.toLowerCase() === email.toLowerCase())) {
+        return res.status(400).json({ error: 'User already exists' });
+    }
+    
+    // Create verification token
+    const token = Math.random().toString(36).substring(2) + Date.now().toString(36);
+    const verificationLink = `${req.headers.origin || 'http://localhost:3001'}?verify=${token}`;
+    
+    // Store pending verification
+    const pending = loadData(PENDING_FILE, []);
+    pending.push({
+        token: token,
+        userData: {
+            email: email.toLowerCase(),
+            firstName: firstName,
+            lastName: lastName,
+            password: password,
+            isAdmin: false,
+            emailVerified: false,
+            aiProvider: 'puter',
+            createdAt: Date.now()
+        },
+        createdAt: Date.now()
+    });
+    saveData(PENDING_FILE, pending);
+    
+    // Send verification email
     try {
         if (emailTransporter) {
-            // Create email content
             const emailHtml = `
                 <!DOCTYPE html>
                 <html>
@@ -169,21 +330,10 @@ app.post('/api/send-verification', async (req, res) => {
                                 <a href="${verificationLink}" class="button">✅ Verify Email Address</a>
                             </div>
                             
-                            <p><strong>What's included in your trial:</strong></p>
-                            <ul>
-                                <li>🇺🇸 Federal FMLA Assistant</li>
-                                <li>🌴 California Leave Assistant (CFRA, PDL, FMLA)</li>
-                                <li>🤖 AI-powered compliance responses</li>
-                                <li>📧 Email drafting assistance</li>
-                                <li>❓ Quick HR questions</li>
-                            </ul>
-                            
                             <p>If the button doesn't work, copy and paste this link into your browser:</p>
                             <p style="word-break: break-all; background: #e9ecef; padding: 10px; border-radius: 5px; font-family: monospace;">
                                 ${verificationLink}
                             </p>
-                            
-                            <p><small>This verification link will expire in 24 hours. If you didn't create this account, please ignore this email.</small></p>
                         </div>
                         <div class="footer">
                             <p>© 2024 Leave Assistant - HR Compliance Tool</p>
@@ -193,87 +343,244 @@ app.post('/api/send-verification', async (req, res) => {
                 </html>
             `;
 
-            const emailText = `
-Welcome to Leave Assistant, ${firstName}!
-
-Thank you for registering. To complete your registration and start your 24-hour free trial, please verify your email address by clicking the link below:
-
-${verificationLink}
-
-What's included in your trial:
-- Federal FMLA Assistant
-- California Leave Assistant (CFRA, PDL, FMLA)
-- AI-powered compliance responses
-- Email drafting assistance
-- Quick HR questions
-
-This verification link will expire in 24 hours.
-
-If you didn't create this account, please ignore this email.
-
-© 2024 Leave Assistant - HR Compliance Tool
-            `;
-
-            // Send email
-            const info = await emailTransporter.sendMail({
+            await emailTransporter.sendMail({
                 from: '"Leave Assistant" <noreply@leaveassistant.com>',
                 to: email,
                 subject: '✅ Verify your Leave Assistant account - Start your free trial',
-                text: emailText,
                 html: emailHtml
-            });
-
-            console.log(`📧 Verification email sent to: ${email}`);
-            console.log(`📬 Message ID: ${info.messageId}`);
-            
-            // For Ethereal Email, provide preview URL
-            if (info.messageId && emailTransporter.options.host === 'smtp.ethereal.email') {
-                const previewUrl = nodemailer.getTestMessageUrl(info);
-                console.log(`🔗 Preview email: ${previewUrl}`);
-                
-                res.json({ 
-                    success: true, 
-                    message: 'Verification email sent successfully',
-                    verificationLink: verificationLink,
-                    previewUrl: previewUrl,
-                    messageId: info.messageId
-                });
-            } else {
-                res.json({ 
-                    success: true, 
-                    message: 'Verification email sent successfully',
-                    verificationLink: verificationLink,
-                    messageId: info.messageId
-                });
-            }
-        } else {
-            // Fallback when email is not configured
-            console.log(`📧 Email would be sent to: ${email} (Email not configured)`);
-            console.log(`🔗 Verification link: ${verificationLink}`);
-            
-            res.json({ 
-                success: true, 
-                message: 'Email service not configured - using fallback mode',
-                verificationLink: verificationLink,
-                fallbackMode: true
             });
         }
     } catch (error) {
-        console.error('❌ Email sending error:', error);
-        res.status(500).json({ 
-            success: false, 
-            error: 'Failed to send verification email',
-            message: error.message,
-            verificationLink: verificationLink
-        });
+        console.error('Email sending error:', error);
     }
+    
+    res.json({
+        success: true,
+        message: 'Registration successful. Please check your email for verification.',
+        verificationLink: verificationLink // For development
+    });
 });
 
-// Admin endpoints
-app.post('/api/admin/grant-access', (req, res) => {
-    const { userIds, duration, adminId } = req.body;
+app.post('/api/auth/verify', (req, res) => {
+    const { token } = req.body;
+    const pending = loadData(PENDING_FILE, []);
+    const users = loadData(USERS_FILE, []);
     
-    console.log(`👑 Admin ${adminId} granting access to ${userIds.length} users for ${duration} months`);
+    const pendingIndex = pending.findIndex(p => p.token === token);
+    if (pendingIndex === -1) {
+        return res.status(400).json({ error: 'Invalid verification token' });
+    }
+    
+    const pendingUser = pending[pendingIndex];
+    const newUser = {
+        ...pendingUser.userData,
+        id: Date.now().toString(),
+        emailVerified: true
+    };
+    
+    users.push(newUser);
+    pending.splice(pendingIndex, 1);
+    
+    saveData(USERS_FILE, users);
+    saveData(PENDING_FILE, pending);
+    
+    res.json({
+        success: true,
+        message: 'Email verified successfully. You can now login.'
+    });
+});
+
+app.post('/api/auth/logout', requireAuth, (req, res) => {
+    const sessions = loadData(SESSIONS_FILE, {});
+    delete sessions[req.sessionToken];
+    saveData(SESSIONS_FILE, sessions);
+    
+    res.json({ success: true, message: 'Logged out successfully' });
+});
+
+// ==========================================
+// USER ROUTES
+// ==========================================
+
+app.get('/api/user/profile', requireAuth, (req, res) => {
+    res.json({
+        success: true,
+        user: {
+            id: req.user.id,
+            email: req.user.email,
+            firstName: req.user.firstName,
+            lastName: req.user.lastName,
+            isAdmin: req.user.isAdmin,
+            emailVerified: req.user.emailVerified,
+            aiProvider: req.user.aiProvider,
+            subscriptionExpiry: req.user.subscriptionExpiry,
+            createdAt: req.user.createdAt
+        }
+    });
+});
+
+app.put('/api/user/profile', requireAuth, (req, res) => {
+    const { firstName, lastName, aiProvider, openaiApiKey, geminiApiKey, password } = req.body;
+    const users = loadData(USERS_FILE, []);
+    
+    const userIndex = users.findIndex(u => u.id === req.user.id);
+    if (userIndex === -1) {
+        return res.status(404).json({ error: 'User not found' });
+    }
+    
+    // Update user data
+    if (firstName) users[userIndex].firstName = firstName;
+    if (lastName) users[userIndex].lastName = lastName;
+    if (aiProvider) users[userIndex].aiProvider = aiProvider;
+    if (openaiApiKey !== undefined) users[userIndex].openaiApiKey = openaiApiKey;
+    if (geminiApiKey !== undefined) users[userIndex].geminiApiKey = geminiApiKey;
+    if (password) users[userIndex].password = password;
+    
+    saveData(USERS_FILE, users);
+    
+    res.json({
+        success: true,
+        message: 'Profile updated successfully',
+        user: users[userIndex]
+    });
+});
+
+app.get('/api/user/conversations', requireAuth, (req, res) => {
+    const conversations = getUserConversations(req.user.id);
+    res.json({
+        success: true,
+        conversations: conversations
+    });
+});
+
+app.post('/api/user/conversation', requireAuth, (req, res) => {
+    const { toolName, input, response, provider } = req.body;
+    
+    saveUserConversation(req.user.id, {
+        toolName,
+        input,
+        response,
+        provider
+    });
+    
+    res.json({
+        success: true,
+        message: 'Conversation saved'
+    });
+});
+
+// ==========================================
+// ADMIN ROUTES
+// ==========================================
+
+app.get('/api/admin/users', requireAdmin, (req, res) => {
+    const users = loadData(USERS_FILE, []);
+    const { search, filter, page = 1, limit = 50 } = req.query;
+    
+    let filteredUsers = users.filter(u => !u.isAdmin);
+    
+    // Apply search filter
+    if (search) {
+        const searchLower = search.toLowerCase();
+        filteredUsers = filteredUsers.filter(u => 
+            u.firstName.toLowerCase().includes(searchLower) ||
+            u.lastName.toLowerCase().includes(searchLower) ||
+            u.email.toLowerCase().includes(searchLower)
+        );
+    }
+    
+    // Apply status filter
+    if (filter && filter !== 'all') {
+        filteredUsers = filteredUsers.filter(u => {
+            const now = Date.now();
+            const hasActiveSubscription = u.subscriptionExpiry && new Date(u.subscriptionExpiry).getTime() > now;
+            const trialDuration = 24 * 60 * 60 * 1000;
+            const trialEnd = u.createdAt + trialDuration;
+            const inTrial = now < trialEnd;
+            
+            switch (filter) {
+                case 'verified':
+                    return u.emailVerified;
+                case 'active':
+                    return hasActiveSubscription || inTrial;
+                case 'expired':
+                    return !hasActiveSubscription && !inTrial;
+                case 'trial':
+                    return inTrial && !hasActiveSubscription;
+                case 'subscribed':
+                    return hasActiveSubscription;
+                default:
+                    return true;
+            }
+        });
+    }
+    
+    // Pagination
+    const startIndex = (page - 1) * limit;
+    const endIndex = startIndex + parseInt(limit);
+    const paginatedUsers = filteredUsers.slice(startIndex, endIndex);
+    
+    // Add status information
+    const usersWithStatus = paginatedUsers.map(u => {
+        const now = Date.now();
+        const hasActiveSubscription = u.subscriptionExpiry && new Date(u.subscriptionExpiry).getTime() > now;
+        const trialDuration = 24 * 60 * 60 * 1000;
+        const trialEnd = u.createdAt + trialDuration;
+        const inTrial = now < trialEnd;
+        
+        return {
+            ...u,
+            status: {
+                active: hasActiveSubscription || inTrial,
+                type: hasActiveSubscription ? 'subscription' : (inTrial ? 'trial' : 'expired'),
+                expiry: hasActiveSubscription ? u.subscriptionExpiry : (inTrial ? trialEnd : null)
+            }
+        };
+    });
+    
+    res.json({
+        success: true,
+        users: usersWithStatus,
+        pagination: {
+            page: parseInt(page),
+            limit: parseInt(limit),
+            total: filteredUsers.length,
+            pages: Math.ceil(filteredUsers.length / limit)
+        }
+    });
+});
+
+app.get('/api/admin/stats', requireAdmin, (req, res) => {
+    const users = loadData(USERS_FILE, []);
+    const pending = loadData(PENDING_FILE, []);
+    const nonAdmins = users.filter(u => !u.isAdmin);
+    
+    const now = Date.now();
+    const trialDuration = 24 * 60 * 60 * 1000;
+    
+    const stats = {
+        totalUsers: nonAdmins.length,
+        verifiedUsers: nonAdmins.filter(u => u.emailVerified).length,
+        pendingVerifications: pending.length,
+        activeSubscriptions: nonAdmins.filter(u => 
+            u.subscriptionExpiry && new Date(u.subscriptionExpiry).getTime() > now
+        ).length,
+        trialUsers: nonAdmins.filter(u => {
+            const trialEnd = u.createdAt + trialDuration;
+            const hasActiveSubscription = u.subscriptionExpiry && new Date(u.subscriptionExpiry).getTime() > now;
+            return now < trialEnd && !hasActiveSubscription;
+        }).length
+    };
+    
+    res.json({
+        success: true,
+        stats: stats
+    });
+});
+
+app.post('/api/admin/grant-access', requireAdmin, (req, res) => {
+    const { userIds, duration } = req.body;
+    const users = loadData(USERS_FILE, []);
     
     const expiryDate = new Date();
     if (duration === 'forever') {
@@ -282,83 +589,419 @@ app.post('/api/admin/grant-access', (req, res) => {
         expiryDate.setMonth(expiryDate.getMonth() + parseInt(duration));
     }
     
-    res.json({
-        success: true,
-        message: `Access granted to ${userIds.length} users`,
-        expiryDate: expiryDate.toISOString(),
-        duration: duration
+    userIds.forEach(userId => {
+        const userIndex = users.findIndex(u => u.id === userId);
+        if (userIndex !== -1) {
+            users[userIndex].subscriptionExpiry = expiryDate.toISOString();
+        }
     });
-});
-
-app.post('/api/admin/revoke-access', (req, res) => {
-    const { userIds, adminId } = req.body;
     
-    console.log(`👑 Admin ${adminId} revoking access from ${userIds.length} users`);
+    saveData(USERS_FILE, users);
     
     res.json({
         success: true,
-        message: `Access revoked from ${userIds.length} users`
+        message: `Access granted to ${userIds.length} users until ${expiryDate.toLocaleDateString()}`
     });
 });
 
-app.post('/api/admin/send-notification', (req, res) => {
-    const { userIds, subject, message, adminId } = req.body;
+app.delete('/api/admin/user/:userId', requireAdmin, (req, res) => {
+    const { userId } = req.params;
+    const users = loadData(USERS_FILE, []);
     
-    console.log(`👑 Admin ${adminId} sending notification to ${userIds.length} users: ${subject}`);
+    const userIndex = users.findIndex(u => u.id === userId && !u.isAdmin);
+    if (userIndex === -1) {
+        return res.status(404).json({ error: 'User not found' });
+    }
+    
+    users.splice(userIndex, 1);
+    saveData(USERS_FILE, users);
+    
+    // Also remove user conversations
+    const conversations = loadData(CONVERSATIONS_FILE, {});
+    delete conversations[userId];
+    saveData(CONVERSATIONS_FILE, conversations);
     
     res.json({
         success: true,
-        message: `Notification sent to ${userIds.length} users`,
-        subject: subject
+        message: 'User deleted successfully'
     });
 });
 
-app.post('/api/admin/update-email-config', (req, res) => {
-    const { smtpHost, smtpPort, smtpUser, smtpPass } = req.body;
+app.get('/api/admin/pending', requireAdmin, (req, res) => {
+    const pending = loadData(PENDING_FILE, []);
+    res.json({
+        success: true,
+        pending: pending
+    });
+});
+
+app.post('/api/admin/approve-verification', requireAdmin, (req, res) => {
+    const { token } = req.body;
+    const pending = loadData(PENDING_FILE, []);
+    const users = loadData(USERS_FILE, []);
     
-    console.log('👑 Admin updating email configuration');
+    const pendingIndex = pending.findIndex(p => p.token === token);
+    if (pendingIndex === -1) {
+        return res.status(404).json({ error: 'Verification not found' });
+    }
     
-    if (smtpHost && smtpPort && smtpUser && smtpPass) {
-        try {
+    const pendingUser = pending[pendingIndex];
+    const newUser = {
+        ...pendingUser.userData,
+        id: Date.now().toString(),
+        emailVerified: true
+    };
+    
+    users.push(newUser);
+    pending.splice(pendingIndex, 1);
+    
+    saveData(USERS_FILE, users);
+    saveData(PENDING_FILE, pending);
+    
+    res.json({
+        success: true,
+        message: 'User approved and activated'
+    });
+});
+
+app.delete('/api/admin/reject-verification', requireAdmin, (req, res) => {
+    const { token } = req.body;
+    const pending = loadData(PENDING_FILE, []);
+    
+    const pendingIndex = pending.findIndex(p => p.token === token);
+    if (pendingIndex === -1) {
+        return res.status(404).json({ error: 'Verification not found' });
+    }
+    
+    pending.splice(pendingIndex, 1);
+    saveData(PENDING_FILE, pending);
+    
+    res.json({
+        success: true,
+        message: 'Verification rejected'
+    });
+});
+
+// ==========================================
+// PAYMENT ROUTES
+// ==========================================
+
+app.post('/api/payment/stripe/create-session', requireAuth, (req, res) => {
+    if (!stripeClient) {
+        return res.status(400).json({ error: 'Stripe not configured' });
+    }
+    
+    const config = loadData(CONFIG_FILE, {});
+    const amount = Math.round((config.monthlyFee || 29.99) * 100); // Convert to cents
+    
+    stripeClient.checkout.sessions.create({
+        payment_method_types: ['card'],
+        line_items: [{
+            price_data: {
+                currency: 'usd',
+                product_data: {
+                    name: 'Leave Assistant - Monthly Subscription',
+                    description: 'HR Compliance & Response Tool'
+                },
+                unit_amount: amount,
+            },
+            quantity: 1,
+        }],
+        mode: 'subscription',
+        success_url: `${req.headers.origin}/payment-success?session_id={CHECKOUT_SESSION_ID}`,
+        cancel_url: `${req.headers.origin}/payment-cancelled`,
+        client_reference_id: req.user.id,
+        metadata: {
+            userId: req.user.id,
+            email: req.user.email
+        }
+    }).then(session => {
+        res.json({
+            success: true,
+            sessionId: session.id,
+            url: session.url
+        });
+    }).catch(error => {
+        console.error('Stripe session creation error:', error);
+        res.status(500).json({ error: 'Failed to create payment session' });
+    });
+});
+
+app.post('/api/payment/stripe/webhook', express.raw({type: 'application/json'}), (req, res) => {
+    const sig = req.headers['stripe-signature'];
+    const config = loadData(CONFIG_FILE, {});
+    
+    let event;
+    try {
+        event = stripeClient.webhooks.constructEvent(req.body, sig, config.stripeWebhookSecret);
+    } catch (err) {
+        console.error('Webhook signature verification failed:', err.message);
+        return res.status(400).send(`Webhook Error: ${err.message}`);
+    }
+    
+    if (event.type === 'checkout.session.completed') {
+        const session = event.data.object;
+        const userId = session.client_reference_id;
+        
+        // Grant 30 days access
+        const users = loadData(USERS_FILE, []);
+        const userIndex = users.findIndex(u => u.id === userId);
+        
+        if (userIndex !== -1) {
+            const expiryDate = new Date();
+            expiryDate.setMonth(expiryDate.getMonth() + 1);
+            users[userIndex].subscriptionExpiry = expiryDate.toISOString();
+            users[userIndex].stripeCustomerId = session.customer;
+            
+            saveData(USERS_FILE, users);
+            console.log(`✅ Subscription activated for user ${userId}`);
+        }
+    }
+    
+    res.json({received: true});
+});
+
+app.post('/api/payment/paypal/create-order', requireAuth, (req, res) => {
+    if (!paypalClient) {
+        return res.status(400).json({ error: 'PayPal not configured' });
+    }
+    
+    const config = loadData(CONFIG_FILE, {});
+    const amount = (config.monthlyFee || 29.99).toFixed(2);
+    
+    const request = {
+        intent: 'CAPTURE',
+        purchase_units: [{
+            amount: {
+                currency_code: 'USD',
+                value: amount
+            },
+            description: 'Leave Assistant - Monthly Subscription'
+        }],
+        application_context: {
+            return_url: `${req.headers.origin}/payment-success`,
+            cancel_url: `${req.headers.origin}/payment-cancelled`,
+            brand_name: 'Leave Assistant',
+            user_action: 'PAY_NOW'
+        }
+    };
+    
+    const ordersController = new OrdersController(paypalClient);
+    
+    ordersController.ordersCreate({
+        body: request,
+        prefer: 'return=representation'
+    }).then(order => {
+        const approvalUrl = order.result.links.find(link => link.rel === 'approve').href;
+        
+        res.json({
+            success: true,
+            orderId: order.result.id,
+            approvalUrl: approvalUrl
+        });
+    }).catch(error => {
+        console.error('PayPal order creation error:', error);
+        res.status(500).json({ error: 'Failed to create PayPal order' });
+    });
+});
+
+app.post('/api/payment/paypal/capture-order', requireAuth, (req, res) => {
+    const { orderId } = req.body;
+    
+    if (!paypalClient) {
+        return res.status(400).json({ error: 'PayPal not configured' });
+    }
+    
+    const ordersController = new OrdersController(paypalClient);
+    
+    ordersController.ordersCapture({
+        id: orderId,
+        prefer: 'return=representation'
+    }).then(capture => {
+        if (capture.result.status === 'COMPLETED') {
+            // Grant 30 days access
+            const users = loadData(USERS_FILE, []);
+            const userIndex = users.findIndex(u => u.id === req.user.id);
+            
+            if (userIndex !== -1) {
+                const expiryDate = new Date();
+                expiryDate.setMonth(expiryDate.getMonth() + 1);
+                users[userIndex].subscriptionExpiry = expiryDate.toISOString();
+                users[userIndex].paypalOrderId = orderId;
+                
+                saveData(USERS_FILE, users);
+            }
+            
+            res.json({
+                success: true,
+                message: 'Payment completed successfully',
+                orderId: orderId
+            });
+        } else {
+            res.status(400).json({ error: 'Payment not completed' });
+        }
+    }).catch(error => {
+        console.error('PayPal capture error:', error);
+        res.status(500).json({ error: 'Failed to capture PayPal payment' });
+    });
+});
+
+// ==========================================
+// CONFIG ROUTES
+// ==========================================
+
+app.get('/api/config', requireAdmin, (req, res) => {
+    const config = loadData(CONFIG_FILE, {});
+    // Don't send sensitive data
+    const safeConfig = {
+        monthlyFee: config.monthlyFee,
+        systemSettings: config.systemSettings,
+        hasStripe: !!config.stripeSecretKey,
+        hasPaypal: !!(config.paypalClientId && config.paypalClientSecret),
+        hasEmail: !!config.smtpHost
+    };
+    
+    res.json({
+        success: true,
+        config: safeConfig
+    });
+});
+
+app.put('/api/config', requireAdmin, (req, res) => {
+    const config = loadData(CONFIG_FILE, {});
+    const updates = req.body;
+    
+    // Update configuration
+    Object.keys(updates).forEach(key => {
+        config[key] = updates[key];
+    });
+    
+    saveData(CONFIG_FILE, config);
+    
+    // Reinitialize services if needed
+    if (updates.smtpHost || updates.smtpPort || updates.smtpUser || updates.smtpPass) {
+        if (updates.smtpHost && updates.smtpPort && updates.smtpUser && updates.smtpPass) {
             emailTransporter = nodemailer.createTransport({
-                host: smtpHost,
-                port: parseInt(smtpPort),
-                secure: parseInt(smtpPort) === 465,
+                host: updates.smtpHost,
+                port: parseInt(updates.smtpPort),
+                secure: parseInt(updates.smtpPort) === 465,
                 auth: {
-                    user: smtpUser,
-                    pass: smtpPass
+                    user: updates.smtpUser,
+                    pass: updates.smtpPass
                 }
             });
-            
-            console.log('📧 Email transporter updated with custom SMTP settings');
-            res.json({ success: true, message: 'Email configuration updated' });
-        } catch (error) {
-            console.error('❌ Failed to update email config:', error);
-            res.status(500).json({ success: false, error: error.message });
+            console.log('📧 Email configuration updated');
         }
-    } else {
-        initializeEmailTransporter();
-        res.json({ success: true, message: 'Email configuration reset to development mode' });
+    }
+    
+    if (updates.stripeSecretKey || updates.paypalClientId || updates.paypalClientSecret) {
+        initializePayments();
+    }
+    
+    res.json({
+        success: true,
+        message: 'Configuration updated successfully'
+    });
+});
+
+// ==========================================
+// AI API ROUTES (existing)
+// ==========================================
+
+app.post('/api/openai', requireAuth, async (req, res) => {
+    try {
+        const { apiKey, messages, model = 'gpt-4o-mini', max_tokens = 1000, temperature = 0.3 } = req.body;
+
+        if (!apiKey || apiKey === 'demo') {
+            return res.status(400).json({ error: 'Valid OpenAI API key required.' });
+        }
+
+        const fetch = (await import('node-fetch')).default;
+
+        const response = await fetch('https://api.openai.com/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${apiKey}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ model, messages, max_tokens, temperature })
+        });
+
+        const data = await response.json();
+        if (!response.ok) return res.status(response.status).json(data);
+        
+        // Save conversation
+        saveUserConversation(req.user.id, {
+            toolName: req.body.toolName || 'unknown',
+            input: messages[messages.length - 1]?.content || '',
+            response: data.choices?.[0]?.message?.content || '',
+            provider: 'openai'
+        });
+        
+        res.json(data);
+    } catch (error) {
+        console.error('❌ OpenAI Server Error:', error);
+        res.status(500).json({ error: 'Internal server error', message: error.message });
     }
 });
 
-app.get('/api/admin/system-stats', (req, res) => {
-    res.json({
-        success: true,
-        stats: {
-            totalUsers: 0,
-            activeUsers: 0,
-            trialUsers: 0,
-            subscribedUsers: 0,
-            systemUptime: process.uptime(),
-            memoryUsage: process.memoryUsage(),
-            nodeVersion: process.version
+app.post('/api/gemini', requireAuth, async (req, res) => {
+    try {
+        const { apiKey, prompt, systemPrompt } = req.body;
+
+        if (!apiKey) {
+            return res.status(400).json({ error: 'Valid Gemini API key required.' });
         }
-    });
+
+        const fetch = (await import('node-fetch')).default;
+
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${apiKey}`;
+        
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                contents: [{
+                    parts: [{ text: `${systemPrompt}\n\nUser Query: ${prompt}` }]
+                }],
+                generationConfig: {
+                    temperature: 0.3,
+                    maxOutputTokens: 1024,
+                }
+            })
+        });
+
+        const data = await response.json();
+        
+        if (response.ok && data.candidates && data.candidates.length > 0) {
+            // Save conversation
+            saveUserConversation(req.user.id, {
+                toolName: req.body.toolName || 'unknown',
+                input: prompt,
+                response: data.candidates[0].content.parts[0].text,
+                provider: 'gemini'
+            });
+            
+            return res.json(data);
+        } else {
+            return res.status(response.status || 400).json({ 
+                error: data.error?.message || 'Gemini API request failed. Please check your API key.',
+                details: data 
+            });
+        }
+
+    } catch (error) {
+        console.error('❌ Gemini Server Error:', error);
+        res.status(500).json({ error: 'Internal server error', message: error.message });
+    }
 });
 
 app.get('/api/health', (req, res) => {
-    res.json({ status: 'OK', message: 'Leave Assistant backend is running' });
+    res.json({ 
+        status: 'OK', 
+        message: 'Leave Assistant backend is running',
+        timestamp: new Date().toISOString()
+    });
 });
 
 // ==========================================
@@ -372,4 +1015,6 @@ app.get('*', (req, res) => {
 
 app.listen(PORT, () => {
     console.log(`🚀 Leave Assistant Server running on http://localhost:${PORT}`);
+    console.log(`📁 Data directory: ${DATA_DIR}`);
+    console.log(`👥 Users file: ${USERS_FILE}`);
 });

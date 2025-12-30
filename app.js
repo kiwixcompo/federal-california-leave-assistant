@@ -3,29 +3,14 @@ class LeaveAssistantApp {
         try {
             console.log('🚀 Initializing Leave Assistant App (Pro Version)...');
             this.currentUser = null;
-            this.users = [];
-            this.pendingVerifications = [];
+            this.sessionToken = null;
             this.idleTimer = null;
             this.idleTimeout = 30 * 60 * 1000; // 30 minutes in milliseconds
-            this.currentVerificationToken = null;
-            this.currentVerificationEmail = null;
             this.trialTimerInterval = null; // For countdown timer
+            this.serverRunning = false;
             
-            // 1. Load Data
-            try {
-                this.users = this.loadUsers();
-                this.pendingVerifications = this.loadPendingVerificationsData();
-                this.paymentConfig = this.loadPaymentConfig();
-            } catch (error) {
-                console.error('❌ Data Load Error:', error);
-                this.users = [];
-            }
-            
-            // 2. Allowed/Blocked Domains
-            this.disposableDomains = [
-                'mailinator.com', 'yopmail.com', 'tempmail.com', 'guerrillamail.com', 
-                '10minutemail.com', 'throwawaymail.com', 'trashmail.com'
-            ];
+            // Check for stored session
+            this.sessionToken = localStorage.getItem('sessionToken');
             
             // 3. Start App
             this.init();
@@ -73,35 +58,48 @@ class LeaveAssistantApp {
             console.log('✅ Events bound successfully');
             
             // Check server status
-            this.checkServerStatus();
+            await this.checkServerStatus();
             
-            // URL Token Check
+            // URL Parameter Checks
             const urlParams = new URLSearchParams(window.location.search);
+            
+            // Email verification
             if (urlParams.get('verify')) {
                 console.log('🔗 Email verification token detected');
-                this.verifyEmailToken(urlParams.get('verify'));
+                await this.verifyEmailToken(urlParams.get('verify'));
+                window.history.replaceState({}, document.title, window.location.pathname);
+                return;
+            }
+            
+            // Payment success
+            if (urlParams.get('session_id') || window.location.pathname.includes('payment-success')) {
+                console.log('💳 Payment success detected');
+                this.showPage('paymentSuccessPage');
+                this.showSuccess('Payment completed successfully!');
+                window.history.replaceState({}, document.title, window.location.pathname);
+                return;
+            }
+            
+            // Payment cancelled
+            if (window.location.pathname.includes('payment-cancelled')) {
+                console.log('❌ Payment cancelled detected');
+                this.showPage('paymentCancelledPage');
                 window.history.replaceState({}, document.title, window.location.pathname);
                 return;
             }
             
             // Session Check
-            const currentUser = localStorage.getItem('currentUser');
-            if (currentUser) {
-                console.log('👤 Existing user session found');
-                this.currentUser = JSON.parse(currentUser);
-                // Refresh user data
-                const freshUser = this.users.find(u => u.id === this.currentUser.id);
-                if (freshUser) {
-                    this.currentUser = freshUser;
-                    localStorage.setItem('currentUser', JSON.stringify(freshUser));
-                }
-
-                if (!this.currentUser.emailVerified) {
-                    console.log('📧 User needs email verification');
-                    this.showPage('verificationPage');
-                } else {
-                    console.log('✅ User verified, checking subscription');
+            if (this.sessionToken) {
+                console.log('👤 Existing session found, validating...');
+                const isValid = await this.validateSession();
+                if (isValid) {
+                    console.log('✅ Session valid, checking subscription');
                     this.checkSubscriptionAndRedirect();
+                } else {
+                    console.log('❌ Session invalid, showing login');
+                    this.sessionToken = null;
+                    localStorage.removeItem('sessionToken');
+                    this.showPage('loginPage');
                 }
             } else {
                 console.log('🆕 No existing session, showing login');
@@ -116,6 +114,28 @@ class LeaveAssistantApp {
             this.hideLoading();
             this.showPage('loginPage');
             this.showError('Application failed to initialize. Please refresh the page.');
+        }
+    }
+
+    async validateSession() {
+        if (!this.sessionToken) return false;
+        
+        try {
+            const response = await fetch(this.getApiUrl('user/profile'), {
+                headers: {
+                    'Authorization': `Bearer ${this.sessionToken}`
+                }
+            });
+            
+            if (response.ok) {
+                const data = await response.json();
+                this.currentUser = data.user;
+                return true;
+            }
+            return false;
+        } catch (error) {
+            console.error('Session validation error:', error);
+            return false;
         }
     }
 
@@ -216,8 +236,11 @@ class LeaveAssistantApp {
         });
 
         // Payment
-        document.getElementById('payPaypal').onclick = () => this.handlePayment('paypal');
         document.getElementById('payStripe').onclick = () => this.handlePayment('stripe');
+        document.getElementById('payPaypal').onclick = () => this.handlePayment('paypal');
+        document.getElementById('continueToApp').onclick = () => this.checkSubscriptionAndRedirect();
+        document.getElementById('retryPayment').onclick = () => this.showPage('subscriptionPage');
+        document.getElementById('backToDashboardFromCancel').onclick = () => this.checkSubscriptionAndRedirect();
     }
 
     // ==========================================
@@ -368,48 +391,65 @@ class LeaveAssistantApp {
     }
 
     async handlePayment(method) {
-        const fee = this.paymentConfig.monthlyFee || 29.99;
         this.showLoading();
         
         try {
-            const endpoint = this.getApiUrl('subscribe');
-            
-            if (endpoint && this.serverRunning) {
-                const response = await fetch(endpoint, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        userId: this.currentUser.id,
-                        paymentMethod: method,
-                        amount: fee
-                    })
-                });
-                
-                const data = await response.json();
-                
-                if (data.success) {
-                    this.currentUser.subscriptionExpiry = data.expiryDate;
-                    this.updateUserRecord(this.currentUser);
-                    this.showSuccess('Payment Successful! Subscription activated.');
-                    setTimeout(() => this.checkSubscriptionAndRedirect(), 1500);
-                }
-            } else {
-                // In production without server, simulate payment for demo
-                console.log(`💰 Simulating payment: User ${this.currentUser.id} via ${method} (${fee})`);
-                
-                // Grant 30 days subscription
-                const expiryDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
-                this.currentUser.subscriptionExpiry = expiryDate;
-                this.updateUserRecord(this.currentUser);
-                
-                this.showSuccess('Payment Successful! Subscription activated. (Demo Mode)');
-                setTimeout(() => this.checkSubscriptionAndRedirect(), 1500);
+            if (method === 'stripe') {
+                await this.handleStripePayment();
+            } else if (method === 'paypal') {
+                await this.handlePayPalPayment();
             }
         } catch (error) {
             console.error('Payment Error', error);
-            this.showError('Payment failed. Please check console.');
+            this.showError('Payment failed: ' + error.message);
         } finally {
             this.hideLoading();
+        }
+    }
+
+    async handleStripePayment() {
+        try {
+            const response = await fetch(this.getApiUrl('payment/stripe/create-session'), {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${this.sessionToken}`
+                }
+            });
+            
+            const data = await response.json();
+            
+            if (response.ok && data.success) {
+                // Redirect to Stripe Checkout
+                window.location.href = data.url;
+            } else {
+                throw new Error(data.error || 'Failed to create Stripe session');
+            }
+        } catch (error) {
+            throw new Error('Stripe payment failed: ' + error.message);
+        }
+    }
+
+    async handlePayPalPayment() {
+        try {
+            const response = await fetch(this.getApiUrl('payment/paypal/create-order'), {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${this.sessionToken}`
+                }
+            });
+            
+            const data = await response.json();
+            
+            if (response.ok && data.success) {
+                // Redirect to PayPal
+                window.location.href = data.approvalUrl;
+            } else {
+                throw new Error(data.error || 'Failed to create PayPal order');
+            }
+        } catch (error) {
+            throw new Error('PayPal payment failed: ' + error.message);
         }
     }
 
@@ -593,7 +633,10 @@ class LeaveAssistantApp {
                     try {
                         const res = await fetch(endpoint, {
                             method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
+                            headers: { 
+                                'Content-Type': 'application/json',
+                                'Authorization': `Bearer ${this.sessionToken}`
+                            },
                             body: JSON.stringify(requestBody)
                         });
                         
@@ -822,45 +865,129 @@ class LeaveAssistantApp {
         }
     }
 
-    handleLogin(e) {
+    async handleLogin(e) {
         e.preventDefault();
+        this.showLoading();
+        
         const email = document.getElementById('loginEmail').value.toLowerCase();
         const password = document.getElementById('loginPassword').value;
         
-        const user = this.findUser(email);
-        
-        if (user && user.password === password) {
-            this.currentUser = user;
-            localStorage.setItem('currentUser', JSON.stringify(user));
-            this.resetIdleTimer(); // Start idle timer on login
-            this.checkSubscriptionAndRedirect();
-        } else {
-            this.showError('Invalid credentials');
+        try {
+            const response = await fetch(this.getApiUrl('auth/login'), {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email, password })
+            });
+            
+            const data = await response.json();
+            
+            if (response.ok && data.success) {
+                this.currentUser = data.user;
+                this.sessionToken = data.sessionToken;
+                localStorage.setItem('sessionToken', this.sessionToken);
+                this.resetIdleTimer();
+                this.checkSubscriptionAndRedirect();
+                this.showSuccess('Login successful!');
+            } else {
+                this.showError(data.error || 'Login failed');
+            }
+        } catch (error) {
+            console.error('Login error:', error);
+            this.showError('Login failed. Please check your connection.');
+        } finally {
+            this.hideLoading();
         }
     }
 
-    verifyEmailToken(token) {
-        const idx = this.pendingVerifications.findIndex(p => p.token === token);
-        if (idx === -1) return this.showError('Invalid token');
+    async handleRegister(e) {
+        e.preventDefault();
+        this.showLoading();
 
-        const pending = this.pendingVerifications[idx];
-        const user = pending.userData;
-        user.emailVerified = true;
-        user.id = Date.now().toString();
-
-        this.users.push(user);
-        this.saveUsers(this.users);
+        const email = document.getElementById('registerEmail').value.trim().toLowerCase();
+        const firstName = document.getElementById('firstName').value.trim();
+        const lastName = document.getElementById('lastName').value.trim();
+        const password = document.getElementById('registerPassword').value;
         
-        this.pendingVerifications.splice(idx, 1);
-        this.savePendingVerifications(this.pendingVerifications);
+        // Basic validation
+        if (!email || !firstName || !lastName || !password) {
+            this.hideLoading();
+            return this.showError('All fields are required');
+        }
+        
+        // Disposable Email Check
+        const disposableDomains = [
+            'mailinator.com', 'yopmail.com', 'tempmail.com', 'guerrillamail.com', 
+            '10minutemail.com', 'throwawaymail.com', 'trashmail.com'
+        ];
+        const domain = email.split('@')[1];
+        if (disposableDomains.includes(domain)) {
+            this.hideLoading();
+            return this.showError('❌ Registration Rejected: Disposable emails are not allowed.');
+        }
 
-        this.showSuccess('Email verified! Please login.');
-        this.showPage('loginPage');
+        try {
+            const response = await fetch(this.getApiUrl('auth/register'), {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email, firstName, lastName, password })
+            });
+            
+            const data = await response.json();
+            
+            if (response.ok && data.success) {
+                // Show verification page with link
+                this.showVerificationPage(data.verificationLink, email);
+                this.showSuccess(`Registration successful! Verification email sent to ${email}`);
+            } else {
+                this.showError(data.error || 'Registration failed');
+            }
+        } catch (error) {
+            console.error('Registration error:', error);
+            this.showError('Registration failed. Please check your connection.');
+        } finally {
+            this.hideLoading();
+        }
     }
 
-    logout() {
+    async verifyEmailToken(token) {
+        try {
+            const response = await fetch(this.getApiUrl('auth/verify'), {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ token })
+            });
+            
+            const data = await response.json();
+            
+            if (response.ok && data.success) {
+                this.showSuccess('Email verified successfully! Please login.');
+                this.showPage('loginPage');
+            } else {
+                this.showError(data.error || 'Verification failed');
+            }
+        } catch (error) {
+            console.error('Verification error:', error);
+            this.showError('Verification failed. Please try again.');
+        }
+    }
+
+    async logout() {
+        try {
+            if (this.sessionToken) {
+                await fetch(this.getApiUrl('auth/logout'), {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${this.sessionToken}`
+                    }
+                });
+            }
+        } catch (error) {
+            console.error('Logout error:', error);
+        }
+        
         this.currentUser = null;
-        localStorage.removeItem('currentUser');
+        this.sessionToken = null;
+        localStorage.removeItem('sessionToken');
         this.clearIdleTimer();
         
         // Clear trial timer
@@ -870,6 +997,7 @@ class LeaveAssistantApp {
         }
         
         this.showPage('loginPage');
+        this.showSuccess('Logged out successfully');
     }
 
     // ==========================================
@@ -934,48 +1062,112 @@ class LeaveAssistantApp {
     }
 
     // Admin
-    loadAdminDashboard() {
-        const nonAdmins = this.users.filter(u => !u.isAdmin);
-        const verifiedUsers = nonAdmins.filter(u => u.emailVerified);
-        const activeUsers = nonAdmins.filter(u => this.getSubscriptionStatus(u).active);
-        const trialUsers = nonAdmins.filter(u => this.getSubscriptionStatus(u).type === 'trial');
-        const subscribedUsers = nonAdmins.filter(u => this.getSubscriptionStatus(u).type === 'subscription');
-        
-        // Update stats
-        document.getElementById('totalUsers').textContent = nonAdmins.length;
-        document.getElementById('verifiedUsers').textContent = verifiedUsers.length;
-        document.getElementById('activeSubscriptions').textContent = subscribedUsers.length;
-        document.getElementById('trialUsers').textContent = trialUsers.length;
-        
-        // Populate User Table
-        this.populateUserTable(nonAdmins);
-        
-        // Load pending verifications
-        this.loadPendingVerifications();
-        
-        // Load settings inputs
-        if (this.paymentConfig) {
-            document.getElementById('adminMonthlyFee').value = this.paymentConfig.monthlyFee || '29.99';
-            document.getElementById('adminPaypalEmail').value = this.paymentConfig.paypalEmail || '';
-            document.getElementById('adminStripeKey').value = this.paymentConfig.stripeKey || '';
-            document.getElementById('adminSystemGeminiKey').value = this.paymentConfig.systemGeminiKey || '';
-            document.getElementById('adminSmtpHost').value = this.paymentConfig.smtpHost || '';
-            document.getElementById('adminSmtpPort').value = this.paymentConfig.smtpPort || '587';
-            document.getElementById('adminSmtpUser').value = this.paymentConfig.smtpUser || '';
-            document.getElementById('adminSmtpPass').value = this.paymentConfig.smtpPass || '';
+    async loadAdminDashboard() {
+        try {
+            // Load stats
+            const statsResponse = await fetch(this.getApiUrl('admin/stats'), {
+                headers: { 'Authorization': `Bearer ${this.sessionToken}` }
+            });
+            
+            if (statsResponse.ok) {
+                const statsData = await statsResponse.json();
+                const stats = statsData.stats;
+                
+                document.getElementById('totalUsers').textContent = stats.totalUsers;
+                document.getElementById('verifiedUsers').textContent = stats.verifiedUsers;
+                document.getElementById('activeSubscriptions').textContent = stats.activeSubscriptions;
+                document.getElementById('trialUsers').textContent = stats.trialUsers;
+            }
+            
+            // Load users
+            await this.loadUsers();
+            
+            // Load pending verifications
+            await this.loadPendingVerifications();
+            
+            // Load configuration
+            await this.loadAdminConfig();
+            
+        } catch (error) {
+            console.error('Admin dashboard load error:', error);
+            this.showError('Failed to load admin dashboard');
         }
+    }
+
+    async loadUsers(search = '', filter = 'all', page = 1) {
+        try {
+            const params = new URLSearchParams({ search, filter, page, limit: 50 });
+            const response = await fetch(this.getApiUrl(`admin/users?${params}`), {
+                headers: { 'Authorization': `Bearer ${this.sessionToken}` }
+            });
+            
+            if (response.ok) {
+                const data = await response.json();
+                this.populateUserTable(data.users);
+                this.updatePagination(data.pagination);
+            }
+        } catch (error) {
+            console.error('Load users error:', error);
+            this.showError('Failed to load users');
+        }
+    }
+
+    async loadPendingVerifications() {
+        try {
+            const response = await fetch(this.getApiUrl('admin/pending'), {
+                headers: { 'Authorization': `Bearer ${this.sessionToken}` }
+            });
+            
+            if (response.ok) {
+                const data = await response.json();
+                this.displayPendingVerifications(data.pending);
+            }
+        } catch (error) {
+            console.error('Load pending verifications error:', error);
+        }
+    }
+
+    async loadAdminConfig() {
+        try {
+            const response = await fetch(this.getApiUrl('config'), {
+                headers: { 'Authorization': `Bearer ${this.sessionToken}` }
+            });
+            
+            if (response.ok) {
+                const data = await response.json();
+                const config = data.config;
+                
+                // Populate form fields
+                document.getElementById('adminMonthlyFee').value = config.monthlyFee || '29.99';
+                
+                // Show configuration status
+                this.updateConfigStatus(config);
+            }
+        } catch (error) {
+            console.error('Load admin config error:', error);
+        }
+    }
+
+    updateConfigStatus(config) {
+        // Update status indicators
+        const stripeStatus = document.getElementById('stripeStatus') || this.createStatusIndicator('Stripe', config.hasStripe);
+        const paypalStatus = document.getElementById('paypalStatus') || this.createStatusIndicator('PayPal', config.hasPaypal);
+        const emailStatus = document.getElementById('emailStatus') || this.createStatusIndicator('Email', config.hasEmail);
         
-        // Load system settings
-        this.loadSystemSettings();
-        
-        // Update storage usage
-        this.updateStorageUsage();
+        // You can add these status indicators to the admin panel
+    }
+
+    createStatusIndicator(name, isConfigured) {
+        const indicator = document.createElement('div');
+        indicator.className = `status-indicator ${isConfigured ? 'configured' : 'not-configured'}`;
+        indicator.innerHTML = `${name}: ${isConfigured ? '✅ Configured' : '❌ Not Configured'}`;
+        return indicator;
     }
 
     populateUserTable(users) {
         const tbody = document.getElementById('usersListTableBody');
         tbody.innerHTML = users.map(u => {
-            const status = this.getSubscriptionStatus(u);
+            const status = u.status;
             const statusIcon = u.emailVerified ? '✅' : '❌';
             const statusText = status.active ? (status.type === 'trial' ? '🆓 Trial' : '💎 Premium') : '⏰ Expired';
             const expiryText = status.expiry ? new Date(status.expiry).toLocaleDateString() : 'N/A';
@@ -1001,9 +1193,6 @@ class LeaveAssistantApp {
                             <button class="btn btn-sm btn-success" onclick="app.grantAccess('${u.id}')">
                                 <i class="fa-solid fa-key"></i> Grant
                             </button>
-                            <button class="btn btn-sm btn-warning" onclick="app.resetPassword('${u.id}')">
-                                <i class="fa-solid fa-lock"></i> Reset
-                            </button>
                             <button class="btn btn-sm btn-danger" onclick="app.deleteUser('${u.id}')">
                                 <i class="fa-solid fa-trash"></i> Delete
                             </button>
@@ -1012,6 +1201,35 @@ class LeaveAssistantApp {
                 </tr>
             `;
         }).join('');
+    }
+
+    displayPendingVerifications(pending) {
+        const pendingDiv = document.getElementById('pendingList');
+        if (pending.length === 0) {
+            pendingDiv.innerHTML = '<p class="text-muted">No pending verifications</p>';
+            return;
+        }
+        
+        pendingDiv.innerHTML = pending.map(p => `
+            <div class="pending-card">
+                <h4>${p.userData.firstName} ${p.userData.lastName}</h4>
+                <p>${p.userData.email}</p>
+                <small>Registered: ${new Date(p.createdAt).toLocaleString()}</small>
+                <div class="pending-actions">
+                    <button class="btn btn-sm btn-success" onclick="app.approveVerification('${p.token}')">
+                        <i class="fa-solid fa-check"></i> Approve
+                    </button>
+                    <button class="btn btn-sm btn-danger" onclick="app.rejectVerification('${p.token}')">
+                        <i class="fa-solid fa-times"></i> Reject
+                    </button>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    updatePagination(pagination) {
+        // You can implement pagination controls here if needed
+        console.log('Pagination:', pagination);
     }
 
     loadPendingVerifications() {
@@ -1051,198 +1269,123 @@ class LeaveAssistantApp {
     }
 
     // Individual User Actions
-    editUser(userId) {
-        const user = this.users.find(u => u.id === userId);
-        if (!user) return this.showError('User not found');
+    async deleteUser(userId) {
+        if (!confirm('Are you sure you want to delete this user? This action cannot be undone.')) {
+            return;
+        }
         
-        const newFirstName = prompt('First Name:', user.firstName);
-        const newLastName = prompt('Last Name:', user.lastName);
-        const newEmail = prompt('Email:', user.email);
-        
-        if (newFirstName && newLastName && newEmail) {
-            user.firstName = newFirstName;
-            user.lastName = newLastName;
-            user.email = newEmail.toLowerCase();
+        try {
+            const response = await fetch(this.getApiUrl(`admin/user/${userId}`), {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${this.sessionToken}` }
+            });
             
-            this.saveUsers(this.users);
-            this.loadAdminDashboard();
-            this.showSuccess('User updated successfully');
+            const data = await response.json();
+            
+            if (response.ok && data.success) {
+                this.showSuccess('User deleted successfully');
+                this.loadAdminDashboard();
+            } else {
+                this.showError(data.error || 'Failed to delete user');
+            }
+        } catch (error) {
+            console.error('Delete user error:', error);
+            this.showError('Failed to delete user');
         }
     }
 
-    grantAccess(userId) {
-        const user = this.users.find(u => u.id === userId);
-        if (!user) return this.showError('User not found');
-        
+    async grantAccess(userId) {
         const duration = prompt('Grant access for how many months? (Enter "forever" for permanent access)', '1');
         if (!duration) return;
         
-        const expiryDate = new Date();
-        if (duration.toLowerCase() === 'forever') {
-            expiryDate.setFullYear(expiryDate.getFullYear() + 100);
-        } else {
-            const months = parseInt(duration);
-            if (isNaN(months) || months <= 0) {
-                return this.showError('Invalid duration. Please enter a number or "forever"');
+        try {
+            const response = await fetch(this.getApiUrl('admin/grant-access'), {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${this.sessionToken}`
+                },
+                body: JSON.stringify({
+                    userIds: [userId],
+                    duration: duration
+                })
+            });
+            
+            const data = await response.json();
+            
+            if (response.ok && data.success) {
+                this.showSuccess(data.message);
+                this.loadAdminDashboard();
+            } else {
+                this.showError(data.error || 'Failed to grant access');
             }
-            expiryDate.setMonth(expiryDate.getMonth() + months);
-        }
-        
-        user.subscriptionExpiry = expiryDate.toISOString();
-        this.saveUsers(this.users);
-        this.loadAdminDashboard();
-        this.showSuccess(`Access granted to ${user.firstName} ${user.lastName} until ${expiryDate.toLocaleDateString()}`);
-    }
-
-    resetPassword(userId) {
-        const user = this.users.find(u => u.id === userId);
-        if (!user) return this.showError('User not found');
-        
-        const newPassword = prompt('Enter new password for ' + user.firstName + ' ' + user.lastName + ':', 'TempPass123!');
-        if (!newPassword) return;
-        
-        user.password = newPassword;
-        this.saveUsers(this.users);
-        
-        alert(`Password reset for ${user.firstName} ${user.lastName}\nNew password: ${newPassword}\nUser should change this immediately.`);
-        this.showSuccess('Password reset successfully');
-    }
-
-    deleteUser(userId) {
-        const user = this.users.find(u => u.id === userId);
-        if (!user) return this.showError('User not found');
-        
-        if (confirm(`Are you sure you want to delete ${user.firstName} ${user.lastName}? This action cannot be undone.`)) {
-            this.users = this.users.filter(u => u.id !== userId);
-            this.saveUsers(this.users);
-            this.loadAdminDashboard();
-            this.showSuccess('User deleted successfully');
+        } catch (error) {
+            console.error('Grant access error:', error);
+            this.showError('Failed to grant access');
         }
     }
 
     // Pending Verification Actions
-    approveVerification(token) {
-        const idx = this.pendingVerifications.findIndex(p => p.token === token);
-        if (idx === -1) return this.showError('Verification not found');
-
-        const pending = this.pendingVerifications[idx];
-        const user = pending.userData;
-        user.emailVerified = true;
-        user.id = Date.now().toString();
-
-        this.users.push(user);
-        this.saveUsers(this.users);
-        
-        this.pendingVerifications.splice(idx, 1);
-        this.savePendingVerifications(this.pendingVerifications);
-
-        this.loadAdminDashboard();
-        this.showSuccess(`${user.firstName} ${user.lastName} approved and activated`);
-    }
-
-    rejectVerification(token) {
-        const idx = this.pendingVerifications.findIndex(p => p.token === token);
-        if (idx === -1) return this.showError('Verification not found');
-
-        const pending = this.pendingVerifications[idx];
-        
-        if (confirm(`Are you sure you want to reject ${pending.userData.firstName} ${pending.userData.lastName}?`)) {
-            this.pendingVerifications.splice(idx, 1);
-            this.savePendingVerifications(this.pendingVerifications);
-            this.loadAdminDashboard();
-            this.showSuccess('Verification rejected');
-        }
-    }
-
-    // Admin Settings
-    showAdminSettings() {
-        const currentAdmin = this.currentUser;
-        const newFirstName = prompt('First Name:', currentAdmin.firstName);
-        const newLastName = prompt('Last Name:', currentAdmin.lastName);
-        const newEmail = prompt('Email:', currentAdmin.email);
-        const newPassword = prompt('New Password (leave blank to keep current):', '');
-        
-        if (newFirstName && newLastName && newEmail) {
-            currentAdmin.firstName = newFirstName;
-            currentAdmin.lastName = newLastName;
-            currentAdmin.email = newEmail.toLowerCase();
+    async approveVerification(token) {
+        try {
+            const response = await fetch(this.getApiUrl('admin/approve-verification'), {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${this.sessionToken}`
+                },
+                body: JSON.stringify({ token })
+            });
             
-            if (newPassword) {
-                currentAdmin.password = newPassword;
-            }
+            const data = await response.json();
             
-            this.updateUserRecord(currentAdmin);
-            this.showSuccess('Admin profile updated successfully');
-        }
-    }
-
-    // System Management
-    clearAllData() {
-        if (confirm('⚠️ WARNING: This will delete ALL user data, settings, and reset the system. This action cannot be undone!\n\nType "DELETE ALL DATA" to confirm:')) {
-            const confirmation = prompt('Type "DELETE ALL DATA" to confirm:');
-            if (confirmation === 'DELETE ALL DATA') {
-                localStorage.clear();
-                alert('All data has been cleared. The page will reload.');
-                window.location.reload();
+            if (response.ok && data.success) {
+                this.showSuccess(data.message);
+                this.loadAdminDashboard();
             } else {
-                this.showError('Confirmation text did not match. Data not cleared.');
+                this.showError(data.error || 'Failed to approve verification');
             }
+        } catch (error) {
+            console.error('Approve verification error:', error);
+            this.showError('Failed to approve verification');
         }
     }
 
-    updateSystemSettings() {
-        const settings = {
-            allowRegistration: document.getElementById('allowRegistration').checked,
-            requireEmailVerification: document.getElementById('requireEmailVerification').checked
-        };
+    async rejectVerification(token) {
+        if (!confirm('Are you sure you want to reject this verification?')) {
+            return;
+        }
         
-        localStorage.setItem('systemSettings', JSON.stringify(settings));
-        this.showSuccess('System settings updated');
-    }
-
-    loadSystemSettingsData() {
-        const settings = localStorage.getItem('systemSettings');
-        return settings ? JSON.parse(settings) : {
-            allowRegistration: true,
-            requireEmailVerification: true
-        };
+        try {
+            const response = await fetch(this.getApiUrl('admin/reject-verification'), {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${this.sessionToken}`
+                },
+                body: JSON.stringify({ token })
+            });
+            
+            const data = await response.json();
+            
+            if (response.ok && data.success) {
+                this.showSuccess(data.message);
+                this.loadAdminDashboard();
+            } else {
+                this.showError(data.error || 'Failed to reject verification');
+            }
+        } catch (error) {
+            console.error('Reject verification error:', error);
+            this.showError('Failed to reject verification');
+        }
     }
 
     // User Filtering
     filterUsers() {
-        const searchTerm = document.getElementById('userSearch').value.toLowerCase();
+        const searchTerm = document.getElementById('userSearch').value;
         const filterType = document.getElementById('userFilter').value;
         
-        const nonAdmins = this.users.filter(u => !u.isAdmin);
-        let filteredUsers = nonAdmins;
-        
-        // Apply search filter
-        if (searchTerm) {
-            filteredUsers = filteredUsers.filter(u => 
-                u.firstName.toLowerCase().includes(searchTerm) ||
-                u.lastName.toLowerCase().includes(searchTerm) ||
-                u.email.toLowerCase().includes(searchTerm)
-            );
-        }
-        
-        // Apply status filter
-        if (filterType !== 'all') {
-            filteredUsers = filteredUsers.filter(u => {
-                const status = this.getSubscriptionStatus(u);
-                switch (filterType) {
-                    case 'verified':
-                        return u.emailVerified;
-                    case 'active':
-                        return status.active;
-                    case 'expired':
-                        return !status.active;
-                    default:
-                        return true;
-                }
-            });
-        }
-        
-        this.populateUserTable(filteredUsers);
+        this.loadUsers(searchTerm, filterType);
     }
 
     handlePaymentConfig(e) {

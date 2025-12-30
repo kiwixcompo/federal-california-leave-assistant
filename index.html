@@ -221,20 +221,57 @@
                 
                 <div class="price-box">
                     <span class="currency">$</span>
-                    <span id="displayMonthlyFee" class="amount">0.00</span>
+                    <span id="displayMonthlyFee" class="amount">29.99</span>
                     <span class="period">/month</span>
                 </div>
 
                 <div class="payment-methods">
-                    <button id="payPaypal" class="btn btn-paypal btn-block">
-                        <i class="fa-brands fa-paypal"></i> Pay with PayPal
-                    </button>
                     <button id="payStripe" class="btn btn-stripe btn-block">
                         <i class="fa-brands fa-stripe"></i> Pay with Card (Stripe)
                     </button>
+                    <button id="payPaypal" class="btn btn-paypal btn-block">
+                        <i class="fa-brands fa-paypal"></i> Pay with PayPal
+                    </button>
+                </div>
+                
+                <div class="payment-info">
+                    <p><small>✅ Secure payment processing</small></p>
+                    <p><small>🔄 Cancel anytime</small></p>
+                    <p><small>📧 Email support included</small></p>
                 </div>
                 
                 <button id="subLogoutBtn" class="btn btn-text">Logout</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="paymentSuccessPage" class="page hidden">
+        <div class="auth-container">
+            <div class="card text-center">
+                <i class="fa-solid fa-check-circle fa-3x text-success"></i>
+                <h2>Payment Successful!</h2>
+                <p>Thank you for subscribing to Leave Assistant.</p>
+                <p>Your subscription is now active and you have full access to all features.</p>
+                
+                <div class="success-actions">
+                    <button id="continueToApp" class="btn btn-primary btn-block">Continue to App</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="paymentCancelledPage" class="page hidden">
+        <div class="auth-container">
+            <div class="card text-center">
+                <i class="fa-solid fa-times-circle fa-3x text-danger"></i>
+                <h2>Payment Cancelled</h2>
+                <p>Your payment was cancelled. No charges were made.</p>
+                <p>You can try again or contact support if you need assistance.</p>
+                
+                <div class="cancel-actions">
+                    <button id="retryPayment" class="btn btn-primary">Try Again</button>
+                    <button id="backToDashboardFromCancel" class="btn btn-text">Back to Dashboard</button>
+                </div>
             </div>
         </div>
     </div>

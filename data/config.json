@@ -1,0 +1,7 @@
+{
+  "monthlyFee": 29.99,
+  "systemSettings": {
+    "allowRegistration": true,
+    "requireEmailVerification": true
+  }
+}
