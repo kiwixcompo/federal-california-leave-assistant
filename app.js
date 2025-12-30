@@ -202,6 +202,15 @@ class LeaveAssistantApp {
         document.getElementById('closeBulkGrant').onclick = () => document.getElementById('bulkGrantModal').classList.add('hidden');
         document.getElementById('bulkGrantForm').onsubmit = (e) => this.handleBulkGrant(e);
         document.getElementById('selectAllUsers').onchange = (e) => this.toggleSelectAll(e.target.checked);
+        document.getElementById('adminSettingsBtn').onclick = () => this.showAdminSettings();
+        document.getElementById('clearAllData').onclick = () => this.clearAllData();
+        document.getElementById('userSearch').oninput = (e) => this.filterUsers();
+        document.getElementById('userFilter').onchange = (e) => this.filterUsers();
+        
+        // System settings
+        document.getElementById('allowRegistration').onchange = (e) => this.updateSystemSettings();
+        document.getElementById('requireEmailVerification').onchange = (e) => this.updateSystemSettings();
+        
         document.querySelectorAll('.tab-btn').forEach(btn => {
             btn.onclick = (e) => this.switchAdminTab(e.target.dataset.tab);
         });
@@ -221,6 +230,13 @@ class LeaveAssistantApp {
             this.showPage('adminDashboard');
             this.resetIdleTimer(); // Start idle timer for admin
             return;
+        }
+
+        // Ensure user has aiProvider set (migration for existing users)
+        if (!this.currentUser.aiProvider) {
+            this.currentUser.aiProvider = 'puter';
+            this.updateUserRecord(this.currentUser);
+            console.log('✅ Set default AI provider to Puter.js for existing user');
         }
 
         const status = this.getSubscriptionStatus(this.currentUser);
@@ -434,14 +450,28 @@ class LeaveAssistantApp {
         this.showLoading();
         
         try {
+            console.log('🔍 AI Submit Debug:', {
+                currentUser: this.currentUser,
+                userProvider: this.currentUser?.aiProvider,
+                userOpenAI: this.currentUser?.openaiApiKey ? 'present' : 'missing',
+                userGemini: this.currentUser?.geminiApiKey ? 'present' : 'missing'
+            });
+            
+            // Ensure we have a current user
+            if (!this.currentUser) {
+                throw new Error('No user session found. Please log in again.');
+            }
+            
             // Determine which provider to use
             let provider = this.currentUser.aiProvider || 'puter';
             let apiKey = '';
             
+            console.log(`🎯 Selected provider: ${provider}`);
+            
             // Check for API keys and validate them
             const keys = {
                 openai: this.currentUser.openaiApiKey,
-                gemini: this.currentUser.geminiApiKey || this.paymentConfig.systemGeminiKey
+                gemini: this.currentUser.geminiApiKey || this.paymentConfig?.systemGeminiKey
             };
             
             // If user selected a specific provider, validate they have the key
@@ -459,6 +489,8 @@ class LeaveAssistantApp {
                 apiKey = keys.gemini;
             }
             // For 'puter' and 'demo', no API key needed
+            
+            console.log(`✅ Final provider: ${provider}, API key: ${apiKey ? 'present' : 'not needed'}`);
 
             let responseText = '';
             const systemPrompts = {
@@ -467,6 +499,7 @@ class LeaveAssistantApp {
             };
 
             if (provider === 'demo') {
+                console.log('🎭 Using demo mode...');
                 await new Promise(r => setTimeout(r, 1000));
                 responseText = "DEMO RESPONSE: This is a simulated response. Please configure an AI provider in settings for real results.";
             } 
@@ -631,7 +664,18 @@ class LeaveAssistantApp {
         document.getElementById(`${tool}Input`).placeholder = placeholder;
     }
 
-    findUser(email) { return this.users.find(u => u.email === email); }
+    findUser(email) { 
+        const user = this.users.find(u => u.email === email);
+        
+        // Migrate existing users to have aiProvider if they don't have one
+        if (user && !user.aiProvider) {
+            user.aiProvider = 'puter';
+            this.saveUsers(this.users);
+            console.log(`✅ Migrated user ${email} to use Puter.js AI`);
+        }
+        
+        return user;
+    }
     
     updateUserRecord(user) {
         const idx = this.users.findIndex(u => u.id === user.id);
@@ -892,25 +936,313 @@ class LeaveAssistantApp {
     // Admin
     loadAdminDashboard() {
         const nonAdmins = this.users.filter(u => !u.isAdmin);
-        document.getElementById('totalUsers').textContent = nonAdmins.length;
-        document.getElementById('verifiedUsers').textContent = nonAdmins.filter(u => u.emailVerified).length;
+        const verifiedUsers = nonAdmins.filter(u => u.emailVerified);
+        const activeUsers = nonAdmins.filter(u => this.getSubscriptionStatus(u).active);
+        const trialUsers = nonAdmins.filter(u => this.getSubscriptionStatus(u).type === 'trial');
+        const subscribedUsers = nonAdmins.filter(u => this.getSubscriptionStatus(u).type === 'subscription');
         
-        // Populate Table
-        const tbody = document.getElementById('usersListTableBody');
-        tbody.innerHTML = nonAdmins.map(u => `
-            <tr>
-                <td><input type="checkbox" class="user-select-cb" value="${u.id}"></td>
-                <td><strong>${u.firstName} ${u.lastName}</strong><br><small>${u.email}</small></td>
-                <td>${u.emailVerified ? '✅' : '❌'}</td>
-                <td>${this.getSubscriptionStatus(u).type}</td>
-                <td><button class="btn btn-sm btn-secondary">Edit</button></td>
-            </tr>`).join('');
-            
+        // Update stats
+        document.getElementById('totalUsers').textContent = nonAdmins.length;
+        document.getElementById('verifiedUsers').textContent = verifiedUsers.length;
+        document.getElementById('activeSubscriptions').textContent = subscribedUsers.length;
+        document.getElementById('trialUsers').textContent = trialUsers.length;
+        
+        // Populate User Table
+        this.populateUserTable(nonAdmins);
+        
+        // Load pending verifications
+        this.loadPendingVerifications();
+        
         // Load settings inputs
         if (this.paymentConfig) {
-            document.getElementById('adminMonthlyFee').value = this.paymentConfig.monthlyFee || '';
+            document.getElementById('adminMonthlyFee').value = this.paymentConfig.monthlyFee || '29.99';
+            document.getElementById('adminPaypalEmail').value = this.paymentConfig.paypalEmail || '';
+            document.getElementById('adminStripeKey').value = this.paymentConfig.stripeKey || '';
             document.getElementById('adminSystemGeminiKey').value = this.paymentConfig.systemGeminiKey || '';
+            document.getElementById('adminSmtpHost').value = this.paymentConfig.smtpHost || '';
+            document.getElementById('adminSmtpPort').value = this.paymentConfig.smtpPort || '587';
+            document.getElementById('adminSmtpUser').value = this.paymentConfig.smtpUser || '';
+            document.getElementById('adminSmtpPass').value = this.paymentConfig.smtpPass || '';
         }
+        
+        // Load system settings
+        this.loadSystemSettings();
+        
+        // Update storage usage
+        this.updateStorageUsage();
+    }
+
+    populateUserTable(users) {
+        const tbody = document.getElementById('usersListTableBody');
+        tbody.innerHTML = users.map(u => {
+            const status = this.getSubscriptionStatus(u);
+            const statusIcon = u.emailVerified ? '✅' : '❌';
+            const statusText = status.active ? (status.type === 'trial' ? '🆓 Trial' : '💎 Premium') : '⏰ Expired';
+            const expiryText = status.expiry ? new Date(status.expiry).toLocaleDateString() : 'N/A';
+            
+            return `
+                <tr data-user-id="${u.id}">
+                    <td><input type="checkbox" class="user-select-cb" value="${u.id}"></td>
+                    <td>
+                        <strong>${u.firstName} ${u.lastName}</strong><br>
+                        <small>${u.email}</small><br>
+                        <small class="text-muted">Joined: ${new Date(u.createdAt).toLocaleDateString()}</small>
+                    </td>
+                    <td>${statusIcon} ${u.emailVerified ? 'Verified' : 'Pending'}</td>
+                    <td>
+                        ${statusText}<br>
+                        <small>Expires: ${expiryText}</small>
+                    </td>
+                    <td>
+                        <div class="btn-group">
+                            <button class="btn btn-sm btn-primary" onclick="app.editUser('${u.id}')">
+                                <i class="fa-solid fa-edit"></i> Edit
+                            </button>
+                            <button class="btn btn-sm btn-success" onclick="app.grantAccess('${u.id}')">
+                                <i class="fa-solid fa-key"></i> Grant
+                            </button>
+                            <button class="btn btn-sm btn-warning" onclick="app.resetPassword('${u.id}')">
+                                <i class="fa-solid fa-lock"></i> Reset
+                            </button>
+                            <button class="btn btn-sm btn-danger" onclick="app.deleteUser('${u.id}')">
+                                <i class="fa-solid fa-trash"></i> Delete
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+            `;
+        }).join('');
+    }
+
+    loadPendingVerifications() {
+        const pendingDiv = document.getElementById('pendingList');
+        if (this.pendingVerifications.length === 0) {
+            pendingDiv.innerHTML = '<p class="text-muted">No pending verifications</p>';
+            return;
+        }
+        
+        pendingDiv.innerHTML = this.pendingVerifications.map(p => `
+            <div class="pending-card">
+                <h4>${p.userData.firstName} ${p.userData.lastName}</h4>
+                <p>${p.userData.email}</p>
+                <small>Registered: ${new Date(p.createdAt).toLocaleString()}</small>
+                <div class="pending-actions">
+                    <button class="btn btn-sm btn-success" onclick="app.approveVerification('${p.token}')">
+                        <i class="fa-solid fa-check"></i> Approve
+                    </button>
+                    <button class="btn btn-sm btn-danger" onclick="app.rejectVerification('${p.token}')">
+                        <i class="fa-solid fa-times"></i> Reject
+                    </button>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    loadSystemSettings() {
+        const systemSettings = this.loadSystemSettingsData();
+        document.getElementById('allowRegistration').checked = systemSettings.allowRegistration !== false;
+        document.getElementById('requireEmailVerification').checked = systemSettings.requireEmailVerification !== false;
+    }
+
+    updateStorageUsage() {
+        const usage = JSON.stringify(localStorage).length;
+        const usageKB = (usage / 1024).toFixed(2);
+        document.getElementById('storageUsed').textContent = `${usageKB} KB`;
+    }
+
+    // Individual User Actions
+    editUser(userId) {
+        const user = this.users.find(u => u.id === userId);
+        if (!user) return this.showError('User not found');
+        
+        const newFirstName = prompt('First Name:', user.firstName);
+        const newLastName = prompt('Last Name:', user.lastName);
+        const newEmail = prompt('Email:', user.email);
+        
+        if (newFirstName && newLastName && newEmail) {
+            user.firstName = newFirstName;
+            user.lastName = newLastName;
+            user.email = newEmail.toLowerCase();
+            
+            this.saveUsers(this.users);
+            this.loadAdminDashboard();
+            this.showSuccess('User updated successfully');
+        }
+    }
+
+    grantAccess(userId) {
+        const user = this.users.find(u => u.id === userId);
+        if (!user) return this.showError('User not found');
+        
+        const duration = prompt('Grant access for how many months? (Enter "forever" for permanent access)', '1');
+        if (!duration) return;
+        
+        const expiryDate = new Date();
+        if (duration.toLowerCase() === 'forever') {
+            expiryDate.setFullYear(expiryDate.getFullYear() + 100);
+        } else {
+            const months = parseInt(duration);
+            if (isNaN(months) || months <= 0) {
+                return this.showError('Invalid duration. Please enter a number or "forever"');
+            }
+            expiryDate.setMonth(expiryDate.getMonth() + months);
+        }
+        
+        user.subscriptionExpiry = expiryDate.toISOString();
+        this.saveUsers(this.users);
+        this.loadAdminDashboard();
+        this.showSuccess(`Access granted to ${user.firstName} ${user.lastName} until ${expiryDate.toLocaleDateString()}`);
+    }
+
+    resetPassword(userId) {
+        const user = this.users.find(u => u.id === userId);
+        if (!user) return this.showError('User not found');
+        
+        const newPassword = prompt('Enter new password for ' + user.firstName + ' ' + user.lastName + ':', 'TempPass123!');
+        if (!newPassword) return;
+        
+        user.password = newPassword;
+        this.saveUsers(this.users);
+        
+        alert(`Password reset for ${user.firstName} ${user.lastName}\nNew password: ${newPassword}\nUser should change this immediately.`);
+        this.showSuccess('Password reset successfully');
+    }
+
+    deleteUser(userId) {
+        const user = this.users.find(u => u.id === userId);
+        if (!user) return this.showError('User not found');
+        
+        if (confirm(`Are you sure you want to delete ${user.firstName} ${user.lastName}? This action cannot be undone.`)) {
+            this.users = this.users.filter(u => u.id !== userId);
+            this.saveUsers(this.users);
+            this.loadAdminDashboard();
+            this.showSuccess('User deleted successfully');
+        }
+    }
+
+    // Pending Verification Actions
+    approveVerification(token) {
+        const idx = this.pendingVerifications.findIndex(p => p.token === token);
+        if (idx === -1) return this.showError('Verification not found');
+
+        const pending = this.pendingVerifications[idx];
+        const user = pending.userData;
+        user.emailVerified = true;
+        user.id = Date.now().toString();
+
+        this.users.push(user);
+        this.saveUsers(this.users);
+        
+        this.pendingVerifications.splice(idx, 1);
+        this.savePendingVerifications(this.pendingVerifications);
+
+        this.loadAdminDashboard();
+        this.showSuccess(`${user.firstName} ${user.lastName} approved and activated`);
+    }
+
+    rejectVerification(token) {
+        const idx = this.pendingVerifications.findIndex(p => p.token === token);
+        if (idx === -1) return this.showError('Verification not found');
+
+        const pending = this.pendingVerifications[idx];
+        
+        if (confirm(`Are you sure you want to reject ${pending.userData.firstName} ${pending.userData.lastName}?`)) {
+            this.pendingVerifications.splice(idx, 1);
+            this.savePendingVerifications(this.pendingVerifications);
+            this.loadAdminDashboard();
+            this.showSuccess('Verification rejected');
+        }
+    }
+
+    // Admin Settings
+    showAdminSettings() {
+        const currentAdmin = this.currentUser;
+        const newFirstName = prompt('First Name:', currentAdmin.firstName);
+        const newLastName = prompt('Last Name:', currentAdmin.lastName);
+        const newEmail = prompt('Email:', currentAdmin.email);
+        const newPassword = prompt('New Password (leave blank to keep current):', '');
+        
+        if (newFirstName && newLastName && newEmail) {
+            currentAdmin.firstName = newFirstName;
+            currentAdmin.lastName = newLastName;
+            currentAdmin.email = newEmail.toLowerCase();
+            
+            if (newPassword) {
+                currentAdmin.password = newPassword;
+            }
+            
+            this.updateUserRecord(currentAdmin);
+            this.showSuccess('Admin profile updated successfully');
+        }
+    }
+
+    // System Management
+    clearAllData() {
+        if (confirm('⚠️ WARNING: This will delete ALL user data, settings, and reset the system. This action cannot be undone!\n\nType "DELETE ALL DATA" to confirm:')) {
+            const confirmation = prompt('Type "DELETE ALL DATA" to confirm:');
+            if (confirmation === 'DELETE ALL DATA') {
+                localStorage.clear();
+                alert('All data has been cleared. The page will reload.');
+                window.location.reload();
+            } else {
+                this.showError('Confirmation text did not match. Data not cleared.');
+            }
+        }
+    }
+
+    updateSystemSettings() {
+        const settings = {
+            allowRegistration: document.getElementById('allowRegistration').checked,
+            requireEmailVerification: document.getElementById('requireEmailVerification').checked
+        };
+        
+        localStorage.setItem('systemSettings', JSON.stringify(settings));
+        this.showSuccess('System settings updated');
+    }
+
+    loadSystemSettingsData() {
+        const settings = localStorage.getItem('systemSettings');
+        return settings ? JSON.parse(settings) : {
+            allowRegistration: true,
+            requireEmailVerification: true
+        };
+    }
+
+    // User Filtering
+    filterUsers() {
+        const searchTerm = document.getElementById('userSearch').value.toLowerCase();
+        const filterType = document.getElementById('userFilter').value;
+        
+        const nonAdmins = this.users.filter(u => !u.isAdmin);
+        let filteredUsers = nonAdmins;
+        
+        // Apply search filter
+        if (searchTerm) {
+            filteredUsers = filteredUsers.filter(u => 
+                u.firstName.toLowerCase().includes(searchTerm) ||
+                u.lastName.toLowerCase().includes(searchTerm) ||
+                u.email.toLowerCase().includes(searchTerm)
+            );
+        }
+        
+        // Apply status filter
+        if (filterType !== 'all') {
+            filteredUsers = filteredUsers.filter(u => {
+                const status = this.getSubscriptionStatus(u);
+                switch (filterType) {
+                    case 'verified':
+                        return u.emailVerified;
+                    case 'active':
+                        return status.active;
+                    case 'expired':
+                        return !status.active;
+                    default:
+                        return true;
+                }
+            });
+        }
+        
+        this.populateUserTable(filteredUsers);
     }
 
     handlePaymentConfig(e) {
@@ -919,14 +1251,44 @@ class LeaveAssistantApp {
             monthlyFee: document.getElementById('adminMonthlyFee').value,
             paypalEmail: document.getElementById('adminPaypalEmail').value,
             stripeKey: document.getElementById('adminStripeKey').value,
-            systemGeminiKey: document.getElementById('adminSystemGeminiKey').value
+            systemGeminiKey: document.getElementById('adminSystemGeminiKey').value,
+            smtpHost: document.getElementById('adminSmtpHost').value,
+            smtpPort: document.getElementById('adminSmtpPort').value,
+            smtpUser: document.getElementById('adminSmtpUser').value,
+            smtpPass: document.getElementById('adminSmtpPass').value
         };
         localStorage.setItem('paymentConfig', JSON.stringify(this.paymentConfig));
-        this.showSuccess('Payment settings saved');
+        
+        // Update server email configuration if available
+        this.updateServerEmailConfig();
+        
+        this.showSuccess('Payment and email settings saved');
+    }
+
+    async updateServerEmailConfig() {
+        try {
+            const endpoint = this.getApiUrl('admin/update-email-config');
+            if (endpoint && this.serverRunning) {
+                await fetch(endpoint, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        smtpHost: this.paymentConfig.smtpHost,
+                        smtpPort: this.paymentConfig.smtpPort,
+                        smtpUser: this.paymentConfig.smtpUser,
+                        smtpPass: this.paymentConfig.smtpPass
+                    })
+                });
+            }
+        } catch (error) {
+            console.warn('Failed to update server email config:', error);
+        }
     }
 
     // Bulk Actions
-    toggleSelectAll(checked) { document.querySelectorAll('.user-select-cb').forEach(cb => cb.checked = checked); }
+    toggleSelectAll(checked) { 
+        document.querySelectorAll('.user-select-cb').forEach(cb => cb.checked = checked); 
+    }
     
     showBulkGrantModal() { 
         const selected = document.querySelectorAll('.user-select-cb:checked');
@@ -936,22 +1298,60 @@ class LeaveAssistantApp {
         document.getElementById('bulkGrantModal').classList.remove('hidden'); 
     }
     
-    handleBulkGrant(e) {
+    async handleBulkGrant(e) {
         e.preventDefault();
         const duration = document.getElementById('grantDuration').value;
         const selectedIds = Array.from(document.querySelectorAll('.user-select-cb:checked')).map(cb => cb.value);
         
-        const d = new Date();
-        d.setMonth(d.getMonth() + (duration === 'forever' ? 1200 : parseInt(duration)));
+        if (selectedIds.length === 0) {
+            return this.showError('No users selected');
+        }
         
-        this.users.forEach(u => {
-            if (selectedIds.includes(u.id)) u.subscriptionExpiry = d.toISOString();
-        });
-        
-        this.saveUsers(this.users);
-        document.getElementById('bulkGrantModal').classList.add('hidden');
-        this.loadAdminDashboard();
-        this.showSuccess('Access Granted!');
+        try {
+            // Call server endpoint if available
+            const endpoint = this.getApiUrl('admin/grant-access');
+            if (endpoint && this.serverRunning) {
+                const response = await fetch(endpoint, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        userIds: selectedIds,
+                        duration: duration,
+                        adminId: this.currentUser.id
+                    })
+                });
+                
+                const result = await response.json();
+                if (result.success) {
+                    console.log('✅ Server confirmed bulk access grant');
+                }
+            }
+            
+            // Update local data
+            const expiryDate = new Date();
+            if (duration === 'forever') {
+                expiryDate.setFullYear(expiryDate.getFullYear() + 100);
+            } else {
+                expiryDate.setMonth(expiryDate.getMonth() + parseInt(duration));
+            }
+            
+            this.users.forEach(u => {
+                if (selectedIds.includes(u.id)) {
+                    u.subscriptionExpiry = expiryDate.toISOString();
+                }
+            });
+            
+            this.saveUsers(this.users);
+            document.getElementById('bulkGrantModal').classList.add('hidden');
+            this.loadAdminDashboard();
+            
+            const durationText = duration === 'forever' ? 'permanent' : `${duration} month${duration > 1 ? 's' : ''}`;
+            this.showSuccess(`${durationText} access granted to ${selectedIds.length} users!`);
+            
+        } catch (error) {
+            console.error('Bulk grant error:', error);
+            this.showError('Failed to grant access: ' + error.message);
+        }
     }
 
     switchAdminTab(tab) {
@@ -1008,7 +1408,28 @@ class LeaveAssistantApp {
     }
 
     // Data Loaders
-    loadUsers() { const u = localStorage.getItem('users'); return u ? JSON.parse(u) : [{ id: '1', email: 'talk2char@gmail.com', password: 'Password@123', isAdmin: true, firstName:'Super', lastName:'Admin', emailVerified: true }]; }
+    loadUsers() { 
+        const u = localStorage.getItem('users'); 
+        const users = u ? JSON.parse(u) : [{ 
+            id: '1', 
+            email: 'talk2char@gmail.com', 
+            password: 'Password@123', 
+            isAdmin: true, 
+            firstName:'Super', 
+            lastName:'Admin', 
+            emailVerified: true,
+            aiProvider: 'puter' // Ensure admin has default provider
+        }];
+        
+        // Migrate existing users to have aiProvider
+        users.forEach(user => {
+            if (!user.aiProvider) {
+                user.aiProvider = 'puter';
+            }
+        });
+        
+        return users;
+    }
     saveUsers(u) { localStorage.setItem('users', JSON.stringify(u)); }
     loadPendingVerificationsData() { const p = localStorage.getItem('pendingVerifications'); return p ? JSON.parse(p) : []; }
     savePendingVerifications(p) { localStorage.setItem('pendingVerifications', JSON.stringify(p)); }
@@ -1026,22 +1447,67 @@ class LeaveAssistantApp {
         }
     }
     showSettings() { 
-        // Populate current values
-        document.getElementById('aiProvider').value = this.currentUser.aiProvider || 'puter';
-        
-        // Only populate fields that exist in the HTML
-        const openaiField = document.getElementById('openaiApiKey');
-        const geminiField = document.getElementById('geminiApiKey');
-        const passwordField = document.getElementById('newPassword');
-        
-        if (openaiField) openaiField.value = this.currentUser.openaiApiKey || '';
-        if (geminiField) geminiField.value = this.currentUser.geminiApiKey || '';
-        if (passwordField) passwordField.value = '';
-        
-        // Show/hide appropriate sections
-        this.toggleKeyFields(this.currentUser.aiProvider || 'puter');
-        
-        document.getElementById('settingsModal').classList.remove('hidden'); 
+        try {
+            console.log('⚙️ Opening settings modal...');
+            
+            // Ensure we have a current user
+            if (!this.currentUser) {
+                console.error('❌ No current user found for settings');
+                this.showError('Please log in to access settings');
+                return;
+            }
+            
+            // Populate current values
+            const aiProviderField = document.getElementById('aiProvider');
+            if (aiProviderField) {
+                aiProviderField.value = this.currentUser.aiProvider || 'puter';
+                console.log('✅ AI Provider set to:', aiProviderField.value);
+            } else {
+                console.error('❌ AI Provider field not found');
+            }
+            
+            // Only populate fields that exist in the HTML
+            const openaiField = document.getElementById('openaiApiKey');
+            const geminiField = document.getElementById('geminiApiKey');
+            const passwordField = document.getElementById('newPassword');
+            
+            if (openaiField) {
+                openaiField.value = this.currentUser.openaiApiKey || '';
+                console.log('✅ OpenAI field populated');
+            } else {
+                console.log('ℹ️ OpenAI field not found (expected if removed)');
+            }
+            
+            if (geminiField) {
+                geminiField.value = this.currentUser.geminiApiKey || '';
+                console.log('✅ Gemini field populated');
+            } else {
+                console.log('ℹ️ Gemini field not found (expected if removed)');
+            }
+            
+            if (passwordField) {
+                passwordField.value = '';
+                console.log('✅ Password field cleared');
+            } else {
+                console.error('❌ Password field not found');
+            }
+            
+            // Show/hide appropriate sections
+            this.toggleKeyFields(this.currentUser.aiProvider || 'puter');
+            
+            const settingsModal = document.getElementById('settingsModal');
+            if (settingsModal) {
+                settingsModal.classList.remove('hidden');
+                console.log('✅ Settings modal opened');
+            } else {
+                console.error('❌ Settings modal not found');
+                this.showError('Settings modal not available');
+            }
+            
+        } catch (error) {
+            console.error('❌ Settings error:', error);
+            this.showError('Failed to open settings: ' + error.message);
+        }
     }
     hideSettings() { document.getElementById('settingsModal').classList.add('hidden'); }
     showLoading() { document.getElementById('loading').classList.remove('hidden'); }

@@ -375,6 +375,16 @@
                             <input type="password" id="adminSystemGeminiKey" placeholder="Leave blank to disable system-wide free tier">
                             <small>If set, users can use "Google Gemini" without providing their own key.</small>
                         </div>
+                        <div class="form-group">
+                            <label>Email Configuration</label>
+                            <div class="email-config">
+                                <input type="text" id="adminSmtpHost" placeholder="smtp.gmail.com">
+                                <input type="number" id="adminSmtpPort" placeholder="587">
+                                <input type="email" id="adminSmtpUser" placeholder="your-email@gmail.com">
+                                <input type="password" id="adminSmtpPass" placeholder="App Password">
+                                <small>Configure SMTP settings for real email sending. Leave blank to use development mode.</small>
+                            </div>
+                        </div>
                         <button type="submit" class="btn btn-primary">Save Payment Settings</button>
                     </form>
                 </div>

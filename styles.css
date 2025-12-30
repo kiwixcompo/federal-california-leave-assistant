@@ -739,3 +739,119 @@ input:focus, select:focus, textarea:focus {
         font-size: 16px; /* Prevents zoom on iOS */
     }
 }
+
+/* Additional Admin Styles */
+.admin-nav {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.btn-group {
+    display: flex;
+    gap: 0.25rem;
+    flex-wrap: wrap;
+}
+
+.btn-group .btn {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.8rem;
+}
+
+.pending-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 1rem;
+}
+
+.pending-card {
+    background: #fff3cd;
+    border: 1px solid #ffeaa7;
+    border-radius: 8px;
+    padding: 1rem;
+}
+
+.pending-card h4 {
+    margin: 0 0 0.5rem 0;
+    color: #856404;
+}
+
+.pending-card p {
+    margin: 0 0 0.5rem 0;
+    color: #856404;
+}
+
+.pending-actions {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 1rem;
+}
+
+.settings-card {
+    background: white;
+    padding: 2rem;
+    border-radius: 10px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+.setting-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 0;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.setting-row:last-child {
+    border-bottom: none;
+}
+
+.danger-zone {
+    background: #fff5f5;
+    border: 1px solid #fed7d7;
+    border-radius: 8px;
+    padding: 1rem;
+    margin-top: 2rem;
+}
+
+.stats-text {
+    margin-top: 2rem;
+    padding-top: 1rem;
+    border-top: 1px solid #e9ecef;
+    color: #666;
+    font-size: 0.9rem;
+}
+
+.email-config {
+    display: grid;
+    grid-template-columns: 1fr 100px;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.email-config input {
+    padding: 0.5rem;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+}
+
+@media (max-width: 768px) {
+    .admin-stats {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .toolbar {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .bulk-actions {
+        margin-left: 0;
+    }
+    
+    .btn-group {
+        flex-direction: column;
+    }
+    
+    .email-config {
+        grid-template-columns: 1fr;
+    }
+}
