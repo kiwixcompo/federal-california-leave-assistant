@@ -96,8 +96,8 @@ async function initializeEmailTransporter() {
                 port: 587,
                 secure: false,
                 auth: {
-                    user: process.env.EMAIL_USER || 'hrla.leaveassistant@gmail.com',
-                    pass: process.env.EMAIL_PASS || 'hrla2024pass'
+                    user: process.env.EMAIL_USER || 'williamskiwix.@gmail.com',
+                    pass: process.env.EMAIL_PASS || 'dtzv ecih zjge jhem'
                 },
                 tls: {
                     rejectUnauthorized: false
