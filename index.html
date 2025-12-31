@@ -24,7 +24,7 @@
         <div class="auth-container">
             <div class="logo-area">
                 <div class="app-logo">
-                    <img id="mainLogo" src="logo.svg" alt="HRLA - HR Leave Compliance & Response Tool" class="logo-image">
+                    <img id="mainLogo" src="hrla-logo-full.png" alt="HRLA - HR Leave Compliance & Response Tool" class="logo-image">
                 </div>
             </div>
             <div class="card">
@@ -612,8 +612,43 @@
 
     <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
     <script>
+        // Initialize EmailJS for Netlify deployment
+        // You'll need to replace these with your actual EmailJS credentials
+        const EMAILJS_CONFIG = {
+            publicKey: 'YOUR_EMAILJS_PUBLIC_KEY', // Replace with your EmailJS public key
+            serviceId: 'YOUR_SERVICE_ID', // Replace with your EmailJS service ID
+            templateId: 'YOUR_TEMPLATE_ID' // Replace with your EmailJS template ID
+        };
+        
         // Initialize EmailJS
-        emailjs.init("YOUR_PUBLIC_KEY"); // Will be configured
+        if (typeof emailjs !== 'undefined') {
+            emailjs.init(EMAILJS_CONFIG.publicKey);
+        }
+        
+        // Function to send verification email via EmailJS
+        window.sendVerificationEmail = function(to, firstName, verificationLink) {
+            if (typeof emailjs === 'undefined') {
+                console.warn('EmailJS not loaded, showing verification link directly');
+                return Promise.resolve({ success: true, method: 'direct' });
+            }
+            
+            const templateParams = {
+                to_email: to,
+                to_name: firstName,
+                verification_link: verificationLink,
+                from_name: 'HRLA Leave Assistant'
+            };
+            
+            return emailjs.send(EMAILJS_CONFIG.serviceId, EMAILJS_CONFIG.templateId, templateParams)
+                .then(function(response) {
+                    console.log('✅ Email sent successfully via EmailJS', response);
+                    return { success: true, method: 'emailjs' };
+                })
+                .catch(function(error) {
+                    console.warn('⚠️ EmailJS failed, showing verification link directly', error);
+                    return { success: true, method: 'direct' };
+                });
+        };
         
         // Simple logo loading
         document.addEventListener('DOMContentLoaded', function() {

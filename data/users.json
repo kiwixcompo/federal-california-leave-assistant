@@ -20,5 +20,16 @@
     "aiProvider": "puter",
     "createdAt": 1767083325203,
     "id": "1767169115073"
+  },
+  {
+    "email": "williamsaonen@gmail.com",
+    "firstName": "Williams",
+    "lastName": "Onen",
+    "password": "Password@123",
+    "isAdmin": false,
+    "emailVerified": true,
+    "aiProvider": "puter",
+    "createdAt": 1767177137931,
+    "id": "1767177212633"
   }
 ]

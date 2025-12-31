@@ -1006,36 +1006,62 @@ class LeaveAssistantApp {
     
     handleClientSideRegister(email, firstName, lastName, password) {
         try {
+            // Enhanced disposable email check
+            const disposableDomains = [
+                'mailinator.com', 'yopmail.com', 'tempmail.com', 'guerrillamail.com', 
+                '10minutemail.com', 'throwawaymail.com', 'trashmail.com', 'temp-mail.org',
+                'maildrop.cc', 'sharklasers.com', 'guerrillamailblock.com', 'pokemail.net',
+                'spam4.me', 'bccto.me', 'chacuo.net', 'dispostable.com', 'fakeinbox.com'
+            ];
+            const domain = email.split('@')[1];
+            if (disposableDomains.includes(domain)) {
+                this.hideLoading();
+                return this.showError('❌ Registration Rejected: Disposable emails are not allowed.');
+            }
+            
             // Check if user already exists
             if (this.findUser(email)) {
                 this.hideLoading();
-                return this.showError('Email already registered');
+                return this.showError('This email address is already registered. Please use a different email or try logging in.');
             }
             
-            // Create new user
-            const newUser = {
-                id: Date.now().toString(),
-                email: email,
-                firstName: firstName,
-                lastName: lastName,
-                password: password,
-                emailVerified: false, // In client-side mode, we can auto-verify or skip verification
-                createdAt: new Date().toISOString(),
-                aiProvider: 'puter'
-            };
+            // Create verification token
+            const token = Math.random().toString(36).substring(2) + Date.now().toString(36);
+            const verificationLink = `${window.location.origin}${window.location.pathname}?verify=${token}`;
             
-            // Add user to local storage
-            this.users.push(newUser);
-            this.saveUsers(this.users);
+            // Store pending verification in localStorage
+            const pending = this.loadPendingVerificationsData();
+            pending.push({
+                token: token,
+                userData: {
+                    email: email,
+                    firstName: firstName,
+                    lastName: lastName,
+                    password: password,
+                    emailVerified: false,
+                    createdAt: Date.now(),
+                    aiProvider: 'puter'
+                },
+                createdAt: Date.now()
+            });
+            this.savePendingVerifications(pending);
             
-            // Auto-verify in client-side mode (or show verification page)
-            newUser.emailVerified = true; // Auto-verify for client-side mode
-            this.users[this.users.length - 1].emailVerified = true;
-            this.saveUsers(this.users);
+            // Try to send email via EmailJS (for Netlify)
+            if (typeof window.sendVerificationEmail === 'function') {
+                window.sendVerificationEmail(email, firstName, verificationLink)
+                    .then(result => {
+                        console.log('📧 Email service result:', result);
+                    })
+                    .catch(error => {
+                        console.warn('📧 Email service failed:', error);
+                    });
+            }
             
             this.hideLoading();
-            this.showSuccess('Registration successful! You can now log in.');
-            this.showPage('loginPage');
+            
+            // Show verification page with link
+            this.showVerificationPage(email, verificationLink);
+            
         } catch (error) {
             console.error('Client-side registration error:', error);
             this.hideLoading();
@@ -1045,22 +1071,64 @@ class LeaveAssistantApp {
 
     async verifyEmailToken(token) {
         try {
-            const response = await fetch(this.getApiUrl('auth/verify'), {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ token })
-            });
-            
-            const data = await response.json();
-            
-            if (response.ok && data.success) {
-                this.showSuccess('Email verified successfully! Please login.');
-                this.showPage('loginPage');
-            } else {
-                this.showError(data.error || 'Verification failed');
+            // Try server-side verification first
+            if (this.serverRunning) {
+                const response = await fetch(this.getApiUrl('auth/verify'), {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ token })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok && data.success) {
+                    this.showSuccess('Email verified successfully! Please login.');
+                    this.showPage('loginPage');
+                    return;
+                }
             }
+            
+            // Fall back to client-side verification
+            this.handleClientSideVerification(token);
+            
         } catch (error) {
             console.error('Verification error:', error);
+            // Fall back to client-side verification
+            this.handleClientSideVerification(token);
+        }
+    }
+    
+    handleClientSideVerification(token) {
+        try {
+            const pending = this.loadPendingVerificationsData();
+            const pendingIndex = pending.findIndex(p => p.token === token);
+            
+            if (pendingIndex === -1) {
+                this.showError('Invalid verification token');
+                return;
+            }
+            
+            const pendingUser = pending[pendingIndex];
+            
+            // Create verified user
+            const newUser = {
+                id: Date.now().toString(),
+                ...pendingUser.userData,
+                emailVerified: true
+            };
+            
+            // Add to users and remove from pending
+            this.users.push(newUser);
+            this.saveUsers(this.users);
+            
+            pending.splice(pendingIndex, 1);
+            this.savePendingVerifications(pending);
+            
+            this.showSuccess('Email verified successfully! Please login.');
+            this.showPage('loginPage');
+            
+        } catch (error) {
+            console.error('Client-side verification error:', error);
             this.showError('Verification failed. Please try again.');
         }
     }
@@ -1160,43 +1228,76 @@ class LeaveAssistantApp {
         try {
             console.log('🔄 Loading admin dashboard...');
             
-            // Load stats
-            const statsResponse = await fetch(this.getApiUrl('admin/stats'), {
-                headers: { 'Authorization': `Bearer ${this.sessionToken}` }
-            });
-            
-            console.log('📊 Stats response status:', statsResponse.status);
-            
-            if (statsResponse.ok) {
-                const statsData = await statsResponse.json();
-                const stats = statsData.stats;
-                
-                console.log('📊 Admin Stats:', stats); // Debug log
-                
-                document.getElementById('totalUsers').textContent = stats.totalUsers || 0;
-                document.getElementById('verifiedUsers').textContent = stats.verifiedUsers || 0;
-                document.getElementById('pendingVerifications').textContent = stats.pendingVerifications || 0;
-                document.getElementById('activeSubscriptions').textContent = stats.activeSubscriptions || 0;
-                document.getElementById('trialUsers').textContent = stats.trialUsers || 0;
+            // Try server-side first, fall back to client-side
+            if (this.serverRunning) {
+                await this.loadServerAdminDashboard();
             } else {
-                console.error('❌ Failed to load admin stats:', statsResponse.status);
-                const errorData = await statsResponse.text();
-                console.error('❌ Error details:', errorData);
+                console.log('📊 Server not available, using client-side admin dashboard');
+                this.loadClientSideAdminDashboard();
             }
-            
-            // Load users
-            await this.loadUsers();
-            
-            // Load pending verifications
-            await this.loadPendingVerifications();
-            
-            // Load configuration
-            await this.loadAdminConfig();
             
         } catch (error) {
             console.error('Admin dashboard load error:', error);
-            this.showError('Failed to load admin dashboard');
+            console.log('📊 Falling back to client-side admin dashboard');
+            this.loadClientSideAdminDashboard();
         }
+    }
+    
+    async loadServerAdminDashboard() {
+        // Load stats
+        const statsResponse = await fetch(this.getApiUrl('admin/stats'), {
+            headers: { 'Authorization': `Bearer ${this.sessionToken}` }
+        });
+        
+        console.log('📊 Stats response status:', statsResponse.status);
+        
+        if (statsResponse.ok) {
+            const statsData = await statsResponse.json();
+            const stats = statsData.stats;
+            
+            console.log('📊 Admin Stats:', stats);
+            
+            document.getElementById('totalUsers').textContent = stats.totalUsers || 0;
+            document.getElementById('verifiedUsers').textContent = stats.verifiedUsers || 0;
+            document.getElementById('pendingVerifications').textContent = stats.pendingVerifications || 0;
+            document.getElementById('activeSubscriptions').textContent = stats.activeSubscriptions || 0;
+            document.getElementById('trialUsers').textContent = stats.trialUsers || 0;
+        }
+        
+        // Load users and other data
+        await this.loadUsers();
+        await this.loadPendingVerifications();
+        await this.loadAdminConfig();
+    }
+    
+    loadClientSideAdminDashboard() {
+        // Load from localStorage
+        const users = this.loadUsers() || [];
+        const pending = this.loadPendingVerificationsData() || [];
+        
+        // Calculate stats
+        const verifiedUsers = users.filter(u => u.emailVerified && !u.isAdmin);
+        const now = Date.now();
+        const trialDuration = 24 * 60 * 60 * 1000;
+        const trialUsers = users.filter(u => {
+            const trialEnd = u.createdAt + trialDuration;
+            return now < trialEnd && !u.isAdmin && !u.subscriptionExpiry;
+        });
+        
+        // Update stats display
+        document.getElementById('totalUsers').textContent = users.filter(u => !u.isAdmin).length;
+        document.getElementById('verifiedUsers').textContent = verifiedUsers.length;
+        document.getElementById('pendingVerifications').textContent = pending.length;
+        document.getElementById('activeSubscriptions').textContent = 0; // No subscription tracking in client-side
+        document.getElementById('trialUsers').textContent = trialUsers.length;
+        
+        // Load users table
+        this.populateUserTable(users.filter(u => !u.isAdmin));
+        
+        // Load pending verifications
+        this.displayPendingVerifications(pending);
+        
+        console.log('📊 Client-side admin dashboard loaded');
     }
 
     async loadUsers(search = '', filter = 'all', page = 1) {
