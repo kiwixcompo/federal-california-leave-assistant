@@ -711,6 +711,23 @@ small.hint {
     z-index: 100;
     backdrop-filter: blur(2px);
 }
+
+/* User details modal should be on top when both are open */
+#userDetailsModal {
+    z-index: 120;
+}
+
+#filteredUsersModal {
+    z-index: 105;
+}
+
+#bulkGrantModal {
+    z-index: 115;
+}
+
+#settingsModal {
+    z-index: 110;
+}
 .modal-content {
     background: white;
     width: 90%;
@@ -726,6 +743,9 @@ small.hint {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    position: sticky;
+    top: 0;
+    z-index: 10;
 }
 .modal-body { padding: 1.5rem; }
 .btn-close {
@@ -1580,6 +1600,20 @@ input:focus, select:focus, textarea:focus {
 .large-modal {
     max-width: 900px;
     width: 95%;
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
+/* Ensure user details modal is properly sized and scrollable */
+#userDetailsModal .modal-content {
+    max-height: 95vh;
+    overflow-y: auto;
+    margin: 2.5vh auto;
+}
+
+#filteredUsersModal .modal-content {
+    max-height: 90vh;
+    overflow-y: auto;
 }
 
 .user-profile-section {
@@ -1832,6 +1866,12 @@ input:focus, select:focus, textarea:focus {
     .large-modal {
         width: 98%;
         margin: 1rem;
+        max-height: 95vh;
+    }
+    
+    #userDetailsModal .modal-content {
+        max-height: 98vh;
+        margin: 1vh auto;
     }
     
     .user-profile-section {

@@ -345,6 +345,7 @@ class LeaveAssistantApp {
         };
         
         // User details modal action handlers
+        document.getElementById('backToUserList').onclick = () => this.backToUserListFromModal();
         document.getElementById('grantUserAccess').onclick = () => this.grantUserAccessFromModal();
         document.getElementById('editUserProfile').onclick = () => this.editUserFromModal();
         document.getElementById('viewUserConversations').onclick = () => this.viewUserConversationsFromModal();
@@ -376,7 +377,7 @@ class LeaveAssistantApp {
         document.getElementById('continueToApp').onclick = () => this.checkSubscriptionAndRedirect();
         document.getElementById('retryPayment').onclick = () => this.showPage('subscriptionPage');
         document.getElementById('backToDashboardFromCancel').onclick = () => this.checkSubscriptionAndRedirect();
-        document.getElementById('backToHomepage').onclick = () => this.showPage('dashboard');
+        document.getElementById('backToHomepage').onclick = () => this.logout();
     }
 
     // ==========================================
@@ -1414,6 +1415,9 @@ class LeaveAssistantApp {
     showUserDetails(userId) {
         console.log(`👤 Showing details for user: ${userId}`);
         
+        // Don't close the filtered users modal - let it stay open behind
+        // The z-index will ensure user details modal appears on top
+        
         // Find user in regular users or pending verifications
         let user = this.users.find(u => u.id === userId);
         let isPending = false;
@@ -1503,7 +1507,7 @@ class LeaveAssistantApp {
             actionButtons.style.display = 'block';
         }
         
-        // Show the modal
+        // Show the modal (it will appear on top due to higher z-index)
         document.getElementById('userDetailsModal').classList.remove('hidden');
     }
     
@@ -1515,10 +1519,27 @@ class LeaveAssistantApp {
     }
     
     // Modal action handlers
+    backToUserListFromModal() {
+        // Close user details modal
+        document.getElementById('userDetailsModal').classList.add('hidden');
+        // Show the filtered users modal if there was a previous filter
+        if (this.currentModalFilter) {
+            this.showFilteredUsers(this.currentModalFilter);
+        }
+    }
+    
     grantUserAccessFromModal() {
         if (this.currentModalUser) {
-            this.grantAccess(this.currentModalUser.id);
+            // Close user details modal
             document.getElementById('userDetailsModal').classList.add('hidden');
+            // Grant access
+            this.grantAccess(this.currentModalUser.id);
+            // Refresh the filtered users modal if it was open
+            if (this.currentModalFilter) {
+                setTimeout(() => {
+                    this.showFilteredUsers(this.currentModalFilter);
+                }, 500);
+            }
         }
     }
     
@@ -1538,8 +1559,16 @@ class LeaveAssistantApp {
     
     deleteUserFromModal() {
         if (this.currentModalUser) {
-            this.deleteUser(this.currentModalUser.id);
+            // Close user details modal
             document.getElementById('userDetailsModal').classList.add('hidden');
+            // Delete user
+            this.deleteUser(this.currentModalUser.id);
+            // Refresh the filtered users modal if it was open
+            if (this.currentModalFilter) {
+                setTimeout(() => {
+                    this.showFilteredUsers(this.currentModalFilter);
+                }, 500);
+            }
         }
     }
     
