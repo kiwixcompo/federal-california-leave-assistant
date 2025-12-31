@@ -101,11 +101,11 @@
                 <p>We've sent a verification link to your email address.</p>
                 <p>Please check your inbox (and spam folder) to complete registration.</p>
                 
-                <!-- Verification Link Display -->
+                <!-- Verification Link Display - Only shown if email delivery fails -->
                 <div id="verificationLinkSection" class="verification-link-section hidden">
-                    <div class="alert alert-info">
-                        <h4><i class="fa-solid fa-link"></i> Verification Link</h4>
-                        <p><strong>For testing purposes, you can use the link below:</strong></p>
+                    <div class="alert alert-warning">
+                        <h4><i class="fa-solid fa-exclamation-triangle"></i> Email Delivery Issue</h4>
+                        <p><strong>We couldn't send the email automatically. Please use the link below:</strong></p>
                         <div class="verification-link-container">
                             <a id="verificationLinkButton" href="#" class="btn btn-primary" target="_blank">
                                 <i class="fa-solid fa-check-circle"></i> Verify Email Now
@@ -117,9 +117,6 @@
                                 <i class="fa-solid fa-copy"></i> Copy Link
                             </button>
                         </div>
-                        <p class="text-muted mt-2">
-                            <small>💡 In production, this link would be sent to your email automatically.</small>
-                        </p>
                     </div>
                 </div>
                 
@@ -271,7 +268,10 @@
                     <p><small>📧 Email support included</small></p>
                 </div>
                 
-                <button id="subLogoutBtn" class="btn btn-text">Logout</button>
+                <div class="subscription-actions">
+                    <button id="backToHomepage" class="btn btn-secondary">← Back to Homepage</button>
+                    <button id="subLogoutBtn" class="btn btn-text">Logout</button>
+                </div>
             </div>
         </div>
     </div>
@@ -461,23 +461,23 @@
         </nav>
         <div class="container">
             <div class="admin-stats">
-                <div class="stat-card">
+                <div class="stat-card clickable-card" data-filter="all" title="Click to view all users">
                     <h3>Total Users</h3>
                     <p id="totalUsers">0</p>
                 </div>
-                <div class="stat-card">
+                <div class="stat-card clickable-card" data-filter="verified" title="Click to view verified users">
                     <h3>Verified</h3>
                     <p id="verifiedUsers">0</p>
                 </div>
-                <div class="stat-card">
+                <div class="stat-card clickable-card" data-filter="pending" title="Click to view pending verifications">
                     <h3>Pending</h3>
                     <p id="pendingVerifications">0</p>
                 </div>
-                <div class="stat-card">
+                <div class="stat-card clickable-card" data-filter="active" title="Click to view users with active subscriptions">
                     <h3>Active Subs</h3>
                     <p id="activeSubscriptions">0</p>
                 </div>
-                <div class="stat-card">
+                <div class="stat-card clickable-card" data-filter="trial" title="Click to view users in trial">
                     <h3>In Trial</h3>
                     <p id="trialUsers">0</p>
                 </div>
@@ -486,6 +486,7 @@
             <div class="admin-tabs">
                 <button class="tab-btn active" data-tab="users">User Management</button>
                 <button class="tab-btn" data-tab="payments">Payment Settings</button>
+                <button class="tab-btn" data-tab="email">Email Settings</button>
                 <button class="tab-btn" data-tab="system">System Config</button>
             </div>
 
@@ -563,6 +564,67 @@
                 </div>
             </div>
 
+            <div id="emailTab" class="tab-content hidden">
+                <div class="card settings-card">
+                    <h3>Email Configuration</h3>
+                    <p class="text-muted">Configure SMTP settings to send confirmation emails automatically.</p>
+                    
+                    <div id="emailStatus" class="status-indicator">
+                        <span class="status-dot status-error"></span>
+                        <span>Email service not configured</span>
+                    </div>
+                    
+                    <form id="emailSettingsForm">
+                        <div class="form-group">
+                            <label>Email Address</label>
+                            <input type="email" id="smtpEmail" placeholder="your-email@gmail.com" required>
+                            <small>The email address that will send confirmation emails</small>
+                        </div>
+                        <div class="form-group">
+                            <label>App Password</label>
+                            <input type="password" id="smtpPassword" placeholder="16-character app password" required>
+                            <small>Generate this from your email provider's security settings</small>
+                        </div>
+                        <div class="form-group">
+                            <label>Email Provider</label>
+                            <select id="smtpProvider" required>
+                                <option value="gmail">Gmail</option>
+                                <option value="outlook">Outlook/Hotmail</option>
+                                <option value="yahoo">Yahoo Mail</option>
+                                <option value="custom">Custom SMTP</option>
+                            </select>
+                        </div>
+                        <div id="customSmtpSettings" class="hidden">
+                            <div class="form-group">
+                                <label>SMTP Host</label>
+                                <input type="text" id="smtpHost" placeholder="smtp.example.com">
+                            </div>
+                            <div class="form-group">
+                                <label>SMTP Port</label>
+                                <input type="number" id="smtpPort" placeholder="587" value="587">
+                            </div>
+                        </div>
+                        <div class="form-actions">
+                            <button type="submit" class="btn btn-primary">Save & Test Email Settings</button>
+                            <button type="button" id="testEmailBtn" class="btn btn-secondary">Send Test Email</button>
+                        </div>
+                    </form>
+                    
+                    <div class="email-help">
+                        <h4>Setup Instructions:</h4>
+                        <div class="help-section">
+                            <strong>Gmail:</strong>
+                            <ol>
+                                <li>Enable 2-factor authentication</li>
+                                <li>Go to Google Account → Security → App passwords</li>
+                                <li>Generate app password for "Mail"</li>
+                                <li>Use the 16-character password above</li>
+                            </ol>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <div id="systemTab" class="tab-content hidden">
                 <div class="card settings-card">
                     <h3>System Settings</h3>
@@ -580,6 +642,138 @@
                         <button id="clearAllData" class="btn btn-danger">Reset System</button>
                     </div>
                     <p class="stats-text">Local Storage Usage: <span id="storageUsed">0 KB</span></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- User Details Modal -->
+    <div id="userDetailsModal" class="modal hidden">
+        <div class="modal-content large-modal">
+            <div class="modal-header">
+                <h3 id="userDetailsTitle">User Details</h3>
+                <button id="closeUserDetails" class="btn-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="user-profile-section">
+                    <div class="user-avatar">
+                        <i class="fa-solid fa-user-circle fa-4x text-primary"></i>
+                    </div>
+                    <div class="user-basic-info">
+                        <h2 id="userFullName">Loading...</h2>
+                        <p id="userEmail" class="text-muted">Loading...</p>
+                        <div id="userStatus" class="status-badge">Loading...</div>
+                    </div>
+                </div>
+                
+                <div class="user-details-grid">
+                    <div class="detail-card">
+                        <h4><i class="fa-solid fa-info-circle"></i> Account Information</h4>
+                        <div class="detail-row">
+                            <span class="label">User ID:</span>
+                            <span id="userDetailId">-</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="label">Email Verified:</span>
+                            <span id="userDetailVerified">-</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="label">Registration Date:</span>
+                            <span id="userDetailCreated">-</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="label">AI Provider:</span>
+                            <span id="userDetailProvider">-</span>
+                        </div>
+                    </div>
+                    
+                    <div class="detail-card">
+                        <h4><i class="fa-solid fa-crown"></i> Subscription Status</h4>
+                        <div class="detail-row">
+                            <span class="label">Current Status:</span>
+                            <span id="userDetailStatus">-</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="label">Trial Period:</span>
+                            <span id="userDetailTrial">-</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="label">Subscription Expiry:</span>
+                            <span id="userDetailExpiry">-</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="label">Access Level:</span>
+                            <span id="userDetailAccess">-</span>
+                        </div>
+                    </div>
+                    
+                    <div class="detail-card">
+                        <h4><i class="fa-solid fa-chart-line"></i> Usage Statistics</h4>
+                        <div class="detail-row">
+                            <span class="label">Total Conversations:</span>
+                            <span id="userDetailConversations">-</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="label">Last Login:</span>
+                            <span id="userDetailLastLogin">-</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="label">API Keys Set:</span>
+                            <span id="userDetailApiKeys">-</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="label">Account Type:</span>
+                            <span id="userDetailType">-</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="user-actions-section">
+                    <h4>Admin Actions</h4>
+                    <div class="action-buttons">
+                        <button id="grantUserAccess" class="btn btn-success">
+                            <i class="fa-solid fa-key"></i> Grant Access
+                        </button>
+                        <button id="editUserProfile" class="btn btn-primary">
+                            <i class="fa-solid fa-edit"></i> Edit Profile
+                        </button>
+                        <button id="viewUserConversations" class="btn btn-info">
+                            <i class="fa-solid fa-comments"></i> View Conversations
+                        </button>
+                        <button id="deleteUserAccount" class="btn btn-danger">
+                            <i class="fa-solid fa-trash"></i> Delete Account
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filtered Users Modal -->
+    <div id="filteredUsersModal" class="modal hidden">
+        <div class="modal-content large-modal">
+            <div class="modal-header">
+                <h3 id="filteredUsersTitle">Users</h3>
+                <button id="closeFilteredUsers" class="btn-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="filtered-users-toolbar">
+                    <div class="search-section">
+                        <input type="text" id="filteredUserSearch" placeholder="Search users...">
+                        <button id="refreshFilteredUsers" class="btn btn-secondary">
+                            <i class="fa-solid fa-sync"></i> Refresh
+                        </button>
+                    </div>
+                    <div class="bulk-actions-section">
+                        <button id="selectAllFiltered" class="btn btn-outline">Select All</button>
+                        <button id="bulkGrantFiltered" class="btn btn-success">
+                            <i class="fa-solid fa-key"></i> Bulk Grant Access
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="filtered-users-list" id="filteredUsersList">
+                    <!-- Users will be populated here -->
                 </div>
             </div>
         </div>

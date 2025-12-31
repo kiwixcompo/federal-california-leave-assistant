@@ -308,6 +308,9 @@ class LeaveAssistantApp {
         document.getElementById('refreshUsers').onclick = () => this.loadAdminDashboard();
         document.getElementById('exportUsers').onclick = () => this.exportUsersCSV();
         document.getElementById('paymentSettingsForm').onsubmit = (e) => this.handlePaymentConfig(e);
+        document.getElementById('emailSettingsForm').onsubmit = (e) => this.handleEmailConfig(e);
+        document.getElementById('testEmailBtn').onclick = () => this.sendTestEmail();
+        document.getElementById('smtpProvider').onchange = (e) => this.toggleCustomSmtp(e.target.value);
         document.getElementById('bulkGrantBtn').onclick = () => this.showBulkGrantModal();
         document.getElementById('closeBulkGrant').onclick = () => document.getElementById('bulkGrantModal').classList.add('hidden');
         document.getElementById('bulkGrantForm').onsubmit = (e) => this.handleBulkGrant(e);
@@ -316,6 +319,42 @@ class LeaveAssistantApp {
         document.getElementById('clearAllData').onclick = () => this.clearAllData();
         document.getElementById('userSearch').oninput = (e) => this.filterUsers();
         document.getElementById('userFilter').onchange = (e) => this.filterUsers();
+        
+        // Statistics cards click handlers
+        document.querySelectorAll('.clickable-card').forEach(card => {
+            card.addEventListener('click', (e) => {
+                const filter = e.currentTarget.dataset.filter;
+                this.showFilteredUsers(filter);
+            });
+        });
+        
+        // Modal close handlers
+        document.getElementById('closeUserDetails').onclick = () => document.getElementById('userDetailsModal').classList.add('hidden');
+        document.getElementById('closeFilteredUsers').onclick = () => document.getElementById('filteredUsersModal').classList.add('hidden');
+        
+        // Close modals when clicking outside
+        document.getElementById('userDetailsModal').onclick = (e) => {
+            if (e.target.id === 'userDetailsModal') {
+                document.getElementById('userDetailsModal').classList.add('hidden');
+            }
+        };
+        document.getElementById('filteredUsersModal').onclick = (e) => {
+            if (e.target.id === 'filteredUsersModal') {
+                document.getElementById('filteredUsersModal').classList.add('hidden');
+            }
+        };
+        
+        // User details modal action handlers
+        document.getElementById('grantUserAccess').onclick = () => this.grantUserAccessFromModal();
+        document.getElementById('editUserProfile').onclick = () => this.editUserFromModal();
+        document.getElementById('viewUserConversations').onclick = () => this.viewUserConversationsFromModal();
+        document.getElementById('deleteUserAccount').onclick = () => this.deleteUserFromModal();
+        
+        // Filtered users modal handlers
+        document.getElementById('filteredUserSearch').oninput = (e) => this.filterModalUsers();
+        document.getElementById('refreshFilteredUsers').onclick = () => this.refreshFilteredUsers();
+        document.getElementById('selectAllFiltered').onclick = () => this.toggleSelectAllFiltered();
+        document.getElementById('bulkGrantFiltered').onclick = () => this.bulkGrantFromModal();
         
         // Admin profile page
         document.getElementById('backToAdminDashboard').onclick = () => this.showPage('adminDashboard');
@@ -337,6 +376,7 @@ class LeaveAssistantApp {
         document.getElementById('continueToApp').onclick = () => this.checkSubscriptionAndRedirect();
         document.getElementById('retryPayment').onclick = () => this.showPage('subscriptionPage');
         document.getElementById('backToDashboardFromCancel').onclick = () => this.checkSubscriptionAndRedirect();
+        document.getElementById('backToHomepage').onclick = () => this.showPage('dashboard');
     }
 
     // ==========================================
@@ -831,8 +871,8 @@ class LeaveAssistantApp {
             emailMessage.textContent = `We've sent a verification link to ${email}.`;
         }
         
-        // Show verification link if provided
-        if (verificationLink) {
+        // Only show verification link if email delivery failed or in development mode
+        if (verificationLink && (!this.serverRunning || !emailTransporter)) {
             const linkSection = document.getElementById('verificationLinkSection');
             const linkButton = document.getElementById('verificationLinkButton');
             const linkInput = document.getElementById('verificationLinkInput');
@@ -844,7 +884,7 @@ class LeaveAssistantApp {
             }
         }
         
-        this.showSuccess(`Registration successful! Verification email sent to ${email}`);
+        this.showSuccess(`Registration successful! Please check your email to verify your account.`);
     }
 
     resendVerificationEmail() {
@@ -1196,6 +1236,368 @@ class LeaveAssistantApp {
         }
     }
 
+    // ==========================================
+    // STATISTICS CARDS & USER DETAILS FUNCTIONALITY
+    // ==========================================
+
+    showFilteredUsers(filter) {
+        console.log(`📊 Showing filtered users for: ${filter}`);
+        
+        // Get all users and pending verifications
+        const allUsers = this.users || [];
+        const pending = this.loadPendingVerificationsData() || [];
+        let filteredUsers = [];
+        let modalTitle = '';
+        
+        switch (filter) {
+            case 'all':
+                // Show ALL users including admins for total count
+                filteredUsers = allUsers;
+                modalTitle = 'All Users';
+                break;
+            case 'verified':
+                // Show all verified users (including admins if they're verified)
+                filteredUsers = allUsers.filter(u => u.emailVerified);
+                modalTitle = 'Verified Users';
+                break;
+            case 'pending':
+                // Convert pending verifications to user-like objects
+                filteredUsers = pending.map(p => ({
+                    ...p.userData,
+                    id: p.token,
+                    isPending: true,
+                    createdAt: p.createdAt
+                }));
+                modalTitle = 'Pending Verifications';
+                break;
+            case 'active':
+                // Show users with active paid subscriptions (exclude admins)
+                const now = Date.now();
+                filteredUsers = allUsers.filter(u => {
+                    if (u.isAdmin) return false;
+                    if (!u.subscriptionExpiry) return false;
+                    return new Date(u.subscriptionExpiry).getTime() > now;
+                });
+                modalTitle = 'Users with Active Subscriptions';
+                break;
+            case 'trial':
+                // Show users currently in trial period (exclude admins)
+                const currentTime = Date.now();
+                const trialDuration = 24 * 60 * 60 * 1000;
+                filteredUsers = allUsers.filter(u => {
+                    if (u.isAdmin) return false;
+                    if (u.subscriptionExpiry) return false; // Has paid subscription
+                    if (!u.emailVerified) return false; // Must be verified
+                    const trialEnd = (u.createdAt || currentTime) + trialDuration;
+                    return currentTime < trialEnd;
+                });
+                modalTitle = 'Users in Trial';
+                break;
+            default:
+                filteredUsers = allUsers;
+                modalTitle = 'All Users';
+        }
+        
+        // Store current filter for refresh functionality
+        this.currentModalFilter = filter;
+        this.currentFilteredUsers = filteredUsers;
+        
+        // Update modal title
+        document.getElementById('filteredUsersTitle').textContent = `${modalTitle} (${filteredUsers.length})`;
+        
+        // Populate the filtered users list
+        this.populateFilteredUsersList(filteredUsers);
+        
+        // Show the modal
+        document.getElementById('filteredUsersModal').classList.remove('hidden');
+        
+        // Clear search
+        document.getElementById('filteredUserSearch').value = '';
+        
+        console.log(`📊 Filtered ${filteredUsers.length} users for ${filter}`);
+    }
+    
+    populateFilteredUsersList(users) {
+        const listContainer = document.getElementById('filteredUsersList');
+        
+        if (!users || users.length === 0) {
+            listContainer.innerHTML = '<div class="no-users-message">No users found for this criteria.</div>';
+            return;
+        }
+        
+        listContainer.innerHTML = users.map(user => {
+            const isAdmin = user.isAdmin;
+            const isPending = user.isPending;
+            
+            let statusInfo = '';
+            let userActions = '';
+            
+            if (isPending) {
+                statusInfo = `
+                    <div class="user-status pending">
+                        <i class="fa-solid fa-clock"></i> Pending Verification
+                    </div>
+                    <div class="user-meta">
+                        <small>Registered: ${new Date(user.createdAt).toLocaleDateString()}</small>
+                    </div>
+                `;
+                userActions = `
+                    <button class="btn btn-sm btn-success" onclick="app.approveVerification('${user.id}')">
+                        <i class="fa-solid fa-check"></i> Approve
+                    </button>
+                    <button class="btn btn-sm btn-danger" onclick="app.rejectVerification('${user.id}')">
+                        <i class="fa-solid fa-times"></i> Reject
+                    </button>
+                `;
+            } else if (isAdmin) {
+                statusInfo = `
+                    <div class="user-status admin">
+                        <i class="fa-solid fa-crown"></i> Administrator
+                    </div>
+                    <div class="user-meta">
+                        <small>Joined: ${new Date(user.createdAt).toLocaleDateString()}</small>
+                        <small>Email: ${user.emailVerified ? 'Verified' : 'Not Verified'}</small>
+                    </div>
+                `;
+                userActions = `
+                    <button class="btn btn-sm btn-primary" onclick="app.showUserDetails('${user.id}')">
+                        <i class="fa-solid fa-eye"></i> View Details
+                    </button>
+                `;
+            } else {
+                const status = this.getSubscriptionStatus(user);
+                const statusText = status.active ? 
+                    (status.type === 'trial' ? 'Trial Active' : 'Premium Active') : 
+                    'Access Expired';
+                const statusIcon = status.active ? 
+                    (status.type === 'trial' ? 'fa-clock' : 'fa-crown') : 
+                    'fa-exclamation-triangle';
+                
+                statusInfo = `
+                    <div class="user-status ${status.active ? (status.type === 'trial' ? 'trial' : 'premium') : 'expired'}">
+                        <i class="fa-solid ${statusIcon}"></i> ${statusText}
+                    </div>
+                    <div class="user-meta">
+                        <small>Joined: ${new Date(user.createdAt).toLocaleDateString()}</small>
+                        <small>Email: ${user.emailVerified ? 'Verified' : 'Not Verified'}</small>
+                        ${status.expiry ? `<small>Expires: ${new Date(status.expiry).toLocaleDateString()}</small>` : ''}
+                    </div>
+                `;
+                userActions = `
+                    <input type="checkbox" class="filtered-user-select" value="${user.id}">
+                    <button class="btn btn-sm btn-primary" onclick="app.showUserDetails('${user.id}')">
+                        <i class="fa-solid fa-eye"></i> View Details
+                    </button>
+                    <button class="btn btn-sm btn-success" onclick="app.grantAccess('${user.id}')">
+                        <i class="fa-solid fa-key"></i> Grant Access
+                    </button>
+                `;
+            }
+            
+            return `
+                <div class="filtered-user-card ${isAdmin ? 'admin-user' : ''} ${isPending ? 'pending-user' : ''}" data-user-id="${user.id}">
+                    <div class="user-info">
+                        <div class="user-name">
+                            <h4>${user.firstName} ${user.lastName} ${isAdmin ? '👑' : ''}</h4>
+                            <p class="user-email">${user.email}</p>
+                        </div>
+                        ${statusInfo}
+                    </div>
+                    <div class="user-actions">
+                        ${userActions}
+                    </div>
+                </div>
+            `;
+        }).join('');
+    }
+    
+    showUserDetails(userId) {
+        console.log(`👤 Showing details for user: ${userId}`);
+        
+        // Find user in regular users or pending verifications
+        let user = this.users.find(u => u.id === userId);
+        let isPending = false;
+        
+        if (!user) {
+            // Check pending verifications
+            const pending = this.loadPendingVerificationsData() || [];
+            const pendingUser = pending.find(p => p.token === userId);
+            if (pendingUser) {
+                user = { ...pendingUser.userData, id: pendingUser.token, isPending: true };
+                isPending = true;
+            }
+        }
+        
+        if (!user) {
+            this.showError('User not found');
+            return;
+        }
+        
+        // Store current user for modal actions
+        this.currentModalUser = user;
+        
+        // Populate user details modal
+        document.getElementById('userDetailsTitle').textContent = `${user.firstName} ${user.lastName}${user.isAdmin ? ' (Administrator)' : ''}`;
+        document.getElementById('userFullName').textContent = `${user.firstName} ${user.lastName}`;
+        document.getElementById('userEmail').textContent = user.email;
+        
+        // Status badge
+        const statusEl = document.getElementById('userStatus');
+        if (isPending) {
+            statusEl.innerHTML = '<span class="badge badge-warning">Pending Verification</span>';
+        } else if (user.isAdmin) {
+            statusEl.innerHTML = '<span class="badge badge-admin">Administrator</span>';
+        } else {
+            const status = this.getSubscriptionStatus(user);
+            const statusClass = status.active ? (status.type === 'trial' ? 'badge-warning' : 'badge-success') : 'badge-danger';
+            const statusText = status.active ? (status.type === 'trial' ? 'Trial Active' : 'Premium Active') : 'Access Expired';
+            statusEl.innerHTML = `<span class="badge ${statusClass}">${statusText}</span>`;
+        }
+        
+        // Account information
+        document.getElementById('userDetailId').textContent = user.id;
+        document.getElementById('userDetailVerified').textContent = user.emailVerified ? 'Yes' : 'No';
+        document.getElementById('userDetailCreated').textContent = new Date(user.createdAt).toLocaleDateString();
+        document.getElementById('userDetailProvider').textContent = user.aiProvider || 'Not Set';
+        
+        // Subscription status
+        if (isPending) {
+            document.getElementById('userDetailStatus').textContent = 'Pending Verification';
+            document.getElementById('userDetailTrial').textContent = 'N/A';
+            document.getElementById('userDetailExpiry').textContent = 'N/A';
+            document.getElementById('userDetailAccess').textContent = 'No Access';
+        } else if (user.isAdmin) {
+            document.getElementById('userDetailStatus').textContent = 'Administrator';
+            document.getElementById('userDetailTrial').textContent = 'N/A';
+            document.getElementById('userDetailExpiry').textContent = 'Permanent';
+            document.getElementById('userDetailAccess').textContent = 'Full Access';
+        } else {
+            const status = this.getSubscriptionStatus(user);
+            document.getElementById('userDetailStatus').textContent = status.active ? 
+                (status.type === 'trial' ? 'Trial Active' : 'Premium Active') : 'Expired';
+            
+            if (status.type === 'trial') {
+                const timeLeft = new Date(status.expiry).getTime() - Date.now();
+                const hoursLeft = Math.floor(timeLeft / (1000 * 60 * 60));
+                document.getElementById('userDetailTrial').textContent = timeLeft > 0 ? `${hoursLeft} hours remaining` : 'Expired';
+            } else {
+                document.getElementById('userDetailTrial').textContent = 'N/A';
+            }
+            
+            document.getElementById('userDetailExpiry').textContent = status.expiry ? 
+                new Date(status.expiry).toLocaleDateString() : 'N/A';
+            document.getElementById('userDetailAccess').textContent = status.active ? 'Active' : 'No Access';
+        }
+        
+        // Usage statistics (placeholder - you can implement actual tracking)
+        document.getElementById('userDetailConversations').textContent = '0'; // Implement conversation tracking
+        document.getElementById('userDetailLastLogin').textContent = 'Current Session'; // Implement last login tracking
+        document.getElementById('userDetailApiKeys').textContent = this.getUserApiKeyStatus(user);
+        document.getElementById('userDetailType').textContent = user.isAdmin ? 'Administrator' : 'Regular User';
+        
+        // Show/hide action buttons based on user type
+        const actionButtons = document.querySelector('.user-actions-section');
+        if (user.isAdmin) {
+            actionButtons.style.display = 'none';
+        } else {
+            actionButtons.style.display = 'block';
+        }
+        
+        // Show the modal
+        document.getElementById('userDetailsModal').classList.remove('hidden');
+    }
+    
+    getUserApiKeyStatus(user) {
+        const keys = [];
+        if (user.openaiApiKey && user.openaiApiKey.startsWith('sk-')) keys.push('OpenAI');
+        if (user.geminiApiKey && user.geminiApiKey.startsWith('AIza')) keys.push('Gemini');
+        return keys.length > 0 ? keys.join(', ') : 'None';
+    }
+    
+    // Modal action handlers
+    grantUserAccessFromModal() {
+        if (this.currentModalUser) {
+            this.grantAccess(this.currentModalUser.id);
+            document.getElementById('userDetailsModal').classList.add('hidden');
+        }
+    }
+    
+    editUserFromModal() {
+        if (this.currentModalUser) {
+            // Implement user editing functionality
+            this.showError('User editing functionality coming soon');
+        }
+    }
+    
+    viewUserConversationsFromModal() {
+        if (this.currentModalUser) {
+            // Implement conversation viewing functionality
+            this.showError('Conversation viewing functionality coming soon');
+        }
+    }
+    
+    deleteUserFromModal() {
+        if (this.currentModalUser) {
+            this.deleteUser(this.currentModalUser.id);
+            document.getElementById('userDetailsModal').classList.add('hidden');
+        }
+    }
+    
+    // Filtered users modal functionality
+    filterModalUsers() {
+        const searchTerm = document.getElementById('filteredUserSearch').value.toLowerCase();
+        const userCards = document.querySelectorAll('.filtered-user-card');
+        
+        userCards.forEach(card => {
+            const userName = card.querySelector('.user-name h4').textContent.toLowerCase();
+            const userEmail = card.querySelector('.user-email').textContent.toLowerCase();
+            
+            if (userName.includes(searchTerm) || userEmail.includes(searchTerm)) {
+                card.style.display = 'block';
+            } else {
+                card.style.display = 'none';
+            }
+        });
+    }
+    
+    refreshFilteredUsers() {
+        if (this.currentModalFilter) {
+            this.showFilteredUsers(this.currentModalFilter);
+        }
+    }
+    
+    toggleSelectAllFiltered() {
+        const checkboxes = document.querySelectorAll('.filtered-user-select');
+        const allChecked = Array.from(checkboxes).every(cb => cb.checked);
+        
+        checkboxes.forEach(cb => {
+            cb.checked = !allChecked;
+        });
+    }
+    
+    bulkGrantFromModal() {
+        const selectedIds = Array.from(document.querySelectorAll('.filtered-user-select:checked')).map(cb => cb.value);
+        
+        if (selectedIds.length === 0) {
+            this.showError('No users selected');
+            return;
+        }
+        
+        // Close the filtered users modal and show bulk grant modal
+        document.getElementById('filteredUsersModal').classList.add('hidden');
+        
+        // Update bulk count and show modal
+        document.getElementById('bulkCount').textContent = selectedIds.length;
+        document.getElementById('bulkGrantModal').classList.remove('hidden');
+        
+        // Store selected IDs for bulk grant
+        this.selectedUserIds = selectedIds;
+    }
+
+    // ==========================================
+    // ADMIN DASHBOARD FUNCTIONALITY
+    // ==========================================
+
     handleSettings(e) {
         e.preventDefault();
         
@@ -1275,29 +1677,48 @@ class LeaveAssistantApp {
         const users = this.loadUsers() || [];
         const pending = this.loadPendingVerificationsData() || [];
         
-        // Calculate stats
-        const verifiedUsers = users.filter(u => u.emailVerified && !u.isAdmin);
+        // Calculate stats properly
+        const allUsers = users; // Include all users for total count
+        const regularUsers = users.filter(u => !u.isAdmin); // Exclude admins for most stats
+        const verifiedUsers = regularUsers.filter(u => u.emailVerified);
+        
         const now = Date.now();
         const trialDuration = 24 * 60 * 60 * 1000;
-        const trialUsers = users.filter(u => {
-            const trialEnd = u.createdAt + trialDuration;
-            return now < trialEnd && !u.isAdmin && !u.subscriptionExpiry;
+        
+        // Calculate trial users (non-admin users currently in trial period)
+        const trialUsers = regularUsers.filter(u => {
+            if (u.subscriptionExpiry) return false; // Has paid subscription
+            const trialEnd = (u.createdAt || now) + trialDuration;
+            return now < trialEnd && u.emailVerified; // Must be verified and in trial period
         });
         
-        // Update stats display
-        document.getElementById('totalUsers').textContent = users.filter(u => !u.isAdmin).length;
+        // Calculate active subscriptions (users with valid subscription expiry)
+        const activeSubscriptions = regularUsers.filter(u => {
+            if (!u.subscriptionExpiry) return false;
+            return new Date(u.subscriptionExpiry).getTime() > now;
+        });
+        
+        // Update stats display - show all users including admins for total
+        document.getElementById('totalUsers').textContent = allUsers.length;
         document.getElementById('verifiedUsers').textContent = verifiedUsers.length;
         document.getElementById('pendingVerifications').textContent = pending.length;
-        document.getElementById('activeSubscriptions').textContent = 0; // No subscription tracking in client-side
+        document.getElementById('activeSubscriptions').textContent = activeSubscriptions.length;
         document.getElementById('trialUsers').textContent = trialUsers.length;
         
-        // Load users table
-        this.populateUserTable(users.filter(u => !u.isAdmin));
+        // Load users table (exclude admins from main table)
+        this.populateUserTable(regularUsers);
         
         // Load pending verifications
         this.displayPendingVerifications(pending);
         
         console.log('📊 Client-side admin dashboard loaded');
+        console.log('📊 Stats:', {
+            total: allUsers.length,
+            verified: verifiedUsers.length,
+            pending: pending.length,
+            active: activeSubscriptions.length,
+            trial: trialUsers.length
+        });
     }
 
     async loadUsers(search = '', filter = 'all', page = 1) {
@@ -1378,11 +1799,38 @@ class LeaveAssistantApp {
                 if (stripeWebhookSecretEl) stripeWebhookSecretEl.value = config.stripeWebhookSecret || '';
                 if (systemGeminiKeyEl) systemGeminiKeyEl.value = config.systemGeminiKey || '';
                 
+                // Load email configuration
+                this.loadEmailConfig(config);
+                
                 // Show configuration status
                 this.updateConfigStatus(config);
             }
         } catch (error) {
             console.error('Load admin config error:', error);
+        }
+    }
+    
+    loadEmailConfig(config) {
+        const emailConfig = config.emailConfig;
+        
+        if (emailConfig) {
+            const emailEl = document.getElementById('smtpEmail');
+            const providerEl = document.getElementById('smtpProvider');
+            const hostEl = document.getElementById('smtpHost');
+            const portEl = document.getElementById('smtpPort');
+            
+            if (emailEl) emailEl.value = emailConfig.email || '';
+            if (providerEl) providerEl.value = emailConfig.provider || 'gmail';
+            if (hostEl) hostEl.value = emailConfig.host || '';
+            if (portEl) portEl.value = emailConfig.port || 587;
+            
+            // Toggle custom SMTP settings if needed
+            this.toggleCustomSmtp(emailConfig.provider || 'gmail');
+            
+            // Update email status
+            this.updateEmailStatus(true);
+        } else {
+            this.updateEmailStatus(false);
         }
     }
 
@@ -1764,6 +2212,125 @@ class LeaveAssistantApp {
         this.showSuccess('Payment settings saved successfully');
     }
 
+    async handleEmailConfig(e) {
+        e.preventDefault();
+        
+        const emailEl = document.getElementById('smtpEmail');
+        const passwordEl = document.getElementById('smtpPassword');
+        const providerEl = document.getElementById('smtpProvider');
+        const hostEl = document.getElementById('smtpHost');
+        const portEl = document.getElementById('smtpPort');
+        
+        if (!emailEl || !passwordEl || !providerEl) {
+            this.showError('Email configuration form not found');
+            return;
+        }
+        
+        const emailConfig = {
+            email: emailEl.value,
+            password: passwordEl.value,
+            provider: providerEl.value,
+            host: hostEl ? hostEl.value : '',
+            port: portEl ? portEl.value : 587
+        };
+        
+        if (!emailConfig.email || !emailConfig.password) {
+            this.showError('Email and password are required');
+            return;
+        }
+        
+        try {
+            this.showLoading();
+            
+            const response = await fetch(this.getApiUrl('admin/email-config'), {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${this.sessionToken}`
+                },
+                body: JSON.stringify(emailConfig)
+            });
+            
+            const data = await response.json();
+            
+            if (response.ok && data.success) {
+                this.showSuccess('Email configuration saved and tested successfully!');
+                this.updateEmailStatus(true);
+                
+                // Clear password field for security
+                passwordEl.value = '';
+            } else {
+                this.showError(data.error || 'Failed to save email configuration');
+                this.updateEmailStatus(false);
+            }
+            
+        } catch (error) {
+            console.error('Email config error:', error);
+            this.showError('Failed to save email configuration');
+            this.updateEmailStatus(false);
+        } finally {
+            this.hideLoading();
+        }
+    }
+    
+    async sendTestEmail() {
+        try {
+            this.showLoading();
+            
+            const response = await fetch(this.getApiUrl('admin/test-email'), {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${this.sessionToken}`
+                },
+                body: JSON.stringify({
+                    testEmail: this.currentUser.email
+                })
+            });
+            
+            const data = await response.json();
+            
+            if (response.ok && data.success) {
+                this.showSuccess('Test email sent successfully! Check your inbox.');
+            } else {
+                this.showError(data.error || 'Failed to send test email');
+            }
+            
+        } catch (error) {
+            console.error('Test email error:', error);
+            this.showError('Failed to send test email');
+        } finally {
+            this.hideLoading();
+        }
+    }
+    
+    toggleCustomSmtp(provider) {
+        const customSettings = document.getElementById('customSmtpSettings');
+        if (customSettings) {
+            if (provider === 'custom') {
+                customSettings.classList.remove('hidden');
+            } else {
+                customSettings.classList.add('hidden');
+            }
+        }
+    }
+    
+    updateEmailStatus(isWorking) {
+        const statusEl = document.getElementById('emailStatus');
+        if (statusEl) {
+            const dot = statusEl.querySelector('.status-dot');
+            const text = statusEl.querySelector('span:last-child') || statusEl;
+            
+            if (isWorking) {
+                dot.className = 'status-dot status-success';
+                text.textContent = 'Email service configured and working';
+            } else {
+                dot.className = 'status-dot status-error';
+                text.textContent = 'Email service not configured';
+            }
+        }
+    }
+
     async updateServerPaymentConfig() {
         try {
             const endpoint = this.getApiUrl('config');
@@ -1804,7 +2371,9 @@ class LeaveAssistantApp {
     async handleBulkGrant(e) {
         e.preventDefault();
         const duration = document.getElementById('grantDuration').value;
-        const selectedIds = Array.from(document.querySelectorAll('.user-select-cb:checked')).map(cb => cb.value);
+        
+        // Use selected IDs from modal if available, otherwise get from main table
+        let selectedIds = this.selectedUserIds || Array.from(document.querySelectorAll('.user-select-cb:checked')).map(cb => cb.value);
         
         if (selectedIds.length === 0) {
             return this.showError('No users selected');
@@ -1846,7 +2415,16 @@ class LeaveAssistantApp {
             
             this.saveUsers(this.users);
             document.getElementById('bulkGrantModal').classList.add('hidden');
-            this.loadAdminDashboard();
+            
+            // Clear selected IDs
+            this.selectedUserIds = null;
+            
+            // Refresh the appropriate view
+            if (this.currentModalFilter) {
+                this.showFilteredUsers(this.currentModalFilter);
+            } else {
+                this.loadAdminDashboard();
+            }
             
             const durationText = duration === 'forever' ? 'permanent' : `${duration} month${duration > 1 ? 's' : ''}`;
             this.showSuccess(`${durationText} access granted to ${selectedIds.length} users!`);

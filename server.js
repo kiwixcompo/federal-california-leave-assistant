@@ -96,7 +96,7 @@ async function initializeEmailTransporter() {
                 port: 587,
                 secure: false,
                 auth: {
-                    user: process.env.EMAIL_USER || 'williamskiwix.@gmail.com',
+                    user: process.env.EMAIL_USER || 'noreply@hrleaveassist.com',
                     pass: process.env.EMAIL_PASS || 'dtzv ecih zjge jhem'
                 },
                 tls: {
@@ -183,7 +183,7 @@ async function sendConfirmationEmail(to, subject, htmlContent, textContent) {
             // Send real email using Gmail SMTP
             try {
                 const info = await emailTransporter.sendMail({
-                    from: '"HRLA Leave Assistant" <hrla.leaveassistant@gmail.com>',
+                    from: '"HRLA Leave Assistant" <noreply@hrleaveassist.com>',
                     to: to,
                     subject: subject,
                     text: textContent,
@@ -1179,6 +1179,88 @@ app.post('/api/gemini', requireAuth, async (req, res) => {
     } catch (error) {
         console.error('❌ Gemini Server Error:', error);
         res.status(500).json({ error: 'Internal server error', message: error.message });
+    }
+});
+
+// Email configuration endpoint
+app.put('/api/admin/email-config', requireAdmin, (req, res) => {
+    try {
+        const { email, password, provider, host, port } = req.body;
+        
+        // Validate required fields
+        if (!email || !password || !provider) {
+            return res.status(400).json({ error: 'Email, password, and provider are required' });
+        }
+        
+        // Update email configuration
+        const config = loadData(CONFIG_FILE, {});
+        config.emailConfig = {
+            email: email,
+            password: password,
+            provider: provider,
+            host: host,
+            port: port || 587,
+            updatedAt: Date.now()
+        };
+        
+        saveData(CONFIG_FILE, config);
+        
+        // Reinitialize email transporter with new settings
+        initializeEmailTransporter();
+        
+        res.json({
+            success: true,
+            message: 'Email configuration updated successfully'
+        });
+        
+    } catch (error) {
+        console.error('Email config update error:', error);
+        res.status(500).json({ error: 'Failed to update email configuration' });
+    }
+});
+
+// Test email endpoint
+app.post('/api/admin/test-email', requireAdmin, (req, res) => {
+    try {
+        const { testEmail } = req.body;
+        const adminEmail = testEmail || req.user.email;
+        
+        const testSubject = 'HRLA Leave Assistant - Email Test';
+        const testContent = `
+            <h2>Email Test Successful!</h2>
+            <p>This is a test email from HRLA Leave Assistant.</p>
+            <p>Your email configuration is working correctly.</p>
+            <p>Sent at: ${new Date().toLocaleString()}</p>
+        `;
+        
+        const textContent = `
+Email Test Successful!
+
+This is a test email from HRLA Leave Assistant.
+Your email configuration is working correctly.
+
+Sent at: ${new Date().toLocaleString()}
+        `;
+        
+        // Send test email
+        sendConfirmationEmail(adminEmail, testSubject, testContent, textContent)
+            .then(result => {
+                res.json({
+                    success: true,
+                    message: `Test email sent successfully to ${adminEmail}`,
+                    result: result
+                });
+            })
+            .catch(error => {
+                res.status(500).json({
+                    success: false,
+                    error: 'Failed to send test email: ' + error.message
+                });
+            });
+            
+    } catch (error) {
+        console.error('Test email error:', error);
+        res.status(500).json({ error: 'Failed to send test email' });
     }
 });
 
