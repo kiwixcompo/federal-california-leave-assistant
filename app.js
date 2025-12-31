@@ -9,6 +9,10 @@ class LeaveAssistantApp {
             this.trialTimerInterval = null; // For countdown timer
             this.serverRunning = false;
             
+            // Initialize users from localStorage for client-side fallback
+            this.users = this.loadUsers();
+            this.paymentConfig = this.loadPaymentConfig();
+            
             // Check for stored session
             this.sessionToken = localStorage.getItem('sessionToken');
             
@@ -120,8 +124,50 @@ class LeaveAssistantApp {
     async validateSession() {
         if (!this.sessionToken) return false;
         
+        // Check if it's a client-side token
+        if (this.sessionToken.startsWith('client-side-token-')) {
+            // Validate client-side session
+            const storedUser = localStorage.getItem('currentUser');
+            if (storedUser) {
+                try {
+                    this.currentUser = JSON.parse(storedUser);
+                    // Verify user still exists in local storage
+                    const user = this.findUser(this.currentUser.email);
+                    if (user) {
+                        this.currentUser = { ...user }; // Refresh user data
+                        localStorage.setItem('currentUser', JSON.stringify(this.currentUser));
+                        return true;
+                    }
+                } catch (error) {
+                    console.error('Client-side session validation error:', error);
+                }
+            }
+            return false;
+        }
+        
+        // Server-side session validation
+        const apiUrl = this.getApiUrl('user/profile');
+        if (!apiUrl || !this.serverRunning) {
+            // Server not available, try client-side validation
+            const storedUser = localStorage.getItem('currentUser');
+            if (storedUser) {
+                try {
+                    this.currentUser = JSON.parse(storedUser);
+                    const user = this.findUser(this.currentUser.email);
+                    if (user) {
+                        this.currentUser = { ...user };
+                        localStorage.setItem('currentUser', JSON.stringify(this.currentUser));
+                        return true;
+                    }
+                } catch (error) {
+                    console.error('Client-side session validation error:', error);
+                }
+            }
+            return false;
+        }
+        
         try {
-            const response = await fetch(this.getApiUrl('user/profile'), {
+            const response = await fetch(apiUrl, {
                 headers: {
                     'Authorization': `Bearer ${this.sessionToken}`
                 }
@@ -135,6 +181,21 @@ class LeaveAssistantApp {
             return false;
         } catch (error) {
             console.error('Session validation error:', error);
+            // Fall back to client-side validation
+            const storedUser = localStorage.getItem('currentUser');
+            if (storedUser) {
+                try {
+                    this.currentUser = JSON.parse(storedUser);
+                    const user = this.findUser(this.currentUser.email);
+                    if (user) {
+                        this.currentUser = { ...user };
+                        localStorage.setItem('currentUser', JSON.stringify(this.currentUser));
+                        return true;
+                    }
+                } catch (err) {
+                    console.error('Client-side session validation error:', err);
+                }
+            }
             return false;
         }
     }
@@ -152,17 +213,32 @@ class LeaveAssistantApp {
             
             console.log(`📡 Connecting to backend at: ${url}`);
             
-            const response = await fetch(url, { 
-                method: 'GET',
-                timeout: 5000 // 5 second timeout
-            });
+            // Use AbortController for timeout instead of timeout option (not supported in fetch)
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 5000);
             
-            if (response.ok) {
-                console.log('✅ Server connection established');
-                this.serverRunning = true;
-            } else {
-                console.warn('⚠️ Server responded with error:', response.status);
-                this.serverRunning = false;
+            try {
+                const response = await fetch(url, { 
+                    method: 'GET',
+                    signal: controller.signal
+                });
+                
+                clearTimeout(timeoutId);
+                
+                if (response.ok) {
+                    console.log('✅ Server connection established');
+                    this.serverRunning = true;
+                } else {
+                    console.warn('⚠️ Server responded with error:', response.status);
+                    this.serverRunning = false;
+                }
+            } catch (fetchError) {
+                clearTimeout(timeoutId);
+                if (fetchError.name === 'AbortError') {
+                    console.warn('⚠️ Server check timed out after 5 seconds');
+                } else {
+                    throw fetchError;
+                }
             }
         } catch (error) {
             console.warn('⚠️ Server check failed. Running in client-only mode.');
@@ -709,10 +785,6 @@ class LeaveAssistantApp {
     // UTILITIES
     // ==========================================
 
-    getApiUrl(endpoint) {
-        return `http://localhost:3001/api/${endpoint}`;
-    }
-
     setToolMode(tool, mode) {
         // Update active mode button
         document.querySelectorAll(`#${tool}Page .mode-btn`).forEach(btn => btn.classList.remove('active'));
@@ -786,8 +858,15 @@ class LeaveAssistantApp {
         const email = document.getElementById('loginEmail').value.toLowerCase();
         const password = document.getElementById('loginPassword').value;
         
+        // Check if server is available, otherwise use client-side auth
+        const apiUrl = this.getApiUrl('auth/login');
+        if (!apiUrl || !this.serverRunning) {
+            console.log('🔄 Server not available, using client-side authentication');
+            return this.handleClientSideLogin(email, password);
+        }
+        
         try {
-            const response = await fetch(this.getApiUrl('auth/login'), {
+            const response = await fetch(apiUrl, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email, password })
@@ -807,9 +886,50 @@ class LeaveAssistantApp {
             }
         } catch (error) {
             console.error('Login error:', error);
-            this.showError('Login failed. Please check your connection.');
+            console.log('🔄 Server connection failed, falling back to client-side authentication');
+            // Fall back to client-side authentication
+            this.handleClientSideLogin(email, password);
         } finally {
             this.hideLoading();
+        }
+    }
+    
+    handleClientSideLogin(email, password) {
+        try {
+            // Find user in local storage
+            const user = this.findUser(email);
+            
+            if (!user) {
+                this.hideLoading();
+                return this.showError('Invalid email or password');
+            }
+            
+            // Simple password check (in production, this should be hashed)
+            if (user.password !== password) {
+                this.hideLoading();
+                return this.showError('Invalid email or password');
+            }
+            
+            // Check if email is verified (if verification is required)
+            if (!user.emailVerified && this.paymentConfig?.requireEmailVerification !== false) {
+                this.hideLoading();
+                return this.showError('Please verify your email before logging in');
+            }
+            
+            // Login successful
+            this.currentUser = { ...user }; // Create a copy to avoid mutations
+            this.sessionToken = 'client-side-token-' + Date.now(); // Generate a simple token
+            localStorage.setItem('sessionToken', this.sessionToken);
+            localStorage.setItem('currentUser', JSON.stringify(this.currentUser));
+            
+            this.resetIdleTimer();
+            this.checkSubscriptionAndRedirect();
+            this.showSuccess('Login successful! (Client-side mode)');
+            this.hideLoading();
+        } catch (error) {
+            console.error('Client-side login error:', error);
+            this.hideLoading();
+            this.showError('Login failed: ' + error.message);
         }
     }
 
@@ -821,11 +941,24 @@ class LeaveAssistantApp {
         const firstName = document.getElementById('firstName').value.trim();
         const lastName = document.getElementById('lastName').value.trim();
         const password = document.getElementById('registerPassword').value;
+        const confirmPassword = document.getElementById('confirmPassword').value;
         
         // Basic validation
-        if (!email || !firstName || !lastName || !password) {
+        if (!email || !firstName || !lastName || !password || !confirmPassword) {
             this.hideLoading();
             return this.showError('All fields are required');
+        }
+        
+        // Password confirmation validation
+        if (password !== confirmPassword) {
+            this.hideLoading();
+            return this.showError('Passwords do not match. Please try again.');
+        }
+        
+        // Password strength validation
+        if (password.length < 8) {
+            this.hideLoading();
+            return this.showError('Password must be at least 8 characters long.');
         }
         
         // Disposable Email Check
@@ -839,8 +972,15 @@ class LeaveAssistantApp {
             return this.showError('❌ Registration Rejected: Disposable emails are not allowed.');
         }
 
+        // Check if server is available, otherwise use client-side registration
+        const apiUrl = this.getApiUrl('auth/register');
+        if (!apiUrl || !this.serverRunning) {
+            console.log('🔄 Server not available, using client-side registration');
+            return this.handleClientSideRegister(email, firstName, lastName, password);
+        }
+        
         try {
-            const response = await fetch(this.getApiUrl('auth/register'), {
+            const response = await fetch(apiUrl, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email, firstName, lastName, password })
@@ -856,9 +996,50 @@ class LeaveAssistantApp {
             }
         } catch (error) {
             console.error('Registration error:', error);
-            this.showError('Registration failed. Please check your connection.');
+            console.log('🔄 Server connection failed, falling back to client-side registration');
+            // Fall back to client-side registration
+            this.handleClientSideRegister(email, firstName, lastName, password);
         } finally {
             this.hideLoading();
+        }
+    }
+    
+    handleClientSideRegister(email, firstName, lastName, password) {
+        try {
+            // Check if user already exists
+            if (this.findUser(email)) {
+                this.hideLoading();
+                return this.showError('Email already registered');
+            }
+            
+            // Create new user
+            const newUser = {
+                id: Date.now().toString(),
+                email: email,
+                firstName: firstName,
+                lastName: lastName,
+                password: password,
+                emailVerified: false, // In client-side mode, we can auto-verify or skip verification
+                createdAt: new Date().toISOString(),
+                aiProvider: 'puter'
+            };
+            
+            // Add user to local storage
+            this.users.push(newUser);
+            this.saveUsers(this.users);
+            
+            // Auto-verify in client-side mode (or show verification page)
+            newUser.emailVerified = true; // Auto-verify for client-side mode
+            this.users[this.users.length - 1].emailVerified = true;
+            this.saveUsers(this.users);
+            
+            this.hideLoading();
+            this.showSuccess('Registration successful! You can now log in.');
+            this.showPage('loginPage');
+        } catch (error) {
+            console.error('Client-side registration error:', error);
+            this.hideLoading();
+            this.showError('Registration failed: ' + error.message);
         }
     }
 
@@ -977,19 +1158,30 @@ class LeaveAssistantApp {
     // Admin
     async loadAdminDashboard() {
         try {
+            console.log('🔄 Loading admin dashboard...');
+            
             // Load stats
             const statsResponse = await fetch(this.getApiUrl('admin/stats'), {
                 headers: { 'Authorization': `Bearer ${this.sessionToken}` }
             });
             
+            console.log('📊 Stats response status:', statsResponse.status);
+            
             if (statsResponse.ok) {
                 const statsData = await statsResponse.json();
                 const stats = statsData.stats;
                 
-                document.getElementById('totalUsers').textContent = stats.totalUsers;
-                document.getElementById('verifiedUsers').textContent = stats.verifiedUsers;
-                document.getElementById('activeSubscriptions').textContent = stats.activeSubscriptions;
-                document.getElementById('trialUsers').textContent = stats.trialUsers;
+                console.log('📊 Admin Stats:', stats); // Debug log
+                
+                document.getElementById('totalUsers').textContent = stats.totalUsers || 0;
+                document.getElementById('verifiedUsers').textContent = stats.verifiedUsers || 0;
+                document.getElementById('pendingVerifications').textContent = stats.pendingVerifications || 0;
+                document.getElementById('activeSubscriptions').textContent = stats.activeSubscriptions || 0;
+                document.getElementById('trialUsers').textContent = stats.trialUsers || 0;
+            } else {
+                console.error('❌ Failed to load admin stats:', statsResponse.status);
+                const errorData = await statsResponse.text();
+                console.error('❌ Error details:', errorData);
             }
             
             // Load users
@@ -1028,16 +1220,35 @@ class LeaveAssistantApp {
 
     async loadPendingVerifications() {
         try {
+            console.log('🔄 Loading pending verifications...');
+            console.log('🔄 Session token:', this.sessionToken ? 'exists' : 'missing');
+            
             const response = await fetch(this.getApiUrl('admin/pending'), {
                 headers: { 'Authorization': `Bearer ${this.sessionToken}` }
             });
             
+            console.log('📋 Pending response status:', response.status);
+            
             if (response.ok) {
                 const data = await response.json();
-                this.displayPendingVerifications(data.pending);
+                console.log('📋 Pending data:', data);
+                
+                // Ensure data.pending exists and is an array
+                const pendingList = data.pending || [];
+                console.log('📋 Pending list length:', pendingList.length);
+                this.displayPendingVerifications(pendingList);
+            } else {
+                console.error('❌ Failed to load pending verifications:', response.status);
+                const errorData = await response.text();
+                console.error('❌ Error details:', errorData);
+                // Show empty list on error
+                this.displayPendingVerifications([]);
             }
         } catch (error) {
-            console.error('Load pending verifications error:', error);
+            console.error('❌ Load pending verifications error:', error);
+            console.error('❌ Error stack:', error.stack);
+            // Show empty list on error
+            this.displayPendingVerifications([]);
         }
     }
 
@@ -1051,8 +1262,20 @@ class LeaveAssistantApp {
                 const data = await response.json();
                 const config = data.config;
                 
-                // Populate form fields
-                document.getElementById('adminMonthlyFee').value = config.monthlyFee || '29.99';
+                // Populate form fields with null checks
+                const monthlyFeeEl = document.getElementById('adminMonthlyFee');
+                const paypalClientIdEl = document.getElementById('adminPaypalClientId');
+                const paypalClientSecretEl = document.getElementById('adminPaypalClientSecret');
+                const stripeSecretKeyEl = document.getElementById('adminStripeSecretKey');
+                const stripeWebhookSecretEl = document.getElementById('adminStripeWebhookSecret');
+                const systemGeminiKeyEl = document.getElementById('adminSystemGeminiKey');
+                
+                if (monthlyFeeEl) monthlyFeeEl.value = config.monthlyFee || '29.99';
+                if (paypalClientIdEl) paypalClientIdEl.value = config.paypalClientId || '';
+                if (paypalClientSecretEl) paypalClientSecretEl.value = config.paypalClientSecret || '';
+                if (stripeSecretKeyEl) stripeSecretKeyEl.value = config.stripeSecretKey || '';
+                if (stripeWebhookSecretEl) stripeWebhookSecretEl.value = config.stripeWebhookSecret || '';
+                if (systemGeminiKeyEl) systemGeminiKeyEl.value = config.systemGeminiKey || '';
                 
                 // Show configuration status
                 this.updateConfigStatus(config);
@@ -1140,7 +1363,9 @@ class LeaveAssistantApp {
 
     displayPendingVerifications(pending) {
         const pendingDiv = document.getElementById('pendingList');
-        if (pending.length === 0) {
+        
+        // Handle undefined, null, or non-array values
+        if (!pending || !Array.isArray(pending) || pending.length === 0) {
             pendingDiv.innerHTML = '<p class="text-muted">No pending verifications</p>';
             return;
         }
@@ -1165,30 +1390,6 @@ class LeaveAssistantApp {
     updatePagination(pagination) {
         // You can implement pagination controls here if needed
         console.log('Pagination:', pagination);
-    }
-
-    loadPendingVerifications() {
-        const pendingDiv = document.getElementById('pendingList');
-        if (this.pendingVerifications.length === 0) {
-            pendingDiv.innerHTML = '<p class="text-muted">No pending verifications</p>';
-            return;
-        }
-        
-        pendingDiv.innerHTML = this.pendingVerifications.map(p => `
-            <div class="pending-card">
-                <h4>${p.userData.firstName} ${p.userData.lastName}</h4>
-                <p>${p.userData.email}</p>
-                <small>Registered: ${new Date(p.createdAt).toLocaleString()}</small>
-                <div class="pending-actions">
-                    <button class="btn btn-sm btn-success" onclick="app.approveVerification('${p.token}')">
-                        <i class="fa-solid fa-check"></i> Approve
-                    </button>
-                    <button class="btn btn-sm btn-danger" onclick="app.rejectVerification('${p.token}')">
-                        <i class="fa-solid fa-times"></i> Reject
-                    </button>
-                </div>
-            </div>
-        `).join('');
     }
 
     loadSystemSettings() {
@@ -1417,46 +1618,72 @@ class LeaveAssistantApp {
         const searchTerm = document.getElementById('userSearch').value;
         const filterType = document.getElementById('userFilter').value;
         
-        this.loadUsers(searchTerm, filterType);
+        // Add visual feedback for filtering
+        const usersTable = document.getElementById('usersTable');
+        if (usersTable) {
+            usersTable.style.opacity = '0.6';
+        }
+        
+        // Load filtered users
+        this.loadUsers(searchTerm, filterType).then(() => {
+            // Restore visual feedback
+            if (usersTable) {
+                usersTable.style.opacity = '1';
+            }
+        });
     }
 
     handlePaymentConfig(e) {
         e.preventDefault();
+        
+        // Get form elements with null checking
+        const monthlyFeeEl = document.getElementById('adminMonthlyFee');
+        const paypalClientIdEl = document.getElementById('adminPaypalClientId');
+        const paypalClientSecretEl = document.getElementById('adminPaypalClientSecret');
+        const stripeSecretKeyEl = document.getElementById('adminStripeSecretKey');
+        const stripeWebhookSecretEl = document.getElementById('adminStripeWebhookSecret');
+        const systemGeminiKeyEl = document.getElementById('adminSystemGeminiKey');
+        
+        // Build config object with null checks
         this.paymentConfig = {
-            monthlyFee: document.getElementById('adminMonthlyFee').value,
-            paypalEmail: document.getElementById('adminPaypalEmail').value,
-            stripeKey: document.getElementById('adminStripeKey').value,
-            systemGeminiKey: document.getElementById('adminSystemGeminiKey').value,
-            smtpHost: document.getElementById('adminSmtpHost').value,
-            smtpPort: document.getElementById('adminSmtpPort').value,
-            smtpUser: document.getElementById('adminSmtpUser').value,
-            smtpPass: document.getElementById('adminSmtpPass').value
+            monthlyFee: monthlyFeeEl ? monthlyFeeEl.value : '',
+            paypalClientId: paypalClientIdEl ? paypalClientIdEl.value : '',
+            paypalClientSecret: paypalClientSecretEl ? paypalClientSecretEl.value : '',
+            stripeSecretKey: stripeSecretKeyEl ? stripeSecretKeyEl.value : '',
+            stripeWebhookSecret: stripeWebhookSecretEl ? stripeWebhookSecretEl.value : '',
+            systemGeminiKey: systemGeminiKeyEl ? systemGeminiKeyEl.value : ''
         };
+        
+        // Save to localStorage
         localStorage.setItem('paymentConfig', JSON.stringify(this.paymentConfig));
         
-        // Update server email configuration if available
-        this.updateServerEmailConfig();
+        // Update server configuration if available
+        this.updateServerPaymentConfig();
         
-        this.showSuccess('Payment and email settings saved');
+        this.showSuccess('Payment settings saved successfully');
     }
 
-    async updateServerEmailConfig() {
+    async updateServerPaymentConfig() {
         try {
-            const endpoint = this.getApiUrl('admin/update-email-config');
-            if (endpoint && this.serverRunning) {
-                await fetch(endpoint, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        smtpHost: this.paymentConfig.smtpHost,
-                        smtpPort: this.paymentConfig.smtpPort,
-                        smtpUser: this.paymentConfig.smtpUser,
-                        smtpPass: this.paymentConfig.smtpPass
-                    })
+            const endpoint = this.getApiUrl('config');
+            if (endpoint && this.serverRunning && this.sessionToken) {
+                const response = await fetch(endpoint, {
+                    method: 'PUT',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${this.sessionToken}`
+                    },
+                    body: JSON.stringify(this.paymentConfig)
                 });
+                
+                if (response.ok) {
+                    console.log('✅ Server payment configuration updated');
+                } else {
+                    console.warn('⚠️ Failed to update server payment config:', response.status);
+                }
             }
         } catch (error) {
-            console.warn('Failed to update server email config:', error);
+            console.warn('Failed to update server payment config:', error);
         }
     }
 
@@ -1728,6 +1955,20 @@ class LeaveAssistantApp {
     }
 }
 
+// Global error handlers to prevent refresh loops
+window.addEventListener('error', (event) => {
+    console.error('❌ Global error caught:', event.error);
+    // Prevent default error handling that might cause refresh
+    event.preventDefault();
+    return false;
+});
+
+window.addEventListener('unhandledrejection', (event) => {
+    console.error('❌ Unhandled promise rejection:', event.reason);
+    // Prevent default error handling
+    event.preventDefault();
+});
+
 // Start
 let app;
 document.addEventListener('DOMContentLoaded', () => { 
@@ -1736,14 +1977,15 @@ document.addEventListener('DOMContentLoaded', () => {
         app = new LeaveAssistantApp(); 
     } catch (error) {
         console.error('❌ Failed to start app:', error);
-        // Show error message to user
-        document.body.innerHTML = `
-            <div style="display: flex; justify-content: center; align-items: center; height: 100vh; flex-direction: column; font-family: Arial, sans-serif;">
-                <h2 style="color: #ef4444;">Application Error</h2>
-                <p>Failed to initialize the Leave Assistant application.</p>
-                <p style="font-size: 0.9rem; color: #666;">Error: ${error.message}</p>
-                <button onclick="window.location.reload()" style="padding: 10px 20px; background: #3b82f6; color: white; border: none; border-radius: 5px; cursor: pointer;">Reload Page</button>
-            </div>
+        // Show error message to user without causing refresh
+        const errorDiv = document.createElement('div');
+        errorDiv.style.cssText = 'display: flex; justify-content: center; align-items: center; height: 100vh; flex-direction: column; font-family: Arial, sans-serif;';
+        errorDiv.innerHTML = `
+            <h2 style="color: #ef4444;">Application Error</h2>
+            <p>Failed to initialize the Leave Assistant application.</p>
+            <p style="font-size: 0.9rem; color: #666;">Error: ${error.message}</p>
+            <button onclick="window.location.reload()" style="padding: 10px 20px; background: #3b82f6; color: white; border: none; border-radius: 5px; cursor: pointer;">Reload Page</button>
         `;
+        document.body.appendChild(errorDiv);
     }
 });

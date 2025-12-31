@@ -9,5 +9,16 @@
     "emailVerified": true,
     "aiProvider": "puter",
     "createdAt": 1767082422980
+  },
+  {
+    "email": "williamskiwix@gmail.com",
+    "firstName": "Williams",
+    "lastName": "Kiwix",
+    "password": "Password@123",
+    "isAdmin": false,
+    "emailVerified": true,
+    "aiProvider": "puter",
+    "createdAt": 1767083325203,
+    "id": "1767169115073"
   }
 ]

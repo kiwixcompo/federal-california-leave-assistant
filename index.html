@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Leave Assistant - HR Compliance Tool</title>
-    
     <!-- Favicon -->
     <link rel="icon" type="image/svg+xml" href="favicon.svg">
     <link rel="icon" type="image/png" sizes="32x32" href="favicon.svg">
@@ -25,10 +24,8 @@
         <div class="auth-container">
             <div class="logo-area">
                 <div class="app-logo">
-                    <img src="logo.svg" alt="HRLA - HR Leave Compliance & Response Tool" class="logo-image">
+                    <img id="mainLogo" src="logo.svg" alt="HRLA - HR Leave Compliance & Response Tool" class="logo-image">
                 </div>
-                <h1>Leave Assistant</h1>
-                <p>HR Compliance & Response Tool</p>
             </div>
             <div class="card">
                 <h2>Sign In</h2>
@@ -75,6 +72,10 @@
                         <label>Password</label>
                         <input type="password" id="registerPassword" required>
                     </div>
+                    <div class="form-group">
+                        <label>Confirm Password</label>
+                        <input type="password" id="confirmPassword" required>
+                    </div>
                     <div class="form-check">
                         <input type="checkbox" id="termsAccepted" required>
                         <label for="termsAccepted">I agree to the Terms of Service</label>
@@ -92,10 +93,11 @@
         <div class="auth-container">
             <div class="card text-center">
                 <div class="app-logo">
-                    <img src="logo.svg" alt="HRLA - HR Leave Compliance & Response Tool" class="logo-image">
+                    <img src="hrla-logo-full.png" alt="HRLA - HR Leave Compliance & Response Tool" class="logo-image">
                 </div>
                 <i class="fa-solid fa-envelope-open-text fa-3x text-primary"></i>
                 <h2>Verify Email</h2>
+                <p><strong>Important:</strong> Please verify your email to complete registration.</p>
                 <p>We've sent a verification link to your email address.</p>
                 <p>Please check your inbox (and spam folder) to complete registration.</p>
                 
@@ -103,7 +105,7 @@
                 <div id="verificationLinkSection" class="verification-link-section hidden">
                     <div class="alert alert-info">
                         <h4><i class="fa-solid fa-link"></i> Verification Link</h4>
-                        <p>You can also click the link below to verify your email:</p>
+                        <p><strong>For testing purposes, you can use the link below:</strong></p>
                         <div class="verification-link-container">
                             <a id="verificationLinkButton" href="#" class="btn btn-primary" target="_blank">
                                 <i class="fa-solid fa-check-circle"></i> Verify Email Now
@@ -115,6 +117,9 @@
                                 <i class="fa-solid fa-copy"></i> Copy Link
                             </button>
                         </div>
+                        <p class="text-muted mt-2">
+                            <small>💡 In production, this link would be sent to your email automatically.</small>
+                        </p>
                     </div>
                 </div>
                 
@@ -238,7 +243,7 @@
         <div class="auth-container subscription-container">
             <div class="card text-center">
                 <div class="app-logo">
-                    <img src="logo.svg" alt="HRLA - HR Leave Compliance & Response Tool" class="logo-image">
+                    <img src="hrla-logo-full.png" alt="HRLA - HR Leave Compliance & Response Tool" class="logo-image">
                 </div>
                 <i class="fa-solid fa-crown fa-3x text-warning"></i>
                 <h2>Subscription Required</h2>
@@ -275,7 +280,7 @@
         <div class="auth-container">
             <div class="card text-center">
                 <div class="app-logo">
-                    <img src="logo.svg" alt="HRLA - HR Leave Compliance & Response Tool" class="logo-image">
+                    <img src="hrla-logo-full.png" alt="HRLA - HR Leave Compliance & Response Tool" class="logo-image">
                 </div>
                 <i class="fa-solid fa-check-circle fa-3x text-success"></i>
                 <h2>Payment Successful!</h2>
@@ -293,7 +298,7 @@
         <div class="auth-container">
             <div class="card text-center">
                 <div class="app-logo">
-                    <img src="logo.svg" alt="HRLA - HR Leave Compliance & Response Tool" class="logo-image">
+                    <img src="hrla-logo-full.png" alt="HRLA - HR Leave Compliance & Response Tool" class="logo-image">
                 </div>
                 <i class="fa-solid fa-times-circle fa-3x text-danger"></i>
                 <h2>Payment Cancelled</h2>
@@ -465,6 +470,10 @@
                     <p id="verifiedUsers">0</p>
                 </div>
                 <div class="stat-card">
+                    <h3>Pending</h3>
+                    <p id="pendingVerifications">0</p>
+                </div>
+                <div class="stat-card">
                     <h3>Active Subs</h3>
                     <p id="activeSubscriptions">0</p>
                 </div>
@@ -601,6 +610,29 @@
         </div>
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+    <script>
+        // Initialize EmailJS
+        emailjs.init("YOUR_PUBLIC_KEY"); // Will be configured
+        
+        // Simple logo loading
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🖼️ Page loaded, checking logo...');
+            const logo = document.getElementById('mainLogo');
+            if (logo) {
+                logo.onload = function() {
+                    console.log('✅ Logo loaded successfully from:', this.src);
+                };
+                
+                logo.onerror = function() {
+                    console.error('❌ Logo failed to load from:', this.src);
+                    console.log('🔄 Trying fallback logo...');
+                    // Try the SVG version as fallback
+                    this.src = 'logo.svg';
+                };
+            }
+        });
+    </script>
     <script src="app.js"></script>
 </body>
 </html>

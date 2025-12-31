@@ -1,7 +1,12 @@
 {
-  "monthlyFee": 29.99,
+  "monthlyFee": "0.01",
   "systemSettings": {
     "allowRegistration": true,
     "requireEmailVerification": true
-  }
+  },
+  "paypalClientId": "",
+  "paypalClientSecret": "",
+  "stripeSecretKey": "",
+  "stripeWebhookSecret": "",
+  "systemGeminiKey": ""
 }

@@ -59,7 +59,7 @@ body {
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+    background: #d1d9e6;
     padding: 2rem 1rem;
     gap: 2rem;
 }
@@ -78,6 +78,9 @@ body {
     text-align: center;
     color: #1e293b;
     margin-bottom: 0; /* Remove bottom margin since we have gap in container */
+    display: block;
+    visibility: visible;
+    width: 100%;
 }
 .logo-area i { 
     margin-bottom: 1rem; 
@@ -93,6 +96,12 @@ body {
     font-size: 1.1rem;
     color: #64748b;
     margin: 0;
+}
+
+/* Ensure card is visible on light blue-grey background */
+.auth-container .card {
+    background: white;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.15), 0 10px 10px -5px rgba(0, 0, 0, 0.1);
 }
 
 .trial-text {
@@ -314,14 +323,20 @@ small.hint {
     justify-content: center;
     align-items: center;
     margin-bottom: 1.5rem;
+    width: 100%;
+    min-height: 100px;
 }
 
 .logo-image {
-    width: 140px;
+    width: 300px;
     height: auto;
-    max-width: 140px;
+    max-width: 90%;
+    min-width: 200px;
     object-fit: contain;
     filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.1));
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
 }
 
 .nav-logo {
@@ -637,7 +652,7 @@ small.hint {
 
 /* Subscription Page */
 .subscription-container {
-    background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
+    background: #d1d9e6;
 }
 .subscription-container .card {
     text-align: center;
@@ -661,9 +676,9 @@ small.hint {
     
     /* Logo adjustments for tablets */
     .logo-image {
-        width: 120px;
+        width: 250px;
         height: auto;
-        max-width: 120px;
+        max-width: 80%;
     }
 }
 
@@ -749,9 +764,9 @@ small.hint {
     .auth-container .card { padding: 1.5rem; }
     .logo-area h1 { font-size: 1.5rem; }
     .logo-image {
-        width: 100px;
+        width: 200px;
         height: auto;
-        max-width: 100px;
+        max-width: 85%;
     }
     
     /* Admin */
@@ -878,9 +893,9 @@ small.hint {
         padding: 1rem;
     }
     .logo-image {
-        width: 80px;
+        width: 180px;
         height: auto;
-        max-width: 80px;
+        max-width: 90%;
     }
     .price-box .amount {
         font-size: 2.5rem;
@@ -939,9 +954,9 @@ small.hint {
     }
     
     .logo-image {
-        width: 70px;
+        width: 160px;
         height: auto;
-        max-width: 70px;
+        max-width: 85%;
     }
     
     .logo-area h1 {

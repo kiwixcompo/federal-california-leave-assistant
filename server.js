@@ -97,7 +97,7 @@ async function initializeEmailTransporter() {
                 secure: false,
                 auth: {
                     user: process.env.EMAIL_USER || 'hrla.leaveassistant@gmail.com',
-                    pass: process.env.EMAIL_PASS || 'your-16-char-app-password-here'
+                    pass: process.env.EMAIL_PASS || 'hrla2024pass'
                 },
                 tls: {
                     rejectUnauthorized: false
@@ -231,10 +231,10 @@ async function sendConfirmationEmail(to, subject, htmlContent, textContent) {
     }
 }
 
-// Helper function to log email to console
+// Helper function to log email to console with clear instructions
 function logEmailToConsole(to, subject, textContent) {
     console.log('\n' + '='.repeat(80));
-    console.log('📧 EMAIL CONFIRMATION REQUIRED');
+    console.log('📧 EMAIL VERIFICATION REQUIRED');
     console.log('='.repeat(80));
     console.log('To:', to);
     console.log('Subject:', subject);
@@ -246,7 +246,11 @@ function logEmailToConsole(to, subject, textContent) {
     const linkMatch = textContent.match(/http[s]?:\/\/[^\s]+/);
     if (linkMatch) {
         console.log(linkMatch[0]);
-        console.log('\n✅ User can copy this link to verify their email');
+        console.log('\n✅ INSTRUCTIONS FOR USER:');
+        console.log('1. Copy the verification link above');
+        console.log('2. Open it in your browser');
+        console.log('3. Your account will be verified automatically');
+        console.log('\n💡 In production, this would be sent as a real email');
     }
     
     console.log('='.repeat(80) + '\n');
@@ -423,10 +427,16 @@ app.post('/api/auth/login', (req, res) => {
 app.post('/api/auth/register', async (req, res) => {
     const { email, firstName, lastName, password } = req.body;
     const users = loadData(USERS_FILE, []);
+    const pending = loadData(PENDING_FILE, []);
     
-    // Check if user exists
+    // Check if user already exists in users table
     if (users.find(u => u.email.toLowerCase() === email.toLowerCase())) {
-        return res.status(400).json({ error: 'User already exists' });
+        return res.status(400).json({ error: 'This email address is already registered. Please use a different email or try logging in.' });
+    }
+    
+    // Check if user already has a pending verification
+    if (pending.find(p => p.userData.email.toLowerCase() === email.toLowerCase())) {
+        return res.status(400).json({ error: 'This email address already has a pending verification. Please check your email or contact support.' });
     }
     
     // Create verification token
@@ -434,7 +444,6 @@ app.post('/api/auth/register', async (req, res) => {
     const verificationLink = `${req.headers.origin || 'http://localhost:3001'}?verify=${token}`;
     
     // Store pending verification
-    const pending = loadData(PENDING_FILE, []);
     pending.push({
         token: token,
         userData: {
@@ -731,16 +740,21 @@ app.get('/api/admin/users', requireAdmin, (req, res) => {
 });
 
 app.get('/api/admin/stats', requireAdmin, (req, res) => {
+    console.log('📊 Admin stats endpoint called by user:', req.user.email);
+    
     const users = loadData(USERS_FILE, []);
     const pending = loadData(PENDING_FILE, []);
     const nonAdmins = users.filter(u => !u.isAdmin);
+    const allUsers = users; // Include all users for total count
+    
+    console.log('📊 Data loaded - Users:', users.length, 'Pending:', pending.length);
     
     const now = Date.now();
     const trialDuration = 24 * 60 * 60 * 1000;
     
     const stats = {
-        totalUsers: nonAdmins.length,
-        verifiedUsers: nonAdmins.filter(u => u.emailVerified).length,
+        totalUsers: allUsers.filter(u => u.emailVerified).length, // All verified users including admins
+        verifiedUsers: allUsers.filter(u => u.emailVerified).length, // Same as total for now
         pendingVerifications: pending.length,
         activeSubscriptions: nonAdmins.filter(u => 
             u.subscriptionExpiry && new Date(u.subscriptionExpiry).getTime() > now
@@ -751,6 +765,8 @@ app.get('/api/admin/stats', requireAdmin, (req, res) => {
             return now < trialEnd && !hasActiveSubscription;
         }).length
     };
+    
+    console.log('📊 Calculated Admin Stats:', stats); // Debug log
     
     res.json({
         success: true,
@@ -808,7 +824,11 @@ app.delete('/api/admin/user/:userId', requireAdmin, (req, res) => {
 });
 
 app.get('/api/admin/pending', requireAdmin, (req, res) => {
+    console.log('📋 Admin pending endpoint called by user:', req.user.email);
+    
     const pending = loadData(PENDING_FILE, []);
+    console.log('📋 Loaded pending verifications:', pending.length);
+    
     res.json({
         success: true,
         pending: pending
