@@ -1,1 +1,16 @@
-[]
+[
+  {
+    "token": "vgvzmyhj2bcmk1oj8bj",
+    "userData": {
+      "email": "john@doe.com",
+      "firstName": "John",
+      "lastName": "Doe",
+      "password": "Password@123",
+      "isAdmin": false,
+      "emailVerified": false,
+      "aiProvider": "puter",
+      "createdAt": 1767648931039
+    },
+    "createdAt": 1767648931039
+  }
+]

@@ -47,6 +47,43 @@ class LeaveAssistantApp {
     }
 
     // ==========================================
+    // LANDING PAGE FUNCTIONALITY
+    // ==========================================
+
+    showDemo() {
+        // Show a demo of the tool functionality
+        this.showSuccess('Demo feature coming soon! Sign up for free trial to experience the full functionality.');
+    }
+
+    toggleMobileMenu() {
+        // Mobile menu toggle functionality
+        const navMenu = document.querySelector('.nav-menu');
+        if (navMenu) {
+            navMenu.classList.toggle('mobile-open');
+        }
+    }
+
+    copyOutput(tool) {
+        const outputElement = document.getElementById(`${tool}Output`);
+        if (outputElement && outputElement.textContent) {
+            navigator.clipboard.writeText(outputElement.textContent).then(() => {
+                this.showSuccess('Response copied to clipboard!');
+            }).catch(() => {
+                // Fallback for older browsers
+                const textArea = document.createElement('textarea');
+                textArea.value = outputElement.textContent;
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+                this.showSuccess('Response copied to clipboard!');
+            });
+        } else {
+            this.showError('No response to copy');
+        }
+    }
+
+    // ==========================================
     // INITIALIZATION & AUTH
     // ==========================================
 
@@ -100,14 +137,14 @@ class LeaveAssistantApp {
                     console.log('✅ Session valid, checking subscription');
                     this.checkSubscriptionAndRedirect();
                 } else {
-                    console.log('❌ Session invalid, showing login');
+                    console.log('❌ Session invalid, showing landing page');
                     this.sessionToken = null;
                     localStorage.removeItem('sessionToken');
-                    this.showPage('loginPage');
+                    this.showPage('landingPage');
                 }
             } else {
-                console.log('🆕 No existing session, showing login');
-                this.showPage('loginPage');
+                console.log('🆕 No existing session, showing landing page');
+                this.showPage('landingPage');
             }
             
             this.hideLoading();
@@ -248,27 +285,80 @@ class LeaveAssistantApp {
     }
 
     bindEvents() {
+        // Landing page navigation
+        document.getElementById('loginBtn')?.addEventListener('click', () => this.showPage('loginPage'));
+        document.getElementById('getStartedBtn')?.addEventListener('click', () => this.showPage('registerPage'));
+        document.getElementById('startTrialBtn')?.addEventListener('click', () => this.showPage('registerPage'));
+        document.getElementById('watchDemoBtn')?.addEventListener('click', () => this.showDemo());
+        document.getElementById('finalCtaBtn')?.addEventListener('click', () => this.showPage('registerPage'));
+        
+        // Mobile menu toggle
+        document.getElementById('mobileMenuToggle')?.addEventListener('click', () => this.toggleMobileMenu());
+        
+        // Smooth scrolling for navigation links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({ behavior: 'smooth' });
+                }
+            });
+        });
+
         // Auth
-        document.getElementById('loginForm').addEventListener('submit', (e) => this.handleLogin(e));
-        document.getElementById('registerForm').addEventListener('submit', (e) => this.handleRegister(e));
-        document.getElementById('logoutBtn').addEventListener('click', () => this.logout());
-        document.getElementById('adminLogoutBtn').addEventListener('click', () => this.logout());
-        document.getElementById('subLogoutBtn').addEventListener('click', () => this.logout());
+        document.getElementById('loginForm')?.addEventListener('submit', (e) => this.handleLogin(e));
+        document.getElementById('registerForm')?.addEventListener('submit', (e) => this.handleRegister(e));
+        document.getElementById('logoutBtn')?.addEventListener('click', () => this.logout());
+        document.getElementById('adminLogoutBtn')?.addEventListener('click', () => this.logout());
+        document.getElementById('subLogoutBtn')?.addEventListener('click', () => this.logout());
 
         // Navigation
-        document.getElementById('showRegister').onclick = () => this.showPage('registerPage');
-        document.getElementById('showLogin').onclick = () => this.showPage('loginPage');
-        document.getElementById('federalTool').onclick = () => this.showTool('federalPage');
-        document.getElementById('californiaTool').onclick = () => this.showTool('californiaPage');
-        document.getElementById('backToDashboard1').onclick = () => this.showPage('dashboard');
-        document.getElementById('backToDashboard2').onclick = () => this.showPage('dashboard');
+        const showRegisterEl = document.getElementById('showRegister');
+        const showLoginEl = document.getElementById('showLogin');
+        if (showRegisterEl) showRegisterEl.onclick = () => this.showPage('registerPage');
+        if (showLoginEl) showLoginEl.onclick = () => this.showPage('loginPage');
+        document.getElementById('backToHomepageFromLogin')?.addEventListener('click', () => this.showPage('landingPage'));
+        document.getElementById('backToHomepageFromRegister')?.addEventListener('click', () => this.showPage('landingPage'));
+        
+        // Legal/Information Links
+        document.getElementById('termsLink')?.addEventListener('click', (e) => {
+            e.preventDefault();
+            document.getElementById('termsModal')?.classList.remove('hidden');
+        });
+        document.getElementById('refundPolicyLink')?.addEventListener('click', (e) => {
+            e.preventDefault();
+            document.getElementById('refundPolicyModal')?.classList.remove('hidden');
+        });
+        document.getElementById('whatItDoesLink')?.addEventListener('click', (e) => {
+            e.preventDefault();
+            document.getElementById('whatItDoesModal')?.classList.remove('hidden');
+        });
+        document.getElementById('quickStartLink')?.addEventListener('click', (e) => {
+            e.preventDefault();
+            document.getElementById('quickStartModal')?.classList.remove('hidden');
+        });
+        document.getElementById('accessLicensingLink')?.addEventListener('click', (e) => {
+            e.preventDefault();
+            document.getElementById('accessLicensingModal')?.classList.remove('hidden');
+        });
+        
+        // Inline terms link in registration form
+        document.getElementById('termsLinkInline')?.addEventListener('click', (e) => {
+            e.preventDefault();
+            document.getElementById('termsModal')?.classList.remove('hidden');
+        });
+        document.getElementById('federalTool')?.addEventListener('click', () => this.showTool('federalPage'));
+        document.getElementById('californiaTool')?.addEventListener('click', () => this.showTool('californiaPage'));
+        document.getElementById('backToDashboard1')?.addEventListener('click', () => this.showPage('dashboard'));
+        document.getElementById('backToDashboard2')?.addEventListener('click', () => this.showPage('dashboard'));
 
         // Verification page
-        document.getElementById('resendVerification').onclick = () => this.resendVerificationEmail();
-        document.getElementById('backToLogin').onclick = () => this.showPage('loginPage');
+        document.getElementById('resendVerification')?.addEventListener('click', () => this.resendVerificationEmail());
+        document.getElementById('backToLogin')?.addEventListener('click', () => this.showPage('loginPage'));
         
         // Copy verification link functionality
-        document.getElementById('copyVerificationLink').onclick = () => {
+        document.getElementById('copyVerificationLink')?.addEventListener('click', () => {
             const linkInput = document.getElementById('verificationLinkInput');
             if (linkInput) {
                 linkInput.select();
@@ -281,7 +371,7 @@ class LeaveAssistantApp {
                     this.showSuccess('Verification link copied to clipboard!');
                 });
             }
-        };
+        });
 
         // Mode buttons for tools
         document.getElementById('federalEmailMode')?.addEventListener('click', () => this.setToolMode('federal', 'email'));
@@ -291,34 +381,59 @@ class LeaveAssistantApp {
 
         // Settings
         const toggleSettings = () => this.showSettings();
-        document.getElementById('settingsBtn').onclick = toggleSettings;
-        document.getElementById('settingsBtn2').onclick = toggleSettings;
-        document.getElementById('settingsBtn3').onclick = toggleSettings;
-        document.getElementById('closeSettings').onclick = () => this.hideSettings();
-        document.getElementById('settingsForm').onsubmit = (e) => this.handleSettings(e);
-        document.getElementById('aiProvider').onchange = (e) => this.toggleKeyFields(e.target.value);
+        document.getElementById('settingsBtn')?.addEventListener('click', toggleSettings);
+        document.getElementById('settingsBtn2')?.addEventListener('click', toggleSettings);
+        document.getElementById('settingsBtn3')?.addEventListener('click', toggleSettings);
+        document.getElementById('closeSettings')?.addEventListener('click', () => this.hideSettings());
+        document.getElementById('settingsForm')?.addEventListener('submit', (e) => this.handleSettings(e));
+        document.getElementById('aiProvider')?.addEventListener('change', (e) => this.toggleKeyFields(e.target.value));
 
         // Tool Logic
-        document.getElementById('federalSubmit').onclick = () => this.handleAISubmit('federal');
-        document.getElementById('californiaSubmit').onclick = () => this.handleAISubmit('california');
-        document.getElementById('federalClear').onclick = () => this.clearOutput('federal');
-        document.getElementById('californiaClear').onclick = () => this.clearOutput('california');
+        document.getElementById('federalSubmit')?.addEventListener('click', () => this.handleAISubmit('federal'));
+        document.getElementById('californiaSubmit')?.addEventListener('click', () => this.handleAISubmit('california'));
+        document.getElementById('federalClear')?.addEventListener('click', () => this.clearOutput('federal'));
+        document.getElementById('californiaClear')?.addEventListener('click', () => this.clearOutput('california'));
+        document.getElementById('federalCopy')?.addEventListener('click', () => this.copyOutput('federal'));
+        document.getElementById('californiaCopy')?.addEventListener('click', () => this.copyOutput('california'));
+        
+        // Regenerate buttons
+        document.getElementById('federalRegenerate')?.addEventListener('click', () => this.regenerateResponse('federal'));
+        document.getElementById('californiaRegenerate')?.addEventListener('click', () => this.regenerateResponse('california'));
+        
+        // Follow-up submit buttons
+        document.getElementById('federalFollowupSubmit')?.addEventListener('click', () => this.handleFollowupSubmit('federal'));
+        document.getElementById('californiaFollowupSubmit')?.addEventListener('click', () => this.handleFollowupSubmit('california'));
 
-        // Admin
-        document.getElementById('refreshUsers').onclick = () => this.loadAdminDashboard();
-        document.getElementById('exportUsers').onclick = () => this.exportUsersCSV();
-        document.getElementById('paymentSettingsForm').onsubmit = (e) => this.handlePaymentConfig(e);
-        document.getElementById('emailSettingsForm').onsubmit = (e) => this.handleEmailConfig(e);
-        document.getElementById('testEmailBtn').onclick = () => this.sendTestEmail();
-        document.getElementById('smtpProvider').onchange = (e) => this.toggleCustomSmtp(e.target.value);
-        document.getElementById('bulkGrantBtn').onclick = () => this.showBulkGrantModal();
-        document.getElementById('closeBulkGrant').onclick = () => document.getElementById('bulkGrantModal').classList.add('hidden');
-        document.getElementById('bulkGrantForm').onsubmit = (e) => this.handleBulkGrant(e);
-        document.getElementById('selectAllUsers').onchange = (e) => this.toggleSelectAll(e.target.checked);
-        document.getElementById('adminSettingsBtn').onclick = () => this.showAdminProfile();
-        document.getElementById('clearAllData').onclick = () => this.clearAllData();
-        document.getElementById('userSearch').oninput = (e) => this.filterUsers();
-        document.getElementById('userFilter').onchange = (e) => this.filterUsers();
+        // Payment
+        document.getElementById('payStripe')?.addEventListener('click', () => this.handlePayment('stripe'));
+        document.getElementById('payPaypal')?.addEventListener('click', () => this.handlePayment('paypal'));
+        document.getElementById('continueToApp')?.addEventListener('click', () => this.checkSubscriptionAndRedirect());
+        document.getElementById('retryPayment')?.addEventListener('click', () => this.showPage('subscriptionPage'));
+        document.getElementById('backToDashboardFromCancel')?.addEventListener('click', () => this.checkSubscriptionAndRedirect());
+        document.getElementById('backToHomepage')?.addEventListener('click', () => this.logout());
+
+        // Admin functionality (only bind if admin elements exist)
+        if (document.getElementById('refreshUsers')) {
+            this.bindAdminEvents();
+        }
+    }
+
+    bindAdminEvents() {
+        // Admin dashboard events
+        document.getElementById('refreshUsers')?.addEventListener('click', () => this.loadAdminDashboard());
+        document.getElementById('exportUsers')?.addEventListener('click', () => this.exportUsersCSV());
+        document.getElementById('paymentSettingsForm')?.addEventListener('submit', (e) => this.handlePaymentConfig(e));
+        document.getElementById('emailSettingsForm')?.addEventListener('submit', (e) => this.handleEmailConfig(e));
+        document.getElementById('testEmailBtn')?.addEventListener('click', () => this.sendTestEmail());
+        document.getElementById('smtpProvider')?.addEventListener('change', (e) => this.toggleCustomSmtp(e.target.value));
+        document.getElementById('bulkGrantBtn')?.addEventListener('click', () => this.showBulkGrantModal());
+        document.getElementById('closeBulkGrant')?.addEventListener('click', () => document.getElementById('bulkGrantModal')?.classList.add('hidden'));
+        document.getElementById('bulkGrantForm')?.addEventListener('submit', (e) => this.handleBulkGrant(e));
+        document.getElementById('selectAllUsers')?.addEventListener('change', (e) => this.toggleSelectAll(e.target.checked));
+        document.getElementById('adminSettingsBtn')?.addEventListener('click', () => this.showAdminProfile());
+        document.getElementById('clearAllData')?.addEventListener('click', () => this.clearAllData());
+        document.getElementById('userSearch')?.addEventListener('input', () => this.filterUsers());
+        document.getElementById('userFilter')?.addEventListener('change', () => this.filterUsers());
         
         // Statistics cards click handlers
         document.querySelectorAll('.clickable-card').forEach(card => {
@@ -329,55 +444,35 @@ class LeaveAssistantApp {
         });
         
         // Modal close handlers
-        document.getElementById('closeUserDetails').onclick = () => document.getElementById('userDetailsModal').classList.add('hidden');
-        document.getElementById('closeFilteredUsers').onclick = () => document.getElementById('filteredUsersModal').classList.add('hidden');
-        
-        // Close modals when clicking outside
-        document.getElementById('userDetailsModal').onclick = (e) => {
-            if (e.target.id === 'userDetailsModal') {
-                document.getElementById('userDetailsModal').classList.add('hidden');
-            }
-        };
-        document.getElementById('filteredUsersModal').onclick = (e) => {
-            if (e.target.id === 'filteredUsersModal') {
-                document.getElementById('filteredUsersModal').classList.add('hidden');
-            }
-        };
+        document.getElementById('closeUserDetails')?.addEventListener('click', () => document.getElementById('userDetailsModal')?.classList.add('hidden'));
+        document.getElementById('closeFilteredUsers')?.addEventListener('click', () => document.getElementById('filteredUsersModal')?.classList.add('hidden'));
         
         // User details modal action handlers
-        document.getElementById('backToUserList').onclick = () => this.backToUserListFromModal();
-        document.getElementById('grantUserAccess').onclick = () => this.grantUserAccessFromModal();
-        document.getElementById('editUserProfile').onclick = () => this.editUserFromModal();
-        document.getElementById('viewUserConversations').onclick = () => this.viewUserConversationsFromModal();
-        document.getElementById('deleteUserAccount').onclick = () => this.deleteUserFromModal();
+        document.getElementById('backToUserList')?.addEventListener('click', () => this.backToUserListFromModal());
+        document.getElementById('grantUserAccess')?.addEventListener('click', () => this.grantUserAccessFromModal());
+        document.getElementById('editUserProfile')?.addEventListener('click', () => this.editUserFromModal());
+        document.getElementById('viewUserConversations')?.addEventListener('click', () => this.viewUserConversationsFromModal());
+        document.getElementById('deleteUserAccount')?.addEventListener('click', () => this.deleteUserFromModal());
         
         // Filtered users modal handlers
-        document.getElementById('filteredUserSearch').oninput = (e) => this.filterModalUsers();
-        document.getElementById('refreshFilteredUsers').onclick = () => this.refreshFilteredUsers();
-        document.getElementById('selectAllFiltered').onclick = () => this.toggleSelectAllFiltered();
-        document.getElementById('bulkGrantFiltered').onclick = () => this.bulkGrantFromModal();
-        
+        document.getElementById('filteredUserSearch')?.addEventListener('input', () => this.filterModalUsers());
+        document.getElementById('refreshFilteredUsers')?.addEventListener('click', () => this.refreshFilteredUsers());
+        document.getElementById('selectAllFiltered')?.addEventListener('click', () => this.toggleSelectAllFiltered());
+        document.getElementById('bulkGrantFiltered')?.addEventListener('click', () => this.bulkGrantFromModal());
+
         // Admin profile page
-        document.getElementById('backToAdminDashboard').onclick = () => this.showPage('adminDashboard');
-        document.getElementById('adminLogoutBtn2').onclick = () => this.logout();
-        document.getElementById('adminProfileForm').onsubmit = (e) => this.handleAdminProfileUpdate(e);
-        document.getElementById('cancelProfileChanges').onclick = () => this.showPage('adminDashboard');
+        document.getElementById('backToAdminDashboard')?.addEventListener('click', () => this.showPage('adminDashboard'));
+        document.getElementById('adminLogoutBtn2')?.addEventListener('click', () => this.logout());
+        document.getElementById('adminProfileForm')?.addEventListener('submit', (e) => this.handleAdminProfileUpdate(e));
+        document.getElementById('cancelProfileChanges')?.addEventListener('click', () => this.showPage('adminDashboard'));
         
         // System settings
-        document.getElementById('allowRegistration').onchange = (e) => this.updateSystemSettings();
-        document.getElementById('requireEmailVerification').onchange = (e) => this.updateSystemSettings();
+        document.getElementById('allowRegistration')?.addEventListener('change', () => this.updateSystemSettings());
+        document.getElementById('requireEmailVerification')?.addEventListener('change', () => this.updateSystemSettings());
         
         document.querySelectorAll('.tab-btn').forEach(btn => {
-            btn.onclick = (e) => this.switchAdminTab(e.target.dataset.tab);
+            btn.addEventListener('click', (e) => this.switchAdminTab(e.target.dataset.tab));
         });
-
-        // Payment
-        document.getElementById('payStripe').onclick = () => this.handlePayment('stripe');
-        document.getElementById('payPaypal').onclick = () => this.handlePayment('paypal');
-        document.getElementById('continueToApp').onclick = () => this.checkSubscriptionAndRedirect();
-        document.getElementById('retryPayment').onclick = () => this.showPage('subscriptionPage');
-        document.getElementById('backToDashboardFromCancel').onclick = () => this.checkSubscriptionAndRedirect();
-        document.getElementById('backToHomepage').onclick = () => this.logout();
     }
 
     // ==========================================
@@ -523,7 +618,7 @@ class LeaveAssistantApp {
     }
 
     loadSubscriptionPricing() {
-        const fee = this.paymentConfig.monthlyFee || 29.99;
+        const fee = this.paymentConfig.monthlyFee || 29;
         document.getElementById('displayMonthlyFee').textContent = fee;
     }
 
@@ -620,9 +715,19 @@ class LeaveAssistantApp {
     async handleAISubmit(toolName) {
         const inputId = `${toolName}Input`;
         const outputId = `${toolName}Output`;
+        const followupId = `${toolName}Followup`;
+        const followupSectionId = `${toolName}FollowupSection`;
+        
         const input = document.getElementById(inputId).value.trim();
+        const followupInput = document.getElementById(followupId)?.value.trim() || '';
         
         if (!input) return this.showError('Please enter some text');
+        
+        // Combine main input with follow-up if present
+        let fullInput = input;
+        if (followupInput) {
+            fullInput += `\n\nAdditional Information/Follow-up: ${followupInput}`;
+        }
         
         this.showLoading();
         
@@ -691,7 +796,7 @@ class LeaveAssistantApp {
                     }
                     
                     // Create the full prompt with system context
-                    const fullPrompt = `${systemPrompts[toolName]}\n\nUser Query: ${input}\n\nPlease provide a helpful, compliant response:`;
+                    const fullPrompt = `${systemPrompts[toolName]}\n\nUser Query: ${fullInput}\n\nPlease provide a helpful, compliant response:`;
                     
                     // Use Puter.js AI chat function with timeout
                     const response = await Promise.race([
@@ -735,7 +840,7 @@ class LeaveAssistantApp {
                         provider = 'puter';
                         // Retry with Puter.js
                         try {
-                            const fullPrompt = `${systemPrompts[toolName]}\n\nUser Query: ${input}\n\nPlease provide a helpful, compliant response:`;
+                            const fullPrompt = `${systemPrompts[toolName]}\n\nUser Query: ${fullInput}\n\nPlease provide a helpful, compliant response:`;
                             const response = await puter.ai.chat(fullPrompt, {
                                 model: 'gpt-4o-mini',
                                 max_tokens: 800,
@@ -754,7 +859,7 @@ class LeaveAssistantApp {
                     // Server is available, proceed with API call
                     const requestBody = {
                         apiKey: apiKey,
-                        prompt: input,
+                        prompt: fullInput,
                         systemPrompt: systemPrompts[toolName]
                     };
 
@@ -762,7 +867,7 @@ class LeaveAssistantApp {
                     if (provider === 'openai') {
                         requestBody.messages = [
                             { role: 'system', content: systemPrompts[toolName] },
-                            { role: 'user', content: input }
+                            { role: 'user', content: fullInput }
                         ];
                         requestBody.model = 'gpt-4o-mini';
                     }
@@ -812,6 +917,13 @@ class LeaveAssistantApp {
             }
 
             document.getElementById(outputId).textContent = responseText;
+            
+            // Show follow-up section after first response is generated (only if it's not already visible)
+            const followupSection = document.getElementById(followupSectionId);
+            if (followupSection && followupSection.classList.contains('hidden')) {
+                followupSection.classList.remove('hidden');
+            }
+            
             this.showSuccess(`Response Generated! (${provider.toUpperCase()})`);
 
         } catch (error) {
@@ -1199,7 +1311,7 @@ class LeaveAssistantApp {
             this.trialTimerInterval = null;
         }
         
-        this.showPage('loginPage');
+        this.showPage('landingPage');
         this.showSuccess('Logged out successfully');
     }
 
@@ -1821,7 +1933,7 @@ class LeaveAssistantApp {
                 const stripeWebhookSecretEl = document.getElementById('adminStripeWebhookSecret');
                 const systemGeminiKeyEl = document.getElementById('adminSystemGeminiKey');
                 
-                if (monthlyFeeEl) monthlyFeeEl.value = config.monthlyFee || '29.99';
+                if (monthlyFeeEl) monthlyFeeEl.value = config.monthlyFee || '29';
                 if (paypalClientIdEl) paypalClientIdEl.value = config.paypalClientId || '';
                 if (paypalClientSecretEl) paypalClientSecretEl.value = config.paypalClientSecret || '';
                 if (stripeSecretKeyEl) stripeSecretKeyEl.value = config.stripeSecretKey || '';
@@ -2464,13 +2576,6 @@ class LeaveAssistantApp {
         }
     }
 
-    switchAdminTab(tab) {
-        document.querySelectorAll('.tab-content').forEach(c => c.classList.add('hidden'));
-        document.getElementById(`${tab}Tab`).classList.remove('hidden');
-        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-        document.querySelector(`button[data-tab="${tab}"]`).classList.add('active');
-    }
-
     exportUsersCSV() {
         // Get the current filter to determine which users to export
         const currentFilter = document.getElementById('userFilter').value;
@@ -2644,22 +2749,55 @@ class LeaveAssistantApp {
     showToast(message, type) {
         const toast = document.createElement('div');
         toast.className = `toast toast-${type}`;
-        toast.innerHTML = message;
-        toast.style.cssText = `position:fixed;top:20px;right:20px;padding:15px;background:${type==='error'?'#ef4444':'#10b981'};color:white;border-radius:8px;z-index:9999;box-shadow:0 4px 6px rgba(0,0,0,0.1);`;
+        toast.innerHTML = `
+            <i class="fas fa-${type === 'error' ? 'exclamation-circle' : 'check-circle'}"></i>
+            <span>${message}</span>
+        `;
         document.body.appendChild(toast);
-        setTimeout(() => toast.remove(), 3000);
+        
+        setTimeout(() => {
+            toast.classList.add('show');
+        }, 100);
+        
+        setTimeout(() => {
+            toast.classList.remove('show');
+            setTimeout(() => {
+                if (toast.parentNode) {
+                    document.body.removeChild(toast);
+                }
+            }, 300);
+        }, type === 'error' ? 4000 : 3000);
     }
     
     clearOutput(tool) {
         document.getElementById(`${tool}Output`).textContent = '';
         document.getElementById(`${tool}Input`).value = '';
+        
+        // Clear and hide follow-up section
+        const followupInput = document.getElementById(`${tool}Followup`);
+        const followupSection = document.getElementById(`${tool}FollowupSection`);
+        if (followupInput) followupInput.value = '';
+        if (followupSection) followupSection.classList.add('hidden');
     }
     
     switchAdminTab(tab) {
-        document.querySelectorAll('.tab-content').forEach(c => c.classList.add('hidden'));
-        document.getElementById(`${tab}Tab`).classList.remove('hidden');
+        // Hide all tab contents
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+        
+        // Show selected tab
+        const targetTab = document.getElementById(`${tab}Tab`);
+        if (targetTab) {
+            targetTab.classList.add('active');
+        }
+        
+        // Update tab buttons
         document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-        document.querySelector(`button[data-tab="${tab}"]`).classList.add('active');
+        const activeBtn = document.querySelector(`button[data-tab="${tab}"]`);
+        if (activeBtn) {
+            activeBtn.classList.add('active');
+        }
+        
+        console.log(`📋 Switched to admin tab: ${tab}`);
     }
 }
 

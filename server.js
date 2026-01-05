@@ -69,7 +69,7 @@ function initializeData() {
     // Initialize other data files
     saveData(PENDING_FILE, loadData(PENDING_FILE, []));
     saveData(CONFIG_FILE, loadData(CONFIG_FILE, {
-        monthlyFee: 29.99,
+        monthlyFee: 29,
         systemSettings: {
             allowRegistration: true,
             requireEmailVerification: true
@@ -892,7 +892,7 @@ app.post('/api/payment/stripe/create-session', requireAuth, (req, res) => {
     }
     
     const config = loadData(CONFIG_FILE, {});
-    const amount = Math.round((config.monthlyFee || 29.99) * 100); // Convert to cents
+    const amount = Math.round((config.monthlyFee || 29) * 100); // Convert to cents
     
     stripeClient.checkout.sessions.create({
         payment_method_types: ['card'],
@@ -967,7 +967,7 @@ app.post('/api/payment/paypal/create-order', requireAuth, (req, res) => {
     }
     
     const config = loadData(CONFIG_FILE, {});
-    const amount = (config.monthlyFee || 29.99).toFixed(2);
+    const amount = (config.monthlyFee || 29).toFixed(2);
     
     const request = {
         intent: 'CAPTURE',

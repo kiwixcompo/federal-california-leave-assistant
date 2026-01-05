@@ -3,645 +3,1132 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Leave Assistant - HR Compliance Tool</title>
+    <title>HRLA - HR Leave Assist | Professional Leave Management</title>
+    
+    <!-- SEO Meta Tags -->
+    <meta name="description" content="AI-powered Federal FMLA and California leave compliance responses. Generate professional, compliant HR communications in seconds. Built by HR expert with 25+ years experience.">
+    <meta name="keywords" content="HR leave assistant, FMLA compliance, California leave laws, HR tools, employee relations, leave management">
+    <meta name="author" content="HRLA - HR Leave Assist">
+    
+    <!-- Open Graph Meta Tags -->
+    <meta property="og:title" content="HRLA - HR Leave Assist | Professional Leave Management">
+    <meta property="og:description" content="AI-powered Federal FMLA and California leave compliance responses. Generate professional, compliant HR communications in seconds.">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://hrleaveassist.com">
+    <meta property="og:image" content="hrla-logo-new.svg">
+    
     <!-- Favicon -->
-    <link rel="icon" type="image/svg+xml" href="favicon.svg">
-    <link rel="icon" type="image/png" sizes="32x32" href="favicon.svg">
-    <link rel="icon" type="image/png" sizes="16x16" href="favicon.svg">
-    <link rel="apple-touch-icon" href="favicon.svg">
+    <link rel="icon" type="image/svg+xml" href="hrla-logo-compact.svg">
+    <link rel="icon" type="image/png" sizes="32x32" href="hrla-logo-compact.svg">
+    <link rel="icon" type="image/png" sizes="16x16" href="hrla-logo-compact.svg">
+    <link rel="apple-touch-icon" href="hrla-logo-compact.svg">
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Puter.js AI -->
+    <script src="https://js.puter.com/v2/"></script>
     
     <link rel="stylesheet" href="styles.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <script src="https://js.puter.com/v2/"></script>
 </head>
 <body>
+    <!-- Loading Overlay -->
     <div id="loading" class="loading-overlay hidden">
         <div class="spinner"></div>
         <p>Processing...</p>
     </div>
 
-    <div id="loginPage" class="page">
-        <div class="auth-container">
-            <div class="logo-area">
-                <div class="app-logo">
-                    <img id="mainLogo" src="hrla-logo-full.png" alt="HRLA - HR Leave Compliance & Response Tool" class="logo-image">
+    <!-- Landing Page -->
+    <div id="landingPage" class="page">
+        <!-- Navigation -->
+        <nav class="landing-nav">
+            <div class="nav-container">
+                <div class="nav-brand">
+                    <img src="hrla-logo-new.svg" alt="HRLA - HR Leave Assist" class="brand-logo">
+                </div>
+                <div class="nav-menu">
+                    <a href="#features" class="nav-link">Features</a>
+                    <a href="#how-it-works" class="nav-link">How it Works</a>
+                    <a href="#pricing" class="nav-link">Pricing</a>
+                    <a href="#" class="nav-link">Support</a>
+                    <button id="loginBtn" class="btn btn-outline">Sign In</button>
+                    <button id="getStartedBtn" class="btn btn-primary">Get started for free</button>
+                </div>
+                <button class="mobile-menu-toggle" id="mobileMenuToggle">
+                    <i class="fas fa-bars"></i>
+                </button>
+            </div>
+        </nav>
+
+        <!-- Hero Section -->
+        <section class="hero-section">
+            <div class="hero-container">
+                <div class="hero-content">
+                    <h1 class="hero-title">
+                        This is what your <br>
+                        <span class="text-gradient">HR Leave Management</span> does
+                    </h1>
+                    <p class="hero-subtitle">
+                        AI-powered Federal FMLA and California leave compliance responses. 
+                        Generate professional, compliant communications in seconds.
+                    </p>
+                    <div class="hero-actions">
+                        <button id="startTrialBtn" class="btn btn-primary btn-large">
+                            Get started for free
+                        </button>
+                        <button id="watchDemoBtn" class="btn btn-outline btn-large">
+                            <i class="fas fa-play"></i>
+                            Watch Demo
+                        </button>
+                    </div>
+                    <div class="trust-indicators">
+                        <div class="trust-item">
+                            <i class="fas fa-shield-check"></i>
+                            <span>FMLA Compliant</span>
+                        </div>
+                        <div class="trust-item">
+                            <i class="fas fa-user-graduate"></i>
+                            <span>Built by HR Expert</span>
+                        </div>
+                        <div class="trust-item">
+                            <i class="fas fa-clock"></i>
+                            <span>Save 90% Time</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="hero-visual">
+                    <div class="hero-card">
+                        <div class="card-header">
+                            <div class="card-dots">
+                                <span class="dot red"></span>
+                                <span class="dot yellow"></span>
+                                <span class="dot green"></span>
+                            </div>
+                            <span class="card-title">FMLA Response Generator</span>
+                        </div>
+                        <div class="card-content">
+                            <div class="input-demo">
+                                <label>Employee Request:</label>
+                                <div class="demo-text">"I need to take leave for my newborn..."</div>
+                            </div>
+                            <div class="output-demo">
+                                <label>AI Generated Response:</label>
+                                <div class="demo-response">
+                                    <p>Dear [Employee Name],</p>
+                                    <p>Thank you for your leave request. Based on the information provided, you may be eligible for FMLA leave...</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
-            <div class="card">
-                <h2>Sign In</h2>
-                <form id="loginForm">
+        </section>
+
+        <!-- Features Section -->
+        <section id="features" class="features-section">
+            <div class="container">
+                <div class="section-header">
+                    <h2 class="section-title">Benefits of your HR Leave Assistant</h2>
+                </div>
+                <div class="features-grid">
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <i class="fas fa-shield-alt"></i>
+                        </div>
+                        <h3>100% FMLA Compliant</h3>
+                        <p>AI responses trained on current Federal and California leave laws</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <i class="fas fa-clock"></i>
+                        </div>
+                        <h3>Save 90% of Your Time</h3>
+                        <p>Generate professional responses in seconds, not hours</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <i class="fas fa-users"></i>
+                        </div>
+                        <h3>Multi-State Support</h3>
+                        <p>Federal FMLA, California CFRA, and PDL compliance</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <i class="fas fa-thumbs-up"></i>
+                        </div>
+                        <h3>Easy to Use</h3>
+                        <p>Simple interface designed for busy HR professionals</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <i class="fas fa-tachometer-alt"></i>
+                        </div>
+                        <h3>Smart Usage Limits</h3>
+                        <p>20 questions per day included, with soft warnings at 25 and hard limits at 30</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <i class="fas fa-lock"></i>
+                        </div>
+                        <h3>Secure & Private</h3>
+                        <p>No storage of sensitive data, jurisdiction-locked for compliance</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- How It Works Section -->
+        <section id="how-it-works" class="how-it-works-section">
+            <div class="container">
+                <div class="section-header">
+                    <h2 class="section-title">This is how your HR Leave Assistant works</h2>
+                </div>
+                <div class="steps-container">
+                    <div class="step-item">
+                        <div class="step-number">1</div>
+                        <div class="step-content">
+                            <h3>Paste Employee Email</h3>
+                            <p>Simply copy and paste the employee's leave request email into our system</p>
+                        </div>
+                    </div>
+                    <div class="step-item">
+                        <div class="step-number">2</div>
+                        <div class="step-content">
+                            <h3>AI Analysis & Generation</h3>
+                            <p>Our AI analyzes the request and generates a compliant response based on current laws</p>
+                        </div>
+                    </div>
+                    <div class="step-item">
+                        <div class="step-number">3</div>
+                        <div class="step-content">
+                            <h3>Review & Send</h3>
+                            <p>Review the generated response, make any needed adjustments, and send to your employee</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- About Me Section -->
+        <section class="about-section">
+            <div class="container">
+                <div class="about-content">
+                    <div class="about-header">
+                        <h2>About Me</h2>
+                    </div>
+                    <div class="about-main">
+                        <div class="about-image">
+                            <img src="about-headshot.jpg" alt="HR Professional - 25+ Years Experience" class="headshot">
+                            <div class="credentials">
+                                <div class="credential-item">
+                                    <i class="fas fa-award"></i>
+                                    <span>25+ Years Experience</span>
+                                </div>
+                                <div class="credential-item">
+                                    <i class="fas fa-users"></i>
+                                    <span>Employee Relations Expert</span>
+                                </div>
+                                <div class="credential-item">
+                                    <i class="fas fa-shield-alt"></i>
+                                    <span>Risk Management</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="about-text">
+                            <p>With over 25 years of experience in Employee Relations, Leave of Absence administration, and Risk Management, I've worked directly with employees and managers on some of the most sensitive and time-critical workplace issues.</p>
+                            
+                            <p>Over that time, I've answered hundreds of leave-related questions involving medical leave, pregnancy, disability, accommodations, workers' compensation, and return-to-work issues.</p>
+                            
+                            <p>I built this HR Leave Assist tool to support my own HR work—helping me respond to leave questions clearly, consistently, and respectfully without starting from scratch each time.</p>
+                            
+                            <p>Today, it helps HR professionals simplify complex leave conversations, reduce confusion, and respond with confidence when it matters most.</p>
+                            
+                            <p>If you're looking for a practical, HR-built resource to help you navigate leave questions with clarity and confidence, I invite you to take full advantage of this tool.</p>
+                            
+                            <p><strong>It's designed to support your judgment—not replace it—and to help you respond accurately, consistently, and professionally when employees and managers need answers most.</strong></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Pricing Section -->
+        <section id="pricing" class="pricing-section">
+            <div class="container">
+                <div class="section-header">
+                    <h2 class="section-title">Pricing</h2>
+                </div>
+                <div class="pricing-grid">
+                    <div class="pricing-card">
+                        <div class="pricing-header">
+                            <h3>Free Trial</h3>
+                            <div class="price">
+                                <span class="currency">$</span>
+                                <span class="amount">0</span>
+                                <span class="period">/24 hours</span>
+                            </div>
+                        </div>
+                        <div class="pricing-features">
+                            <ul>
+                                <li><i class="fas fa-check"></i> Full access to all features</li>
+                                <li><i class="fas fa-check"></i> Federal FMLA support</li>
+                                <li><i class="fas fa-check"></i> California leave laws</li>
+                                <li><i class="fas fa-check"></i> AI-powered responses</li>
+                                <li><i class="fas fa-check"></i> 20 questions per day</li>
+                            </ul>
+                        </div>
+                        <button class="btn btn-outline btn-block">Start Free Trial</button>
+                    </div>
+                    <div class="pricing-card featured">
+                        <div class="pricing-badge">Most Popular</div>
+                        <div class="pricing-header">
+                            <h3>Monthly</h3>
+                            <div class="price">
+                                <span class="currency">$</span>
+                                <span class="amount" id="pricingAmount">29</span>
+                                <span class="period">/month</span>
+                            </div>
+                        </div>
+                        <div class="pricing-features">
+                            <ul>
+                                <li><i class="fas fa-check"></i> Everything in Free Trial</li>
+                                <li><i class="fas fa-check"></i> Unlimited responses</li>
+                                <li><i class="fas fa-check"></i> Priority support</li>
+                                <li><i class="fas fa-check"></i> Advanced AI models</li>
+                                <li><i class="fas fa-check"></i> Follow-up questions</li>
+                                <li><i class="fas fa-check"></i> Cancel anytime</li>
+                            </ul>
+                        </div>
+                        <button class="btn btn-primary btn-block">Get Started</button>
+                    </div>
+                    <div class="pricing-card">
+                        <div class="pricing-header">
+                            <h3>Annual</h3>
+                            <div class="price">
+                                <span class="currency">$</span>
+                                <span class="amount">290</span>
+                                <span class="period">/year</span>
+                            </div>
+                            <p class="savings-note">Save $58 per year</p>
+                        </div>
+                        <div class="pricing-features">
+                            <ul>
+                                <li><i class="fas fa-check"></i> Everything in Monthly</li>
+                                <li><i class="fas fa-check"></i> 2 months free</li>
+                                <li><i class="fas fa-check"></i> Priority support</li>
+                                <li><i class="fas fa-check"></i> Advanced features</li>
+                                <li><i class="fas fa-check"></i> Best value</li>
+                            </ul>
+                        </div>
+                        <button class="btn btn-outline btn-block">Choose Annual</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- CTA Section -->
+        <section class="cta-section">
+            <div class="container">
+                <div class="cta-content">
+                    <h2>Get up and running in less than 2 minutes.</h2>
+                    <p>Join thousands of HR professionals who trust HRLA for their leave management needs.</p>
+                    <button id="finalCtaBtn" class="btn btn-primary btn-large">
+                        Get started for free
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Footer -->
+        <footer class="landing-footer">
+            <div class="container">
+                <div class="footer-content">
+                    <div class="footer-brand">
+                        <img src="hrla-logo-new.svg" alt="HRLA" class="footer-logo">
+                        <p>Professional HR leave management made simple with AI-powered compliance.</p>
+                        <div class="footer-disclaimer">
+                            <p><strong>Disclaimer:</strong> HR Leave Assist is an informational decision-support tool. Users remain responsible for verifying current law and applying guidance appropriately.</p>
+                        </div>
+                    </div>
+                    <div class="footer-links">
+                        <div class="footer-column">
+                            <h4>Product</h4>
+                            <a href="#features">Features</a>
+                            <a href="#pricing">Pricing</a>
+                            <a href="#how-it-works">How it Works</a>
+                            <a href="#" id="quickStartLink">Quick Start Guide</a>
+                        </div>
+                        <div class="footer-column">
+                            <h4>Support</h4>
+                            <a href="#" id="whatItDoesLink">What HRLA Does/Doesn't Do</a>
+                            <a href="#">Help Center</a>
+                            <a href="#">Contact Us</a>
+                        </div>
+                        <div class="footer-column">
+                            <h4>Legal</h4>
+                            <a href="#" id="termsLink">Terms of Use</a>
+                            <a href="#" id="privacyLink">Privacy Policy</a>
+                            <a href="#" id="refundPolicyLink">Cancellation & Refund Policy</a>
+                            <a href="#" id="accessLicensingLink">User Access & Licensing</a>
+                        </div>
+                    </div>
+                </div>
+                <div class="footer-bottom">
+                    <div class="footer-bottom-content">
+                        <p>&copy; 2024 HRLA. All rights reserved.</p>
+                        <div class="footer-badges">
+                            <span class="badge">
+                                <i class="fas fa-shield-alt"></i>
+                                Secure & Compliant
+                            </span>
+                            <span class="badge">
+                                <i class="fas fa-award"></i>
+                                HR Professional Built
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </footer>
+    </div>
+
+    <!-- Login Page -->
+    <div id="loginPage" class="page hidden">
+        <div class="auth-container">
+            <div class="auth-card">
+                <div class="auth-header">
+                    <img src="hrla-logo-new.svg" alt="HRLA" class="auth-logo">
+                    <h2>Welcome back</h2>
+                    <p>Sign in to your HRLA account</p>
+                </div>
+                <form id="loginForm" class="auth-form">
                     <div class="form-group">
-                        <label>Email Address</label>
-                        <input type="email" id="loginEmail" required placeholder="hr@company.com">
+                        <label for="loginEmail">Email address</label>
+                        <input type="email" id="loginEmail" required placeholder="Enter your email">
                     </div>
                     <div class="form-group">
-                        <label>Password</label>
-                        <input type="password" id="loginPassword" required>
+                        <label for="loginPassword">Password</label>
+                        <input type="password" id="loginPassword" required placeholder="Enter your password">
                     </div>
-                    <button type="submit" class="btn btn-primary btn-block">Login</button>
-                    <div class="auth-links">
-                        <a href="#" id="showRegister">Create new account</a>
-                    </div>
+                    <button type="submit" class="btn btn-primary btn-block">Sign In</button>
                 </form>
+                <div class="auth-footer">
+                    <p>Don't have an account? <a href="#" id="showRegister">Sign up for free</a></p>
+                    <p><a href="#" id="backToHomepageFromLogin">← Back to Homepage</a></p>
+                </div>
             </div>
         </div>
     </div>
 
+    <!-- Register Page -->
     <div id="registerPage" class="page hidden">
         <div class="auth-container">
-            <div class="card">
-                <h2>Create Account</h2>
-                <p class="trial-text">✨ Includes 24-Hour Free Premium Trial!</p>
-                <form id="registerForm">
-                    <div class="row">
-                        <div class="form-group half">
-                            <label>First Name</label>
-                            <input type="text" id="firstName" required>
+            <div class="auth-card">
+                <div class="auth-header">
+                    <img src="hrla-logo-new.svg" alt="HRLA" class="auth-logo">
+                    <h2>Get started for free</h2>
+                    <p>Create your HRLA account and start your 24-hour free trial</p>
+                </div>
+                <form id="registerForm" class="auth-form">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="firstName">First name</label>
+                            <input type="text" id="firstName" required placeholder="First name">
                         </div>
-                        <div class="form-group half">
-                            <label>Last Name</label>
-                            <input type="text" id="lastName" required>
+                        <div class="form-group">
+                            <label for="lastName">Last name</label>
+                            <input type="text" id="lastName" required placeholder="Last name">
                         </div>
                     </div>
                     <div class="form-group">
-                        <label>Work Email</label>
+                        <label for="registerEmail">Work email</label>
                         <input type="email" id="registerEmail" required placeholder="name@company.com">
-                        <small class="hint">Disposable emails are not accepted.</small>
+                        <small class="form-hint">We only accept business email addresses</small>
                     </div>
                     <div class="form-group">
-                        <label>Password</label>
-                        <input type="password" id="registerPassword" required>
+                        <label for="registerPassword">Password</label>
+                        <input type="password" id="registerPassword" required placeholder="Create a password">
                     </div>
                     <div class="form-group">
-                        <label>Confirm Password</label>
-                        <input type="password" id="confirmPassword" required>
+                        <label for="confirmPassword">Confirm password</label>
+                        <input type="password" id="confirmPassword" required placeholder="Confirm your password">
                     </div>
+                    
+                    <div class="security-notice">
+                        <p><strong>Important:</strong> Do not enter SSNs, medical records, DOBs, or sensitive personal data when using this tool.</p>
+                    </div>
+                    
                     <div class="form-check">
                         <input type="checkbox" id="termsAccepted" required>
-                        <label for="termsAccepted">I agree to the Terms of Service</label>
+                        <label for="termsAccepted">I agree to the <a href="#" id="termsLinkInline">Terms of Use</a> and <a href="#">Privacy Policy</a></label>
                     </div>
-                    <button type="submit" class="btn btn-primary btn-block">Register</button>
-                    <div class="auth-links">
-                        <a href="#" id="showLogin">Already have an account? Login</a>
-                    </div>
+                    <button type="submit" class="btn btn-primary btn-block">Create Account</button>
                 </form>
+                <div class="auth-footer">
+                    <p>Already have an account? <a href="#" id="showLogin">Sign in</a></p>
+                    <p><a href="#" id="backToHomepageFromRegister">← Back to Homepage</a></p>
+                </div>
             </div>
         </div>
     </div>
 
+    <!-- Verification Page -->
     <div id="verificationPage" class="page hidden">
         <div class="auth-container">
-            <div class="card text-center">
-                <div class="app-logo">
-                    <img src="hrla-logo-full.png" alt="HRLA - HR Leave Compliance & Response Tool" class="logo-image">
+            <div class="auth-card text-center">
+                <div class="verification-icon">
+                    <i class="fas fa-envelope-open-text"></i>
                 </div>
-                <i class="fa-solid fa-envelope-open-text fa-3x text-primary"></i>
-                <h2>Verify Email</h2>
-                <p><strong>Important:</strong> Please verify your email to complete registration.</p>
-                <p>We've sent a verification link to your email address.</p>
-                <p>Please check your inbox (and spam folder) to complete registration.</p>
+                <h2>Check your email</h2>
+                <p>We've sent a verification link to your email address. Please check your inbox and click the link to verify your account.</p>
                 
-                <!-- Verification Link Display - Only shown if email delivery fails -->
                 <div id="verificationLinkSection" class="verification-link-section hidden">
                     <div class="alert alert-warning">
-                        <h4><i class="fa-solid fa-exclamation-triangle"></i> Email Delivery Issue</h4>
-                        <p><strong>We couldn't send the email automatically. Please use the link below:</strong></p>
-                        <div class="verification-link-container">
+                        <h4><i class="fas fa-exclamation-triangle"></i> Email Delivery Issue</h4>
+                        <p>We couldn't send the email automatically. Please use the link below:</p>
+                        <div class="verification-actions">
                             <a id="verificationLinkButton" href="#" class="btn btn-primary" target="_blank">
-                                <i class="fa-solid fa-check-circle"></i> Verify Email Now
+                                <i class="fas fa-check-circle"></i> Verify Email Now
                             </a>
-                        </div>
-                        <div class="verification-link-copy">
-                            <input type="text" id="verificationLinkInput" readonly class="form-control">
-                            <button id="copyVerificationLink" class="btn btn-secondary">
-                                <i class="fa-solid fa-copy"></i> Copy Link
-                            </button>
+                            <div class="verification-link-copy">
+                                <input type="text" id="verificationLinkInput" readonly>
+                                <button id="copyVerificationLink" class="btn btn-secondary">
+                                    <i class="fas fa-copy"></i> Copy
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
                 
                 <div class="verification-actions">
-                    <button id="resendVerification" class="btn btn-secondary">📧 Resend Email</button>
-                    <button id="backToLogin" class="btn btn-text">← Back to Login</button>
+                    <button id="resendVerification" class="btn btn-secondary">
+                        <i class="fas fa-paper-plane"></i> Resend Email
+                    </button>
+                    <button id="backToLogin" class="btn btn-outline">
+                        <i class="fas fa-arrow-left"></i> Back to Sign In
+                    </button>
                 </div>
             </div>
         </div>
     </div>
 
+    <!-- Dashboard -->
     <div id="dashboard" class="page hidden">
-        <nav class="navbar">
-            <div class="nav-brand">
-                <img src="hrla-logo.svg" alt="HRLA" class="nav-logo">
-                <span class="nav-title">Leave Assistant</span>
-            </div>
-            <div class="nav-menu">
-                <div id="trialTimer" class="trial-badge hidden">Trial Active: 23h remaining</div>
-                <button id="settingsBtn" class="btn btn-text"><i class="fa-solid fa-gear"></i> Settings</button>
-                <button id="logoutBtn" class="btn btn-text">Logout</button>
+        <nav class="app-nav">
+            <div class="nav-container">
+                <div class="nav-brand">
+                    <img src="hrla-logo-compact.svg" alt="HRLA" class="nav-logo">
+                    <span class="nav-title">Leave Assistant</span>
+                </div>
+                <div class="nav-menu">
+                    <div id="trialTimer" class="trial-badge hidden">Trial: 23h remaining</div>
+                    <button id="settingsBtn" class="btn btn-ghost">
+                        <i class="fas fa-cog"></i>
+                        <span>Settings</span>
+                    </button>
+                    <button id="logoutBtn" class="btn btn-ghost">
+                        <i class="fas fa-sign-out-alt"></i>
+                        <span>Logout</span>
+                    </button>
+                </div>
             </div>
         </nav>
-        <div class="container">
-            <div class="welcome-banner">
-                <h2>Welcome, <span id="userWelcomeName">User</span></h2>
-                <p>Select a compliance tool to begin</p>
+        
+        <div class="dashboard-container">
+            <div class="dashboard-header">
+                <h1>Welcome back, <span id="userWelcomeName">User</span></h1>
+                <p>Choose a compliance tool to generate professional leave responses</p>
             </div>
+            
             <div class="tools-grid">
                 <div class="tool-card" id="federalTool">
-                    <div class="icon-box federal">
-                        <i class="fa-solid fa-flag-usa"></i>
+                    <div class="tool-icon federal">
+                        <i class="fas fa-flag-usa"></i>
                     </div>
-                    <h3>Federal FMLA</h3>
-                    <p>Generate compliant responses for Federal Family & Medical Leave Act inquiries.</p>
+                    <div class="tool-content">
+                        <h3>Federal FMLA</h3>
+                        <p>Generate compliant responses for Federal Family & Medical Leave Act inquiries and requests.</p>
+                        <div class="tool-features">
+                            <span class="feature-tag">FMLA Compliant</span>
+                            <span class="feature-tag">AI Powered</span>
+                        </div>
+                    </div>
+                    <div class="tool-action">
+                        <i class="fas fa-arrow-right"></i>
+                    </div>
                 </div>
+                
                 <div class="tool-card" id="californiaTool">
-                    <div class="icon-box california">
-                        <i class="fa-solid fa-sun"></i>
+                    <div class="tool-icon california">
+                        <i class="fas fa-sun"></i>
                     </div>
-                    <h3>California Leaves</h3>
-                    <p>Navigate CFRA, PDL, and FMLA interactions specifically for California employees.</p>
+                    <div class="tool-content">
+                        <h3>California Leaves</h3>
+                        <p>Navigate CFRA, PDL, and FMLA interactions specifically for California employees.</p>
+                        <div class="tool-features">
+                            <span class="feature-tag">Multi-Law</span>
+                            <span class="feature-tag">CA Specific</span>
+                        </div>
+                    </div>
+                    <div class="tool-action">
+                        <i class="fas fa-arrow-right"></i>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 
+    <!-- Federal Tool Page -->
     <div id="federalPage" class="page hidden">
-        <nav class="navbar">
-            <div class="nav-brand">
-                <button id="backToDashboard1" class="btn btn-icon"><i class="fa-solid fa-arrow-left"></i></button>
-                <img src="hrla-logo.svg" alt="HRLA" class="nav-logo">
-                <span class="nav-title">Federal FMLA Assistant</span>
-            </div>
-            <div class="nav-menu">
-                <button id="settingsBtn2" class="btn btn-text"><i class="fa-solid fa-gear"></i> Settings</button>
+        <nav class="app-nav">
+            <div class="nav-container">
+                <div class="nav-brand">
+                    <button id="backToDashboard1" class="btn btn-ghost">
+                        <i class="fas fa-arrow-left"></i>
+                    </button>
+                    <img src="hrla-logo-compact.svg" alt="HRLA" class="nav-logo">
+                    <span class="nav-title">Federal FMLA Assistant</span>
+                </div>
+                <div class="nav-menu">
+                    <button id="settingsBtn2" class="btn btn-ghost">
+                        <i class="fas fa-cog"></i>
+                        <span>Settings</span>
+                    </button>
+                </div>
             </div>
         </nav>
+        
         <div class="tool-container">
-            <div class="mode-selector">
-                <button class="mode-btn active" id="federalEmailMode">📧 Email Response</button>
-                <button class="mode-btn" id="federalQuestionMode">❓ Quick Question</button>
+            <div class="tool-header">
+                <h1>Federal FMLA Assistant</h1>
+                <p>Generate professional, compliant responses for Federal FMLA requests</p>
+                <div class="tool-warning">
+                    <i class="fas fa-shield-alt"></i>
+                    <span>Do not enter SSNs, medical records, DOBs, or sensitive personal data</span>
+                </div>
             </div>
-            <div class="split-view">
-                <div class="input-section">
-                    <label id="federalInputLabel">Paste Employee Email:</label>
-                    <textarea id="federalInput" placeholder="Paste text here..."></textarea>
-                    <div class="action-bar">
-                        <button id="federalClear" class="btn btn-text">Clear</button>
-                        <button id="federalSubmit" class="btn btn-primary">Generate Response <i class="fa-solid fa-wand-magic-sparkles"></i></button>
+            
+            <div class="mode-selector" style="display: none;">
+                <button class="mode-btn active" id="federalEmailMode">
+                    <i class="fas fa-envelope"></i>
+                    Email Response
+                </button>
+            </div>
+            
+            <div class="tool-workspace">
+                <div class="input-panel">
+                    <div class="panel-header">
+                        <label id="federalInputLabel">Enter your Quick Question or Email:</label>
+                    </div>
+                    <textarea id="federalInput" placeholder="Enter your Quick Question or paste the employee's email below to get started."></textarea>
+                    
+                    <!-- Follow-up Section (initially hidden) -->
+                    <div id="federalFollowupSection" class="followup-section hidden">
+                        <div class="followup-header">
+                            <label>Follow-up Question or Additional Information:</label>
+                        </div>
+                        <textarea id="federalFollowup" placeholder="Add any follow-up questions or additional context here..."></textarea>
+                        <div class="followup-actions">
+                            <button id="federalFollowupSubmit" class="btn btn-primary">
+                                <i class="fas fa-paper-plane"></i>
+                                Submit Follow-up
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="panel-actions">
+                        <button id="federalClear" class="btn btn-outline">
+                            <i class="fas fa-trash"></i>
+                            Clear
+                        </button>
+                        <button id="federalSubmit" class="btn btn-primary">
+                            <i class="fas fa-magic"></i>
+                            Generate Response
+                        </button>
                     </div>
                 </div>
-                <div class="output-section">
-                    <div class="output-header">
-                        <label>AI Response:</label>
-                        <button id="federalCopy" class="btn btn-sm btn-secondary"><i class="fa-regular fa-copy"></i> Copy</button>
+                
+                <div class="output-panel">
+                    <div class="panel-header">
+                        <label>AI Generated Response:</label>
+                        <div class="output-actions">
+                            <button id="federalRegenerate" class="btn btn-secondary hidden">
+                                <i class="fas fa-redo"></i>
+                                Regenerate
+                            </button>
+                            <button id="federalCopy" class="btn btn-secondary">
+                                <i class="fas fa-copy"></i>
+                                Copy
+                            </button>
+                        </div>
                     </div>
-                    <div id="federalOutput" class="response-box"></div>
+                    <div id="federalOutput" class="response-output"></div>
                 </div>
             </div>
         </div>
     </div>
 
+    <!-- California Tool Page -->
     <div id="californiaPage" class="page hidden">
-        <nav class="navbar">
-            <div class="nav-brand">
-                <button id="backToDashboard2" class="btn btn-icon"><i class="fa-solid fa-arrow-left"></i></button>
-                <img src="hrla-logo.svg" alt="HRLA" class="nav-logo">
-                <span class="nav-title">California Compliance</span>
-            </div>
-            <div class="nav-menu">
-                <button id="settingsBtn3" class="btn btn-text"><i class="fa-solid fa-gear"></i> Settings</button>
+        <nav class="app-nav">
+            <div class="nav-container">
+                <div class="nav-brand">
+                    <button id="backToDashboard2" class="btn btn-ghost">
+                        <i class="fas fa-arrow-left"></i>
+                    </button>
+                    <img src="hrla-logo-compact.svg" alt="HRLA" class="nav-logo">
+                    <span class="nav-title">California Compliance</span>
+                </div>
+                <div class="nav-menu">
+                    <button id="settingsBtn3" class="btn btn-ghost">
+                        <i class="fas fa-cog"></i>
+                        <span>Settings</span>
+                    </button>
+                </div>
             </div>
         </nav>
+        
         <div class="tool-container">
-            <div class="mode-selector">
-                <button class="mode-btn active" id="californiaEmailMode">📧 Email Response</button>
-                <button class="mode-btn" id="californiaQuestionMode">❓ Quick Question</button>
+            <div class="tool-header">
+                <h1>California Leave Assistant</h1>
+                <p>Navigate CFRA, PDL, and FMLA interactions for California employees</p>
+                <div class="tool-warning">
+                    <i class="fas fa-shield-alt"></i>
+                    <span>Do not enter SSNs, medical records, DOBs, or sensitive personal data</span>
+                </div>
             </div>
-            <div class="split-view">
-                <div class="input-section">
-                    <label id="californiaInputLabel">Paste Employee Email:</label>
-                    <textarea id="californiaInput" placeholder="Paste text here..."></textarea>
-                    <div class="action-bar">
-                        <button id="californiaClear" class="btn btn-text">Clear</button>
-                        <button id="californiaSubmit" class="btn btn-primary">Generate Response <i class="fa-solid fa-wand-magic-sparkles"></i></button>
+            
+            <div class="mode-selector" style="display: none;">
+                <button class="mode-btn active" id="californiaEmailMode">
+                    <i class="fas fa-envelope"></i>
+                    Email Response
+                </button>
+            </div>
+            
+            <div class="tool-workspace">
+                <div class="input-panel">
+                    <div class="panel-header">
+                        <label id="californiaInputLabel">Enter your Quick Question or Email:</label>
+                    </div>
+                    <textarea id="californiaInput" placeholder="Enter your Quick Question or paste the employee's email below to get started."></textarea>
+                    
+                    <!-- Follow-up Section (initially hidden) -->
+                    <div id="californiaFollowupSection" class="followup-section hidden">
+                        <div class="followup-header">
+                            <label>Follow-up Question or Additional Information:</label>
+                        </div>
+                        <textarea id="californiaFollowup" placeholder="Add any follow-up questions or additional context here..."></textarea>
+                        <div class="followup-actions">
+                            <button id="californiaFollowupSubmit" class="btn btn-primary">
+                                <i class="fas fa-paper-plane"></i>
+                                Submit Follow-up
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="panel-actions">
+                        <button id="californiaClear" class="btn btn-outline">
+                            <i class="fas fa-trash"></i>
+                            Clear
+                        </button>
+                        <button id="californiaSubmit" class="btn btn-primary">
+                            <i class="fas fa-magic"></i>
+                            Generate Response
+                        </button>
                     </div>
                 </div>
-                <div class="output-section">
-                    <div class="output-header">
-                        <label>AI Response:</label>
-                        <button id="californiaCopy" class="btn btn-sm btn-secondary"><i class="fa-regular fa-copy"></i> Copy</button>
+                
+                <div class="output-panel">
+                    <div class="panel-header">
+                        <label>AI Generated Response:</label>
+                        <div class="output-actions">
+                            <button id="californiaRegenerate" class="btn btn-secondary hidden">
+                                <i class="fas fa-redo"></i>
+                                Regenerate
+                            </button>
+                            <button id="californiaCopy" class="btn btn-secondary">
+                                <i class="fas fa-copy"></i>
+                                Copy
+                            </button>
+                        </div>
                     </div>
-                    <div id="californiaOutput" class="response-box"></div>
+                    <div id="californiaOutput" class="response-output"></div>
                 </div>
             </div>
         </div>
     </div>
 
+    <!-- Subscription Page -->
     <div id="subscriptionPage" class="page hidden">
-        <div class="auth-container subscription-container">
-            <div class="card text-center">
-                <div class="app-logo">
-                    <img src="hrla-logo-full.png" alt="HRLA - HR Leave Compliance & Response Tool" class="logo-image">
+        <div class="subscription-container">
+            <div class="subscription-card">
+                <div class="subscription-header">
+                    <img src="hrla-logo-new.svg" alt="HRLA" class="subscription-logo">
+                    <div class="subscription-icon">
+                        <i class="fas fa-crown"></i>
+                    </div>
+                    <h2>Upgrade to Professional</h2>
+                    <p>Your 24-hour free trial has ended. Continue with full access to all features.</p>
                 </div>
-                <i class="fa-solid fa-crown fa-3x text-warning"></i>
-                <h2>Subscription Required</h2>
-                <p>Your 24-hour free trial has ended.</p>
-                <p>Please subscribe to continue using Leave Assistant.</p>
                 
-                <div class="price-box">
-                    <span class="currency">$</span>
-                    <span id="displayMonthlyFee" class="amount">29.99</span>
-                    <span class="period">/month</span>
+                <div class="subscription-pricing">
+                    <div class="price-display">
+                        <span class="currency">$</span>
+                        <span id="displayMonthlyFee" class="amount">29</span>
+                        <span class="period">/month</span>
+                    </div>
+                    <p class="price-description">Billed monthly, cancel anytime</p>
+                    <p class="annual-option">Or save with annual: <strong>$290/year</strong> (2 months free!)</p>
                 </div>
 
-                <div class="payment-methods">
-                    <button id="payStripe" class="btn btn-stripe btn-block">
-                        <i class="fa-brands fa-stripe"></i> Pay with Card (Stripe)
-                    </button>
-                    <button id="payPaypal" class="btn btn-paypal btn-block">
-                        <i class="fa-brands fa-paypal"></i> Pay with PayPal
-                    </button>
+                <div class="subscription-features">
+                    <h3>What's included:</h3>
+                    <ul>
+                        <li><i class="fas fa-check"></i> Unlimited AI responses</li>
+                        <li><i class="fas fa-check"></i> Federal FMLA compliance</li>
+                        <li><i class="fas fa-check"></i> California leave laws (CFRA, PDL)</li>
+                        <li><i class="fas fa-check"></i> Priority customer support</li>
+                        <li><i class="fas fa-check"></i> Advanced AI models</li>
+                    </ul>
                 </div>
-                
-                <div class="payment-info">
-                    <p><small>✅ Secure payment processing</small></p>
-                    <p><small>🔄 Cancel anytime</small></p>
-                    <p><small>📧 Email support included</small></p>
-                </div>
-                
+
                 <div class="subscription-actions">
-                    <button id="backToHomepage" class="btn btn-secondary">← Logout & Return to Login</button>
-                    <button id="subLogoutBtn" class="btn btn-text">Logout</button>
+                    <button id="payStripe" class="btn btn-primary btn-block">
+                        <i class="fas fa-credit-card"></i>
+                        Subscribe with Card
+                    </button>
+                    <button id="payPaypal" class="btn btn-outline btn-block">
+                        <i class="fab fa-paypal"></i>
+                        Subscribe with PayPal
+                    </button>
+                </div>
+                
+                <div class="subscription-footer">
+                    <p class="security-note">
+                        <i class="fas fa-shield-alt"></i>
+                        Secure payment processing • Cancel anytime • 30-day money-back guarantee
+                    </p>
+                    <div class="subscription-links">
+                        <button id="backToHomepage" class="btn btn-ghost">← Return to Login</button>
+                        <button id="subLogoutBtn" class="btn btn-ghost">Logout</button>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 
+    <!-- Payment Success Page -->
     <div id="paymentSuccessPage" class="page hidden">
         <div class="auth-container">
-            <div class="card text-center">
-                <div class="app-logo">
-                    <img src="hrla-logo-full.png" alt="HRLA - HR Leave Compliance & Response Tool" class="logo-image">
+            <div class="auth-card text-center">
+                <div class="success-icon">
+                    <i class="fas fa-check-circle"></i>
                 </div>
-                <i class="fa-solid fa-check-circle fa-3x text-success"></i>
-                <h2>Payment Successful!</h2>
-                <p>Thank you for subscribing to Leave Assistant.</p>
-                <p>Your subscription is now active and you have full access to all features.</p>
-                
-                <div class="success-actions">
-                    <button id="continueToApp" class="btn btn-primary btn-block">Continue to App</button>
-                </div>
+                <h2>Welcome to HRLA Professional!</h2>
+                <p>Your subscription is now active. You have full access to all features.</p>
+                <button id="continueToApp" class="btn btn-primary btn-block">
+                    Continue to Dashboard
+                </button>
             </div>
         </div>
     </div>
 
+    <!-- Payment Cancelled Page -->
     <div id="paymentCancelledPage" class="page hidden">
         <div class="auth-container">
-            <div class="card text-center">
-                <div class="app-logo">
-                    <img src="hrla-logo-full.png" alt="HRLA - HR Leave Compliance & Response Tool" class="logo-image">
+            <div class="auth-card text-center">
+                <div class="error-icon">
+                    <i class="fas fa-times-circle"></i>
                 </div>
-                <i class="fa-solid fa-times-circle fa-3x text-danger"></i>
                 <h2>Payment Cancelled</h2>
-                <p>Your payment was cancelled. No charges were made.</p>
-                <p>You can try again or contact support if you need assistance.</p>
-                
+                <p>Your payment was cancelled. No charges were made to your account.</p>
                 <div class="cancel-actions">
                     <button id="retryPayment" class="btn btn-primary">Try Again</button>
-                    <button id="backToDashboardFromCancel" class="btn btn-text">Back to Dashboard</button>
+                    <button id="backToDashboardFromCancel" class="btn btn-outline">Back to Dashboard</button>
                 </div>
             </div>
         </div>
     </div>
 
+    <!-- Settings Modal -->
     <div id="settingsModal" class="modal hidden">
         <div class="modal-content">
             <div class="modal-header">
-                <h3>User Settings</h3>
+                <h3>Settings</h3>
                 <button id="closeSettings" class="btn-close">&times;</button>
             </div>
             <div class="modal-body">
                 <form id="settingsForm">
                     <div class="form-group">
-                        <label>AI Provider Selection</label>
+                        <label for="aiProvider">AI Provider</label>
                         <select id="aiProvider" class="form-control">
                             <option value="puter">Puter.js AI (Free - Default)</option>
-                            <option value="openai">OpenAI GPT (Requires Key)</option>
-                            <option value="gemini">Google Gemini (Requires Key)</option>
-                            <option value="demo">Demo Mode (Mock Data)</option>
+                            <option value="openai">OpenAI GPT (Requires API Key)</option>
+                            <option value="gemini">Google Gemini (Requires API Key)</option>
+                            <option value="demo">Demo Mode (Mock Responses)</option>
                         </select>
                     </div>
 
                     <div id="openaiKeySection" class="api-key-section hidden">
                         <div class="form-group">
-                            <label>OpenAI API Key</label>
+                            <label for="openaiApiKey">OpenAI API Key</label>
                             <input type="password" id="openaiApiKey" placeholder="sk-...">
-                            <small>Required for OpenAI GPT models.</small>
+                            <small class="form-hint">Get your API key from OpenAI Platform</small>
                         </div>
                     </div>
 
                     <div id="geminiKeySection" class="api-key-section hidden">
                         <div class="form-group">
-                            <label>Google Gemini API Key</label>
+                            <label for="geminiApiKey">Google Gemini API Key</label>
                             <input type="password" id="geminiApiKey" placeholder="AIza...">
-                            <small>Get free API key from Google AI Studio.</small>
+                            <small class="form-hint">Get your API key from Google AI Studio</small>
                         </div>
                     </div>
 
                     <div class="form-group">
-                        <label>Change Password</label>
-                        <input type="password" id="newPassword" placeholder="New Password (optional)">
+                        <label for="newPassword">Change Password</label>
+                        <input type="password" id="newPassword" placeholder="New password (optional)">
                     </div>
-                    <button type="submit" class="btn btn-primary">Save Settings</button>
+                    
+                    <button type="submit" class="btn btn-primary btn-block">Save Settings</button>
                 </form>
             </div>
         </div>
     </div>
 
-    <div id="adminProfilePage" class="page hidden">
-        <nav class="navbar admin-nav">
-            <div class="nav-brand">
-                <button id="backToAdminDashboard" class="btn btn-icon"><i class="fa-solid fa-arrow-left"></i></button>
-                <img src="hrla-logo.svg" alt="HRLA" class="nav-logo">
-                <span class="nav-title">Admin Profile</span>
-            </div>
-            <div class="nav-menu">
-                <button id="adminLogoutBtn2" class="btn btn-text">Logout</button>
-            </div>
-        </nav>
-        <div class="container">
-            <div class="profile-container">
-                <div class="profile-header">
-                    <div class="profile-avatar">
-                        <i class="fa-solid fa-user-shield fa-3x"></i>
-                    </div>
-                    <h2>Administrator Profile</h2>
-                </div>
-                
-                <div class="profile-form-container">
-                    <form id="adminProfileForm">
-                        <div class="form-section">
-                            <h3>Personal Information</h3>
-                            <div class="row">
-                                <div class="form-group half">
-                                    <label>First Name</label>
-                                    <input type="text" id="adminFirstName" required>
-                                </div>
-                                <div class="form-group half">
-                                    <label>Last Name</label>
-                                    <input type="text" id="adminLastName" required>
-                                </div>
-                            </div>
-                            <div class="form-group">
-                                <label>Email Address</label>
-                                <input type="email" id="adminEmail" required>
-                            </div>
-                        </div>
-                        
-                        <div class="form-section">
-                            <h3>Security</h3>
-                            <div class="form-group">
-                                <label>Current Password</label>
-                                <input type="password" id="adminCurrentPassword" placeholder="Enter current password to make changes">
-                            </div>
-                            <div class="form-group">
-                                <label>New Password</label>
-                                <input type="password" id="adminNewPassword" placeholder="Leave blank to keep current password">
-                            </div>
-                            <div class="form-group">
-                                <label>Confirm New Password</label>
-                                <input type="password" id="adminConfirmPassword" placeholder="Confirm new password">
-                            </div>
-                        </div>
-                        
-                        <div class="form-section">
-                            <h3>Account Information</h3>
-                            <div class="info-grid">
-                                <div class="info-item">
-                                    <label>Account Type</label>
-                                    <span class="info-value">Administrator</span>
-                                </div>
-                                <div class="info-item">
-                                    <label>Account Created</label>
-                                    <span class="info-value" id="adminCreatedDate">-</span>
-                                </div>
-                                <div class="info-item">
-                                    <label>Last Login</label>
-                                    <span class="info-value" id="adminLastLogin">Current Session</span>
-                                </div>
-                                <div class="info-item">
-                                    <label>User ID</label>
-                                    <span class="info-value" id="adminUserId">-</span>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <div class="form-actions">
-                            <button type="submit" class="btn btn-primary">
-                                <i class="fa-solid fa-save"></i> Save Changes
-                            </button>
-                            <button type="button" id="cancelProfileChanges" class="btn btn-secondary">
-                                <i class="fa-solid fa-times"></i> Cancel
-                            </button>
-                        </div>
-                    </form>
-                </div>
-            </div>
-        </div>
-    </div>
+    <!-- Admin Dashboard -->
     <div id="adminDashboard" class="page hidden">
-        <nav class="navbar admin-nav">
-            <div class="nav-brand">
-                <img src="hrla-logo.svg" alt="HRLA" class="nav-logo">
-                <span class="nav-title">Admin Console</span>
-            </div>
-            <div class="nav-menu">
-                <button id="adminSettingsBtn" class="btn btn-text"><i class="fa-solid fa-user-shield"></i> Profile</button>
-                <button id="adminLogoutBtn" class="btn btn-text">Logout</button>
+        <nav class="app-nav">
+            <div class="nav-container">
+                <div class="nav-brand">
+                    <img src="hrla-logo-compact.svg" alt="HRLA" class="nav-logo">
+                    <span class="nav-title">Admin Dashboard</span>
+                </div>
+                <div class="nav-menu">
+                    <button id="adminSettingsBtn" class="btn btn-ghost">
+                        <i class="fas fa-user-cog"></i>
+                        <span>Profile</span>
+                    </button>
+                    <button id="adminLogoutBtn" class="btn btn-ghost">
+                        <i class="fas fa-sign-out-alt"></i>
+                        <span>Logout</span>
+                    </button>
+                </div>
             </div>
         </nav>
-        <div class="container">
-            <div class="admin-stats">
-                <div class="stat-card clickable-card" data-filter="all" title="Click to view all users">
-                    <h3>Total Users</h3>
-                    <p id="totalUsers">0</p>
-                </div>
-                <div class="stat-card clickable-card" data-filter="verified" title="Click to view verified users">
-                    <h3>Verified</h3>
-                    <p id="verifiedUsers">0</p>
-                </div>
-                <div class="stat-card clickable-card" data-filter="pending" title="Click to view pending verifications">
-                    <h3>Pending</h3>
-                    <p id="pendingVerifications">0</p>
-                </div>
-                <div class="stat-card clickable-card" data-filter="active" title="Click to view users with active subscriptions">
-                    <h3>Active Subs</h3>
-                    <p id="activeSubscriptions">0</p>
-                </div>
-                <div class="stat-card clickable-card" data-filter="trial" title="Click to view users in trial">
-                    <h3>In Trial</h3>
-                    <p id="trialUsers">0</p>
-                </div>
+        
+        <div class="admin-container">
+            <div class="admin-header">
+                <h1>Admin Dashboard</h1>
+                <p>Manage users, settings, and system configuration</p>
             </div>
-
-            <div class="admin-tabs">
-                <button class="tab-btn active" data-tab="users">User Management</button>
-                <button class="tab-btn" data-tab="payments">Payment Settings</button>
-                <button class="tab-btn" data-tab="email">Email Settings</button>
-                <button class="tab-btn" data-tab="system">System Config</button>
-            </div>
-
-            <div id="usersTab" class="tab-content">
-                <div class="toolbar">
-                    <input type="text" id="userSearch" placeholder="Search users...">
-                    <select id="userFilter">
-                        <option value="all">All Users</option>
-                        <option value="verified">Verified</option>
-                        <option value="active">Active Access</option>
-                        <option value="expired">Expired/No Access</option>
-                    </select>
-                    <div class="bulk-actions">
-                        <button id="bulkGrantBtn" class="btn btn-success"><i class="fa-solid fa-key"></i> Bulk Grant Access</button>
+            
+            <!-- Statistics Cards -->
+            <div class="stats-grid">
+                <div class="stat-card clickable-card" data-filter="all">
+                    <div class="stat-icon">
+                        <i class="fas fa-users"></i>
                     </div>
-                    <button id="refreshUsers" class="btn btn-secondary"><i class="fa-solid fa-sync"></i></button>
-                    <button id="exportUsers" class="btn btn-secondary"><i class="fa-solid fa-download"></i> CSV</button>
+                    <div class="stat-content">
+                        <h3 id="totalUsers">0</h3>
+                        <p>Total Users</p>
+                    </div>
+                </div>
+                <div class="stat-card clickable-card" data-filter="verified">
+                    <div class="stat-icon">
+                        <i class="fas fa-user-check"></i>
+                    </div>
+                    <div class="stat-content">
+                        <h3 id="verifiedUsers">0</h3>
+                        <p>Verified Users</p>
+                    </div>
+                </div>
+                <div class="stat-card clickable-card" data-filter="subscribed">
+                    <div class="stat-icon">
+                        <i class="fas fa-crown"></i>
+                    </div>
+                    <div class="stat-content">
+                        <h3 id="subscribedUsers">0</h3>
+                        <p>Subscribed Users</p>
+                    </div>
+                </div>
+                <div class="stat-card clickable-card" data-filter="trial">
+                    <div class="stat-icon">
+                        <i class="fas fa-clock"></i>
+                    </div>
+                    <div class="stat-content">
+                        <h3 id="trialUsers">0</h3>
+                        <p>Trial Users</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Admin Tabs -->
+            <div class="admin-tabs">
+                <button class="tab-btn active" data-tab="users">
+                    <i class="fas fa-users"></i>
+                    Users
+                </button>
+                <button class="tab-btn" data-tab="payments">
+                    <i class="fas fa-credit-card"></i>
+                    Payment Settings
+                </button>
+                <button class="tab-btn" data-tab="email">
+                    <i class="fas fa-envelope"></i>
+                    Email Settings
+                </button>
+                <button class="tab-btn" data-tab="system">
+                    <i class="fas fa-cogs"></i>
+                    System Settings
+                </button>
+            </div>
+            
+            <!-- Users Tab -->
+            <div id="usersTab" class="tab-content active">
+                <div class="tab-header">
+                    <div class="tab-controls">
+                        <input type="text" id="userSearch" placeholder="Search users..." class="search-input">
+                        <select id="userFilter" class="filter-select">
+                            <option value="all">All Users</option>
+                            <option value="verified">Verified</option>
+                            <option value="unverified">Unverified</option>
+                            <option value="subscribed">Subscribed</option>
+                            <option value="trial">Trial</option>
+                            <option value="expired">Expired</option>
+                        </select>
+                    </div>
+                    <div class="tab-actions">
+                        <button id="refreshUsers" class="btn btn-secondary">
+                            <i class="fas fa-sync"></i>
+                            Refresh
+                        </button>
+                        <button id="exportUsers" class="btn btn-primary">
+                            <i class="fas fa-download"></i>
+                            Export CSV
+                        </button>
+                        <button id="bulkGrantBtn" class="btn btn-success">
+                            <i class="fas fa-users-cog"></i>
+                            Bulk Grant Access
+                        </button>
+                    </div>
                 </div>
                 
-                <div class="table-container">
-                    <table class="data-table" id="usersTable">
+                <div class="users-table-container">
+                    <table class="users-table">
                         <thead>
                             <tr>
                                 <th><input type="checkbox" id="selectAllUsers"></th>
-                                <th>User</th>
+                                <th>Name</th>
+                                <th>Email</th>
                                 <th>Status</th>
-                                <th>Trial/Sub</th>
+                                <th>Subscription</th>
+                                <th>Created</th>
                                 <th>Actions</th>
                             </tr>
                         </thead>
-                        <tbody id="usersListTableBody">
-                            </tbody>
+                        <tbody id="usersTableBody">
+                            <!-- Users will be populated here -->
+                        </tbody>
                     </table>
                 </div>
-
-                <h3 class="mt-4">Pending Verifications</h3>
-                <div id="pendingList" class="pending-grid"></div>
             </div>
-
-            <div id="paymentsTab" class="tab-content hidden">
-                <div class="card settings-card">
+            
+            <!-- Payment Settings Tab -->
+            <div id="paymentsTab" class="tab-content">
+                <div class="settings-section">
                     <h3>Payment Configuration</h3>
-                    <p class="text-muted">Configure how users pay for the service after the 24-hour trial.</p>
                     <form id="paymentSettingsForm">
                         <div class="form-group">
-                            <label>Monthly Subscription Fee ($)</label>
-                            <input type="number" id="adminMonthlyFee" step="0.01" min="0" required>
+                            <label for="monthlyFee">Monthly Subscription Fee ($)</label>
+                            <input type="number" id="monthlyFee" step="0.01" min="0" required>
                         </div>
                         <div class="form-group">
-                            <label>PayPal Client ID</label>
-                            <input type="text" id="adminPaypalClientId" placeholder="PayPal Client ID">
-                            <small>Get from PayPal Developer Dashboard</small>
+                            <label for="stripePublishableKey">Stripe Publishable Key</label>
+                            <input type="text" id="stripePublishableKey" placeholder="pk_...">
                         </div>
                         <div class="form-group">
-                            <label>PayPal Client Secret</label>
-                            <input type="password" id="adminPaypalClientSecret" placeholder="PayPal Client Secret">
+                            <label for="stripeSecretKey">Stripe Secret Key</label>
+                            <input type="password" id="stripeSecretKey" placeholder="sk_...">
                         </div>
                         <div class="form-group">
-                            <label>Stripe Secret Key</label>
-                            <input type="password" id="adminStripeSecretKey" placeholder="sk_test_... or sk_live_...">
-                            <small>Get from Stripe Dashboard</small>
+                            <label for="paypalClientId">PayPal Client ID</label>
+                            <input type="text" id="paypalClientId">
                         </div>
                         <div class="form-group">
-                            <label>Stripe Webhook Secret</label>
-                            <input type="password" id="adminStripeWebhookSecret" placeholder="whsec_...">
-                            <small>For webhook signature verification</small>
-                        </div>
-                        <div class="form-group">
-                            <label>System Free API Key (Gemini)</label>
-                            <input type="password" id="adminSystemGeminiKey" placeholder="Leave blank to disable system-wide free tier">
-                            <small>If set, users can use "Google Gemini" without providing their own key.</small>
+                            <label for="paypalClientSecret">PayPal Client Secret</label>
+                            <input type="password" id="paypalClientSecret">
                         </div>
                         <button type="submit" class="btn btn-primary">Save Payment Settings</button>
                     </form>
                 </div>
             </div>
-
-            <div id="emailTab" class="tab-content hidden">
-                <div class="card settings-card">
-                    <h3>Email Configuration</h3>
-                    <p class="text-muted">Configure SMTP settings to send confirmation emails automatically.</p>
-                    
-                    <div id="emailStatus" class="status-indicator">
-                        <span class="status-dot status-error"></span>
-                        <span>Email service not configured</span>
-                    </div>
-                    
+            
+            <!-- Email Settings Tab -->
+            <div id="emailTab" class="tab-content">
+                <div class="settings-section">
+                    <h3>SMTP Configuration</h3>
                     <form id="emailSettingsForm">
                         <div class="form-group">
-                            <label>Email Address</label>
-                            <input type="email" id="smtpEmail" placeholder="your-email@gmail.com" required>
-                            <small>The email address that will send confirmation emails</small>
-                        </div>
-                        <div class="form-group">
-                            <label>App Password</label>
-                            <input type="password" id="smtpPassword" placeholder="16-character app password" required>
-                            <small>Generate this from your email provider's security settings</small>
-                        </div>
-                        <div class="form-group">
-                            <label>Email Provider</label>
-                            <select id="smtpProvider" required>
+                            <label for="smtpProvider">SMTP Provider</label>
+                            <select id="smtpProvider">
                                 <option value="gmail">Gmail</option>
-                                <option value="outlook">Outlook/Hotmail</option>
-                                <option value="yahoo">Yahoo Mail</option>
+                                <option value="outlook">Outlook</option>
                                 <option value="custom">Custom SMTP</option>
                             </select>
                         </div>
-                        <div id="customSmtpSettings" class="hidden">
+                        <div class="form-group">
+                            <label for="smtpEmail">Email Address</label>
+                            <input type="email" id="smtpEmail" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="smtpPassword">Email Password / App Password</label>
+                            <input type="password" id="smtpPassword" required>
+                        </div>
+                        <div id="customSmtpSection" class="hidden">
                             <div class="form-group">
-                                <label>SMTP Host</label>
-                                <input type="text" id="smtpHost" placeholder="smtp.example.com">
+                                <label for="smtpHost">SMTP Host</label>
+                                <input type="text" id="smtpHost">
                             </div>
                             <div class="form-group">
-                                <label>SMTP Port</label>
-                                <input type="number" id="smtpPort" placeholder="587" value="587">
+                                <label for="smtpPort">SMTP Port</label>
+                                <input type="number" id="smtpPort" value="587">
                             </div>
                         </div>
                         <div class="form-actions">
-                            <button type="submit" class="btn btn-primary">Save & Test Email Settings</button>
+                            <button type="submit" class="btn btn-primary">Save Email Settings</button>
                             <button type="button" id="testEmailBtn" class="btn btn-secondary">Send Test Email</button>
                         </div>
                     </form>
-                    
-                    <div class="email-help">
-                        <h4>Setup Instructions:</h4>
-                        <div class="help-section">
-                            <strong>Gmail:</strong>
-                            <ol>
-                                <li>Enable 2-factor authentication</li>
-                                <li>Go to Google Account → Security → App passwords</li>
-                                <li>Generate app password for "Mail"</li>
-                                <li>Use the 16-character password above</li>
-                            </ol>
-                        </div>
-                    </div>
                 </div>
             </div>
-
-            <div id="systemTab" class="tab-content hidden">
-                <div class="card settings-card">
-                    <h3>System Settings</h3>
-                    <div class="setting-row">
-                        <label>Allow New Registrations</label>
-                        <input type="checkbox" id="allowRegistration" checked>
+            
+            <!-- System Settings Tab -->
+            <div id="systemTab" class="tab-content">
+                <div class="settings-section">
+                    <h3>System Configuration</h3>
+                    <div class="form-group">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="allowRegistration" checked>
+                            Allow New User Registration
+                        </label>
                     </div>
-                    <div class="setting-row">
-                        <label>Require Email Verification</label>
-                        <input type="checkbox" id="requireEmailVerification" checked>
+                    <div class="form-group">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="requireEmailVerification" checked>
+                            Require Email Verification
+                        </label>
                     </div>
-                    <hr>
-                    <div class="setting-row danger-zone">
-                        <label>Clear All Data</label>
-                        <button id="clearAllData" class="btn btn-danger">Reset System</button>
+                    <div class="form-group">
+                        <button id="clearAllData" class="btn btn-danger">
+                            <i class="fas fa-trash"></i>
+                            Clear All User Data
+                        </button>
                     </div>
-                    <p class="stats-text">Local Storage Usage: <span id="storageUsed">0 KB</span></p>
                 </div>
             </div>
         </div>
@@ -649,104 +1136,95 @@
 
     <!-- User Details Modal -->
     <div id="userDetailsModal" class="modal hidden">
-        <div class="modal-content large-modal">
+        <div class="modal-content">
             <div class="modal-header">
                 <h3 id="userDetailsTitle">User Details</h3>
                 <button id="closeUserDetails" class="btn-close">&times;</button>
             </div>
             <div class="modal-body">
-                <div class="user-profile-section">
-                    <div class="user-avatar">
-                        <i class="fa-solid fa-user-circle fa-4x text-primary"></i>
-                    </div>
-                    <div class="user-basic-info">
-                        <h2 id="userFullName">Loading...</h2>
-                        <p id="userEmail" class="text-muted">Loading...</p>
-                        <div id="userStatus" class="status-badge">Loading...</div>
-                    </div>
-                </div>
-                
-                <div class="user-details-grid">
-                    <div class="detail-card">
-                        <h4><i class="fa-solid fa-info-circle"></i> Account Information</h4>
+                <div id="userDetailsContent">
+                    <div class="user-detail-section">
+                        <h4>Personal Information</h4>
                         <div class="detail-row">
-                            <span class="label">User ID:</span>
+                            <label>Full Name:</label>
+                            <span id="userFullName">-</span>
+                        </div>
+                        <div class="detail-row">
+                            <label>Email:</label>
+                            <span id="userEmail">-</span>
+                        </div>
+                        <div class="detail-row">
+                            <label>Status:</label>
+                            <span id="userStatus" class="status-badge">-</span>
+                        </div>
+                    </div>
+                    
+                    <div class="user-detail-section">
+                        <h4>Account Information</h4>
+                        <div class="detail-row">
+                            <label>User ID:</label>
                             <span id="userDetailId">-</span>
                         </div>
                         <div class="detail-row">
-                            <span class="label">Email Verified:</span>
+                            <label>Email Verified:</label>
                             <span id="userDetailVerified">-</span>
                         </div>
                         <div class="detail-row">
-                            <span class="label">Registration Date:</span>
+                            <label>Created:</label>
                             <span id="userDetailCreated">-</span>
                         </div>
                         <div class="detail-row">
-                            <span class="label">AI Provider:</span>
+                            <label>AI Provider:</label>
                             <span id="userDetailProvider">-</span>
                         </div>
                     </div>
                     
-                    <div class="detail-card">
-                        <h4><i class="fa-solid fa-crown"></i> Subscription Status</h4>
+                    <div class="user-detail-section">
+                        <h4>Subscription Status</h4>
                         <div class="detail-row">
-                            <span class="label">Current Status:</span>
+                            <label>Status:</label>
                             <span id="userDetailStatus">-</span>
                         </div>
                         <div class="detail-row">
-                            <span class="label">Trial Period:</span>
+                            <label>Trial Time:</label>
                             <span id="userDetailTrial">-</span>
                         </div>
                         <div class="detail-row">
-                            <span class="label">Subscription Expiry:</span>
+                            <label>Expiry:</label>
                             <span id="userDetailExpiry">-</span>
                         </div>
                         <div class="detail-row">
-                            <span class="label">Access Level:</span>
+                            <label>Access Level:</label>
                             <span id="userDetailAccess">-</span>
                         </div>
                     </div>
                     
-                    <div class="detail-card">
-                        <h4><i class="fa-solid fa-chart-line"></i> Usage Statistics</h4>
+                    <div class="user-detail-section">
+                        <h4>Usage Statistics</h4>
                         <div class="detail-row">
-                            <span class="label">Total Conversations:</span>
+                            <label>Conversations:</label>
                             <span id="userDetailConversations">-</span>
                         </div>
                         <div class="detail-row">
-                            <span class="label">Last Login:</span>
+                            <label>Last Login:</label>
                             <span id="userDetailLastLogin">-</span>
                         </div>
                         <div class="detail-row">
-                            <span class="label">API Keys Set:</span>
+                            <label>API Keys:</label>
                             <span id="userDetailApiKeys">-</span>
                         </div>
                         <div class="detail-row">
-                            <span class="label">Account Type:</span>
+                            <label>User Type:</label>
                             <span id="userDetailType">-</span>
                         </div>
                     </div>
                 </div>
-                
-                <div class="user-actions-section">
-                    <h4>Admin Actions</h4>
-                    <div class="action-buttons">
-                        <button id="backToUserList" class="btn btn-secondary">
-                            <i class="fa-solid fa-arrow-left"></i> Back to User List
-                        </button>
-                        <button id="grantUserAccess" class="btn btn-success">
-                            <i class="fa-solid fa-key"></i> Grant Access
-                        </button>
-                        <button id="editUserProfile" class="btn btn-primary">
-                            <i class="fa-solid fa-edit"></i> Edit Profile
-                        </button>
-                        <button id="viewUserConversations" class="btn btn-info">
-                            <i class="fa-solid fa-comments"></i> View Conversations
-                        </button>
-                        <button id="deleteUserAccount" class="btn btn-danger">
-                            <i class="fa-solid fa-trash"></i> Delete Account
-                        </button>
-                    </div>
+                <div class="modal-actions">
+                    <button id="backToUserList" class="btn btn-secondary">Back to List</button>
+                    <button id="grantUserAccess" class="btn btn-success">Grant Access</button>
+                    <button id="editUserProfile" class="btn btn-primary">Edit Profile</button>
+                    <button id="viewUserConversations" class="btn btn-info">View Conversations</button>
+                    <button id="deleteUserAccount" class="btn btn-danger">Delete Account</button>
                 </div>
             </div>
         </div>
@@ -760,111 +1238,349 @@
                 <button id="closeFilteredUsers" class="btn-close">&times;</button>
             </div>
             <div class="modal-body">
-                <div class="filtered-users-toolbar">
-                    <div class="search-section">
-                        <input type="text" id="filteredUserSearch" placeholder="Search users...">
+                <div class="modal-controls">
+                    <input type="text" id="filteredUserSearch" placeholder="Search users..." class="search-input">
+                    <div class="modal-actions">
                         <button id="refreshFilteredUsers" class="btn btn-secondary">
-                            <i class="fa-solid fa-sync"></i> Refresh
+                            <i class="fas fa-sync"></i>
+                            Refresh
                         </button>
-                    </div>
-                    <div class="bulk-actions-section">
                         <button id="selectAllFiltered" class="btn btn-outline">Select All</button>
-                        <button id="bulkGrantFiltered" class="btn btn-success">
-                            <i class="fa-solid fa-key"></i> Bulk Grant Access
-                        </button>
+                        <button id="bulkGrantFiltered" class="btn btn-success">Bulk Grant</button>
                     </div>
                 </div>
-                
                 <div class="filtered-users-list" id="filteredUsersList">
-                    <!-- Users will be populated here -->
+                    <!-- Filtered users will be populated here -->
                 </div>
             </div>
         </div>
     </div>
 
+    <!-- Bulk Grant Modal -->
     <div id="bulkGrantModal" class="modal hidden">
         <div class="modal-content">
             <div class="modal-header">
-                <h3>Grant Access</h3>
+                <h3>Bulk Grant Access</h3>
                 <button id="closeBulkGrant" class="btn-close">&times;</button>
             </div>
             <div class="modal-body">
-                <p>Grant access to <span id="bulkCount">0</span> selected users.</p>
+                <p>Grant access to <strong id="bulkCount">0</strong> selected users.</p>
                 <form id="bulkGrantForm">
                     <div class="form-group">
-                        <label>Duration</label>
-                        <select id="grantDuration" class="form-control">
-                            <option value="1">1 Month</option>
-                            <option value="3">3 Months</option>
-                            <option value="6">6 Months</option>
-                            <option value="12">1 Year</option>
-                            <option value="forever">Lifetime</option>
+                        <label for="grantType">Grant Type</label>
+                        <select id="grantType" required>
+                            <option value="">Select grant type</option>
+                            <option value="subscription">Full Subscription</option>
+                            <option value="trial">Extend Trial (24 hours)</option>
+                            <option value="comp">Complimentary Access</option>
                         </select>
                     </div>
-                    <button type="submit" class="btn btn-success btn-block">Grant Access</button>
+                    <div class="form-group">
+                        <label for="grantDuration">Duration (days, 0 for permanent)</label>
+                        <input type="number" id="grantDuration" min="0" value="30">
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary">Grant Access</button>
+                        <button type="button" class="btn btn-secondary" onclick="document.getElementById('bulkGrantModal').classList.add('hidden')">Cancel</button>
+                    </div>
                 </form>
             </div>
         </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
-    <script>
-        // Initialize EmailJS for Netlify deployment
-        // You'll need to replace these with your actual EmailJS credentials
-        const EMAILJS_CONFIG = {
-            publicKey: 'YOUR_EMAILJS_PUBLIC_KEY', // Replace with your EmailJS public key
-            serviceId: 'YOUR_SERVICE_ID', // Replace with your EmailJS service ID
-            templateId: 'YOUR_TEMPLATE_ID' // Replace with your EmailJS template ID
-        };
+    <!-- Admin Profile Page -->
+    <div id="adminProfilePage" class="page hidden">
+        <nav class="app-nav">
+            <div class="nav-container">
+                <div class="nav-brand">
+                    <button id="backToAdminDashboard" class="btn btn-ghost">
+                        <i class="fas fa-arrow-left"></i>
+                    </button>
+                    <img src="hrla-logo-compact.svg" alt="HRLA" class="nav-logo">
+                    <span class="nav-title">Admin Profile</span>
+                </div>
+                <div class="nav-menu">
+                    <button id="adminLogoutBtn2" class="btn btn-ghost">
+                        <i class="fas fa-sign-out-alt"></i>
+                        <span>Logout</span>
+                    </button>
+                </div>
+            </div>
+        </nav>
         
-        // Initialize EmailJS
-        if (typeof emailjs !== 'undefined') {
-            emailjs.init(EMAILJS_CONFIG.publicKey);
-        }
-        
-        // Function to send verification email via EmailJS
-        window.sendVerificationEmail = function(to, firstName, verificationLink) {
-            if (typeof emailjs === 'undefined') {
-                console.warn('EmailJS not loaded, showing verification link directly');
-                return Promise.resolve({ success: true, method: 'direct' });
-            }
+        <div class="profile-container">
+            <div class="profile-header">
+                <h1>Admin Profile</h1>
+                <p>Manage your administrator account settings</p>
+            </div>
             
-            const templateParams = {
-                to_email: to,
-                to_name: firstName,
-                verification_link: verificationLink,
-                from_name: 'HRLA Leave Assistant'
-            };
-            
-            return emailjs.send(EMAILJS_CONFIG.serviceId, EMAILJS_CONFIG.templateId, templateParams)
-                .then(function(response) {
-                    console.log('✅ Email sent successfully via EmailJS', response);
-                    return { success: true, method: 'emailjs' };
-                })
-                .catch(function(error) {
-                    console.warn('⚠️ EmailJS failed, showing verification link directly', error);
-                    return { success: true, method: 'direct' };
-                });
-        };
-        
-        // Simple logo loading
-        document.addEventListener('DOMContentLoaded', function() {
-            console.log('🖼️ Page loaded, checking logo...');
-            const logo = document.getElementById('mainLogo');
-            if (logo) {
-                logo.onload = function() {
-                    console.log('✅ Logo loaded successfully from:', this.src);
-                };
+            <div class="profile-content">
+                <form id="adminProfileForm">
+                    <div class="form-group">
+                        <label for="adminFirstName">First Name</label>
+                        <input type="text" id="adminFirstName" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="adminLastName">Last Name</label>
+                        <input type="text" id="adminLastName" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="adminEmail">Email Address</label>
+                        <input type="email" id="adminEmail" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="adminNewPassword">New Password (optional)</label>
+                        <input type="password" id="adminNewPassword" placeholder="Leave blank to keep current password">
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary">Update Profile</button>
+                        <button type="button" id="cancelProfileChanges" class="btn btn-secondary">Cancel</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Legal/Information Modals -->
+    
+    <!-- Terms of Use Modal -->
+    <div id="termsModal" class="modal hidden">
+        <div class="modal-content legal-modal">
+            <div class="modal-header">
+                <h3>Terms of Use</h3>
+                <button class="btn-close" onclick="document.getElementById('termsModal').classList.add('hidden')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p><strong>Effective Date:</strong> January 2026</p>
                 
-                logo.onerror = function() {
-                    console.error('❌ Logo failed to load from:', this.src);
-                    console.log('🔄 Trying fallback logo...');
-                    // Try the SVG version as fallback
-                    this.src = 'logo.svg';
-                };
-            }
-        });
-    </script>
+                <h4>1. Purpose of the Service</h4>
+                <p>HR Leave Assist ("HRLA") is an informational, decision-support tool designed to assist human resources professionals in understanding employee leave, accommodation, and interactive process frameworks under <strong>applicable federal and California law</strong>.</p>
+                <p>HRLA provides <strong>general informational guidance only</strong>. It is not a substitute for professional judgment, legal counsel, medical certification, or determinations made by regulatory agencies.</p>
+                
+                <h4>2. No Legal, Medical, or Compliance Advice</h4>
+                <p>HRLA does <strong>not</strong> provide:</p>
+                <ul>
+                    <li>Legal advice</li>
+                    <li>Medical advice</li>
+                    <li>Final eligibility determinations</li>
+                    <li>Binding interpretations of statutes or regulations</li>
+                    <li>Guarantees of compliance</li>
+                </ul>
+                <p>Use of HRLA does not create an attorney-client relationship, a medical provider-patient relationship, or any fiduciary duty. All employment decisions—including leave approval, accommodation determinations, interactive process outcomes, and return-to-work decisions—remain the sole responsibility of the employer.</p>
+                
+                <h4>3. California-Specific Limitations</h4>
+                <p>California employment laws, including but not limited to the California Family Rights Act (CFRA), Pregnancy Disability Leave (PDL), the Fair Employment and Housing Act (FEHA), and related regulations, are <strong>fact-specific, enforcement-driven, and subject to change</strong>.</p>
+                
+                <h4>4. User Responsibilities</h4>
+                <p>Users agree that they will:</p>
+                <ul>
+                    <li>Use HRLA for internal informational purposes only</li>
+                    <li>Exercise independent professional judgment</li>
+                    <li>Verify current laws and organizational policies</li>
+                    <li>Refrain from entering sensitive personal data</li>
+                </ul>
+                
+                <h4>5. Limitation of Liability</h4>
+                <p>To the extent permitted by applicable law, HRLA and its operators disclaim liability for decisions, actions, penalties, claims, or damages arising from use of the service. HRLA is provided <strong>"as is" and "as available,"</strong> without warranties of any kind, express or implied.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Refund Policy Modal -->
+    <div id="refundPolicyModal" class="modal hidden">
+        <div class="modal-content legal-modal">
+            <div class="modal-header">
+                <h3>Cancellation & Refund Policy</h3>
+                <button class="btn-close" onclick="document.getElementById('refundPolicyModal').classList.add('hidden')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <h4>No Refunds</h4>
+                <p>All purchases are <strong>non-refundable</strong>. Because this product provides immediate access to a licensed digital HR decision-support tool, <strong>no refunds or credits are issued</strong> for any reason, including partial use, non-use, or change of mind.</p>
+                
+                <h4>Monthly Subscriptions</h4>
+                <p>If you are on a <strong>monthly subscription</strong>, you may cancel at any time.</p>
+                <ul>
+                    <li>Cancellation stops <strong>future billing</strong></li>
+                    <li>Access continues through the <strong>end of the current billing period</strong></li>
+                    <li>No refunds or prorated credits are provided for the current month</li>
+                </ul>
+                
+                <h4>Annual Subscriptions</h4>
+                <p>If you are on an <strong>annual subscription with installment payments</strong>, you may cancel future payments at any time.</p>
+                <ul>
+                    <li>Cancellation stops <strong>remaining scheduled payments</strong></li>
+                    <li>No refunds or credits are issued for payments already made</li>
+                    <li>Access continues through the period already paid for</li>
+                </ul>
+                
+                <h4>Summary</h4>
+                <ul>
+                    <li>✔️ Cancel anytime</li>
+                    <li>✔️ Stop future payments</li>
+                    <li>✖️ No refunds</li>
+                    <li>✖️ No credits or proration</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- What HRLA Does/Doesn't Do Modal -->
+    <div id="whatItDoesModal" class="modal hidden">
+        <div class="modal-content legal-modal">
+            <div class="modal-header">
+                <h3>What HR Leave Assist Does / Does Not Do</h3>
+                <button class="btn-close" onclick="document.getElementById('whatItDoesModal').classList.add('hidden')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="comparison-table">
+                    <div class="table-row header">
+                        <div class="table-cell">HRLA Does</div>
+                        <div class="table-cell">HRLA Does Not</div>
+                    </div>
+                    <div class="table-row">
+                        <div class="table-cell">Provides clear, practical guidance on employee leave and accommodation questions under <strong>California and Federal law</strong></div>
+                        <div class="table-cell">Provide legal advice or medical advice</div>
+                    </div>
+                    <div class="table-row">
+                        <div class="table-cell">Translates complex leave frameworks (e.g., CFRA, PDL, FMLA, ADA) into understandable, HR-ready explanations</div>
+                        <div class="table-cell">Make final eligibility or compliance determinations</div>
+                    </div>
+                    <div class="table-row">
+                        <div class="table-cell">Helps HR professionals understand how different leave and accommodation rules may apply to a specific scenario</div>
+                        <div class="table-cell">Replace legal counsel, medical certification, or agency determinations</div>
+                    </div>
+                    <div class="table-row">
+                        <div class="table-cell">Supports consistent, compliant communication with employees</div>
+                        <div class="table-cell">Draft policies, handbooks, or formal legal documents</div>
+                    </div>
+                    <div class="table-row">
+                        <div class="table-cell">Identifies when the <strong>interactive process</strong> or accommodation considerations may be required</div>
+                        <div class="table-cell">Conduct or document the interactive process on your behalf</div>
+                    </div>
+                </div>
+                
+                <div class="summary-section">
+                    <h4>Plain-Language Summary for Buyers</h4>
+                    <p>HRLA helps you understand the rules and apply them thoughtfully. You remain responsible for the final decision.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Start Guide Modal -->
+    <div id="quickStartModal" class="modal hidden">
+        <div class="modal-content legal-modal">
+            <div class="modal-header">
+                <h3>Leave Assistant — Quick Start Guide</h3>
+                <button class="btn-close" onclick="document.getElementById('quickStartModal').classList.add('hidden')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <h4>For HR Professionals</h4>
+                
+                <h5>What This Tool Does</h5>
+                <p>The Leave Assistant drafts <strong>employee-ready HR responses</strong> to leave and accommodation questions. It saves drafting time while keeping <strong>HR in control of the final message</strong>.</p>
+                
+                <h5>How to Use (Fast)</h5>
+                
+                <div class="step-guide">
+                    <div class="guide-step">
+                        <span class="step-number">1️⃣</span>
+                        <div class="step-content">
+                            <h6>Enter the Question or Email</h6>
+                            <p>Copy/paste the employee's message or type your leave question. Use the employee's wording whenever possible.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="guide-step">
+                        <span class="step-number">2️⃣</span>
+                        <div class="step-content">
+                            <h6>Review the Draft Response</h6>
+                            <p>The assistant generates a response written from HR to the employee that's clear, professional, and employee-friendly.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="guide-step">
+                        <span class="step-number">3️⃣</span>
+                        <div class="step-content">
+                            <h6>Verify the Details</h6>
+                            <p>Before using: Confirm dates, leave type, and eligibility assumptions. Check alignment with your policies. <strong>HR remains the final authority.</strong></p>
+                        </div>
+                    </div>
+                    
+                    <div class="guide-step">
+                        <span class="step-number">4️⃣</span>
+                        <div class="step-content">
+                            <h6>Edit as Needed</h6>
+                            <p>Make light edits to add internal contacts, adjust tone, or remove sections that don't apply. <strong>Editing is expected.</strong></p>
+                        </div>
+                    </div>
+                    
+                    <div class="guide-step">
+                        <span class="step-number">5️⃣</span>
+                        <div class="step-content">
+                            <h6>Send or Save</h6>
+                            <p>Use the final response to reply to the employee, save to the employee file, or maintain consistent HR documentation.</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="best-practice">
+                    <h5>Best Practice</h5>
+                    <blockquote>Use the Leave Assistant as your <strong>first-draft HR partner</strong> — fast, consistent, and supportive — with <strong>HR always in control</strong>.</blockquote>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- User Access & Licensing Modal -->
+    <div id="accessLicensingModal" class="modal hidden">
+        <div class="modal-content legal-modal">
+            <div class="modal-header">
+                <h3>User Access, Licensing & Data Use</h3>
+                <button class="btn-close" onclick="document.getElementById('accessLicensingModal').classList.add('hidden')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <h4>What is this tool?</h4>
+                <p>This is an internal HR support tool that helps HR teams draft clear, consistent responses to employee leave and accommodation questions. It does not make decisions, send emails, or replace HR judgment. It helps HR respond faster and more consistently.</p>
+                
+                <h4>Who is allowed to use it?</h4>
+                <p>Only authorized HR staff or designated administrators within the organization may use this tool. It is not for employees and should not be shared outside the organization.</p>
+                
+                <h4>What does it help with?</h4>
+                <p>The tool helps HR:</p>
+                <ul>
+                    <li>Draft responses to employee leave questions</li>
+                    <li>Outline next steps in leave or accommodation situations</li>
+                    <li>Keep explanations clear, consistent, and professional</li>
+                    <li>Reduce the time spent rewriting the same answers</li>
+                </ul>
+                <p><strong>HR reviews and approves everything before it is used.</strong></p>
+                
+                <h4>What does it NOT do?</h4>
+                <p>This tool does not:</p>
+                <ul>
+                    <li>Approve or deny leave</li>
+                    <li>Decide eligibility</li>
+                    <li>Calculate pay or benefits</li>
+                    <li>Store employee records</li>
+                    <li>Send messages to employees</li>
+                    <li>Replace HR systems or legal review</li>
+                </ul>
+                <p><em>Think of it as a smart drafting assistant, not an automated decision-maker.</em></p>
+                
+                <h4>Summary</h4>
+                <ul>
+                    <li>✔️ Helps HR draft responses faster</li>
+                    <li>✔️ Improves consistency and clarity</li>
+                    <li>✔️ Keeps decisions with people—not software</li>
+                    <li>✖️ Does not make decisions</li>
+                    <li>✖️ Does not store data</li>
+                    <li>✖️ Not for employee self-service</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
     <script src="app.js"></script>
 </body>
 </html>
