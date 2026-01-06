@@ -1272,6 +1272,89 @@ app.get('/api/health', (req, res) => {
     });
 });
 
+// Reset user password
+app.post('/api/admin/reset-password/:userId', requireAdmin, (req, res) => {
+    const { userId } = req.params;
+    const { newPassword } = req.body;
+    const users = loadData(USERS_FILE, []);
+    
+    if (!newPassword || newPassword.length < 6) {
+        return res.status(400).json({ error: 'Password must be at least 6 characters long' });
+    }
+    
+    const userIndex = users.findIndex(u => u.id === userId && !u.isAdmin);
+    if (userIndex === -1) {
+        return res.status(404).json({ error: 'User not found' });
+    }
+    
+    users[userIndex].password = newPassword;
+    saveData(USERS_FILE, users);
+    
+    res.json({
+        success: true,
+        message: 'Password reset successfully'
+    });
+});
+
+// Edit user profile
+app.put('/api/admin/edit-user/:userId', requireAdmin, (req, res) => {
+    const { userId } = req.params;
+    const { firstName, lastName, email } = req.body;
+    const users = loadData(USERS_FILE, []);
+    
+    if (!firstName || !lastName || !email) {
+        return res.status(400).json({ error: 'First name, last name, and email are required' });
+    }
+    
+    const userIndex = users.findIndex(u => u.id === userId && !u.isAdmin);
+    if (userIndex === -1) {
+        return res.status(404).json({ error: 'User not found' });
+    }
+    
+    // Check if email is already taken by another user
+    const existingUser = users.find(u => u.email.toLowerCase() === email.toLowerCase() && u.id !== userId);
+    if (existingUser) {
+        return res.status(400).json({ error: 'Email address is already in use' });
+    }
+    
+    users[userIndex].firstName = firstName;
+    users[userIndex].lastName = lastName;
+    users[userIndex].email = email.toLowerCase();
+    
+    saveData(USERS_FILE, users);
+    
+    res.json({
+        success: true,
+        message: 'User updated successfully',
+        user: users[userIndex]
+    });
+});
+
+// Get user conversations
+app.get('/api/admin/user-conversations/:userId', requireAdmin, (req, res) => {
+    const { userId } = req.params;
+    const users = loadData(USERS_FILE, []);
+    
+    // Verify user exists
+    const user = users.find(u => u.id === userId);
+    if (!user) {
+        return res.status(404).json({ error: 'User not found' });
+    }
+    
+    const conversations = getUserConversations(userId);
+    
+    res.json({
+        success: true,
+        conversations: conversations,
+        user: {
+            id: user.id,
+            firstName: user.firstName,
+            lastName: user.lastName,
+            email: user.email
+        }
+    });
+});
+
 // ==========================================
 // STATIC FILES
 // ==========================================

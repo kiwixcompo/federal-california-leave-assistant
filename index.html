@@ -380,7 +380,7 @@
                 </div>
                 <div class="footer-bottom">
                     <div class="footer-bottom-content">
-                        <p>&copy; 2024 HRLA. All rights reserved.</p>
+                        <p>&copy; <span id="currentYear">2024</span> HRLA. All rights reserved.</p>
                         <div class="footer-badges">
                             <span class="badge">
                                 <i class="fas fa-shield-alt"></i>
@@ -1219,9 +1219,10 @@
                         </div>
                     </div>
                 </div>
-                <div class="modal-actions">
+                <div class="modal-actions user-actions-section">
                     <button id="backToUserList" class="btn btn-secondary">Back to List</button>
                     <button id="grantUserAccess" class="btn btn-success">Grant Access</button>
+                    <button id="resetUserPassword" class="btn btn-warning">Reset Password</button>
                     <button id="editUserProfile" class="btn btn-primary">Edit Profile</button>
                     <button id="viewUserConversations" class="btn btn-info">View Conversations</button>
                     <button id="deleteUserAccount" class="btn btn-danger">Delete Account</button>
@@ -1329,8 +1330,16 @@
                         <input type="email" id="adminEmail" required>
                     </div>
                     <div class="form-group">
+                        <label for="adminCurrentPassword">Current Password (required for password change)</label>
+                        <input type="password" id="adminCurrentPassword" placeholder="Enter current password to change password">
+                    </div>
+                    <div class="form-group">
                         <label for="adminNewPassword">New Password (optional)</label>
                         <input type="password" id="adminNewPassword" placeholder="Leave blank to keep current password">
+                    </div>
+                    <div class="form-group">
+                        <label for="adminConfirmPassword">Confirm New Password</label>
+                        <input type="password" id="adminConfirmPassword" placeholder="Confirm new password">
                     </div>
                     <div class="form-actions">
                         <button type="submit" class="btn btn-primary">Update Profile</button>

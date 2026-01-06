@@ -2114,6 +2114,16 @@ body {
     flex-wrap: wrap;
 }
 
+.user-actions-section {
+    display: flex;
+    gap: 0.75rem;
+    justify-content: flex-end;
+    margin-top: 1.5rem;
+    padding-top: 1rem;
+    border-top: 1px solid #e5e7eb;
+    flex-wrap: wrap;
+}
+
 .filtered-users-list {
     max-height: 400px;
     overflow-y: auto;

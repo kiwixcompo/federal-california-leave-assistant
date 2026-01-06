@@ -16,6 +16,9 @@ class LeaveAssistantApp {
             // Check for stored session
             this.sessionToken = localStorage.getItem('sessionToken');
             
+            // Update footer year
+            this.updateFooterYear();
+            
             // 3. Start App
             this.init();
             this.setupIdleTimer();
@@ -450,6 +453,7 @@ class LeaveAssistantApp {
         // User details modal action handlers
         document.getElementById('backToUserList')?.addEventListener('click', () => this.backToUserListFromModal());
         document.getElementById('grantUserAccess')?.addEventListener('click', () => this.grantUserAccessFromModal());
+        document.getElementById('resetUserPassword')?.addEventListener('click', () => this.resetUserPasswordFromModal());
         document.getElementById('editUserProfile')?.addEventListener('click', () => this.editUserFromModal());
         document.getElementById('viewUserConversations')?.addEventListener('click', () => this.viewUserConversationsFromModal());
         document.getElementById('deleteUserAccount')?.addEventListener('click', () => this.deleteUserFromModal());
@@ -776,8 +780,123 @@ class LeaveAssistantApp {
 
             let responseText = '';
             const systemPrompts = {
-                federal: "You are a Federal FMLA HR Assistant. Provide compliant, neutral responses regarding Federal FMLA law only. Do not give legal advice.",
-                california: "You are a California HR Assistant. Provide compliant responses regarding CFRA, PDL, and FMLA interaction. Order of analysis: FMLA -> CFRA -> PDL."
+                federal: `SYSTEM INSTRUCTIONS (HR PRACTITIONER · EMPLOYEE-FACING · INPUT-GATED)
+
+0. Input Gate — HARD STOP (Critical)
+Do not generate any response until the user enters a Quick Question or an Email.
+If no user input is provided: Remain silent, do not draft an email, do not provide guidance, examples, or filler text.
+This rule overrides all other instructions.
+
+1. System Role & Purpose (Non-Negotiable)
+You are an AI-assisted HR leave response tool.
+Your sole function is to draft employee-facing email responses to questions about medical and family leave under the Federal Family and Medical Leave Act (FMLA).
+All responses must:
+- Be written as if sent directly from Human Resources
+- Be ready to send without editing
+- Be concise, calm, and supportive
+- Answer only what the employee asked
+- Avoid unnecessary legal explanation
+You do not replace HR judgment, employer policy, or legal determinations.
+
+2. Voice & Authority (Strict Enforcement)
+Required Voice - Write in first-person plural only: "we", "our office", "our team"
+The HR professional is the authority speaking directly to the employee.
+Prohibited Language (Never Use): "HR can confirm…", "Your HR department…", "Contact HR…", "HR will review…"
+Required Equivalent Language: "We can review…", "We'll confirm…", "We can walk you through next steps…", "Let us know if you'd like us to take a look…"
+Never imply the employee must go elsewhere for answers.
+
+3. Response Style & Structure
+Length: Default to short, direct responses. Typically 2–4 short paragraphs. Expand only when needed to avoid confusion.
+Tone: Calm, Reassuring, Professional, Human. You are responding to a real employee — not explaining the law.
+
+4. Content Boundaries (Strict)
+You MAY: Answer the employee's specific question, Explain what generally happens next, Clarify job protection vs pay (briefly), Use conditional language when prior leave is mentioned, Acknowledge return-to-work or accommodation discussions without legal framing.
+You MUST NOT: Provide legal background or history, Explain statutory mechanics, Cite statutes, regulations, or sections, List eligibility formulas unless explicitly asked, State exact leave balances, Declare leave approved, denied, exhausted, or designated.
+
+5. Law References (Minimal & Controlled)
+Reference "FMLA" by name only. Mention it once at most.
+Approved Example: "This type of leave can provide job protection for qualifying medical absences."
+Prohibited Example: "FMLA provides up to 12 weeks of job-protected leave in a rolling 12-month period…"
+
+6. Risk-Safe Language Rules
+When prior leave is mentioned, use conditional phrasing only: "may be reduced", "could already be used", "depends on how prior time was designated"
+Never calculate remaining leave. Never assume eligibility or coverage.
+
+7. Job Protection vs Pay (Simplified)
+Always distinguish job-protected leave from pay. Never imply FMLA provides pay.
+Approved phrasing: "This type of leave provides job protection. Pay depends on available paid time or other benefits that may apply."
+
+8. Federal Scope Only
+This covers Federal FMLA only. Do not reference: State laws, Paid family leave programs, Disability insurance, CFRA or PDL.
+If the employee raises something outside scope: "We can review how that applies based on your situation."
+
+9. Mandatory Closing (All Responses)
+Every response must end with a supportive invitation, such as:
+"Please let us know if you have questions or would like us to review next steps with you."
+"Let us know if you'd like us to take a look or walk through next steps."
+
+10. Final Self-Check (Silent but Required)
+Before finalizing, ask internally: "Would an experienced HR professional send this email exactly as written?"
+If no, simplify and shorten.`,
+                california: `SYSTEM INSTRUCTIONS (HR PRACTITIONER · EMPLOYEE-FACING · INPUT-GATED)
+
+0. Input Gate — HARD STOP (Critical)
+Do not generate any response until the user enters a Quick Question or an Email.
+If no user input is provided: Remain silent, do not draft an email, do not provide guidance, examples, or filler text.
+This rule overrides all other instructions.
+
+1. System Role & Purpose (Non-Negotiable)
+You are an AI-assisted HR leave response tool for California employees.
+Your sole function is to draft employee-facing email responses to questions about medical and family leave under California and Federal laws (CFRA, PDL, and FMLA).
+Analysis order: FMLA → CFRA → PDL.
+All responses must:
+- Be written as if sent directly from Human Resources
+- Be ready to send without editing
+- Be concise, calm, and supportive
+- Answer only what the employee asked
+- Avoid unnecessary legal explanation
+You do not replace HR judgment, employer policy, or legal determinations.
+
+2. Voice & Authority (Strict Enforcement)
+Required Voice - Write in first-person plural only: "we", "our office", "our team"
+The HR professional is the authority speaking directly to the employee.
+Prohibited Language (Never Use): "HR can confirm…", "Your HR department…", "Contact HR…", "HR will review…"
+Required Equivalent Language: "We can review…", "We'll confirm…", "We can walk you through next steps…", "Let us know if you'd like us to take a look…"
+Never imply the employee must go elsewhere for answers.
+
+3. Response Style & Structure
+Length: Default to short, direct responses. Typically 2–4 short paragraphs. Expand only when needed to avoid confusion.
+Tone: Calm, Reassuring, Professional, Human. You are responding to a real employee — not explaining the law.
+
+4. Content Boundaries (Strict)
+You MAY: Answer the employee's specific question, Explain what generally happens next, Clarify job protection vs pay (briefly), Use conditional language when prior leave is mentioned, Acknowledge return-to-work or accommodation discussions without legal framing.
+You MUST NOT: Provide legal background or history, Explain statutory mechanics, Cite statutes, regulations, or sections, List eligibility formulas unless explicitly asked, State exact leave balances, Declare leave approved, denied, exhausted, or designated.
+
+5. Law References (Minimal & Controlled)
+Reference applicable laws by name only (FMLA, CFRA, PDL). Mention each once at most.
+Approved Example: "This type of leave can provide job protection for qualifying medical absences under California and federal law."
+Prohibited Example: "CFRA provides up to 12 weeks of job-protected leave in a rolling 12-month period…"
+
+6. Risk-Safe Language Rules
+When prior leave is mentioned, use conditional phrasing only: "may be reduced", "could already be used", "depends on how prior time was designated"
+Never calculate remaining leave. Never assume eligibility or coverage.
+
+7. Job Protection vs Pay (Simplified)
+Always distinguish job-protected leave from pay. Never imply leave laws provide pay.
+Approved phrasing: "This type of leave provides job protection. Pay depends on available paid time or other benefits that may apply."
+
+8. California Scope
+This covers California-specific laws (CFRA, PDL) and Federal FMLA interaction.
+If the employee raises something outside scope: "We can review how that applies based on your situation."
+
+9. Mandatory Closing (All Responses)
+Every response must end with a supportive invitation, such as:
+"Please let us know if you have questions or would like us to review next steps with you."
+"Let us know if you'd like us to take a look or walk through next steps."
+
+10. Final Self-Check (Silent but Required)
+Before finalizing, ask internally: "Would an experienced HR professional send this email exactly as written?"
+If no, simplify and shorten.`
             };
 
             if (provider === 'demo') {
@@ -937,6 +1056,14 @@ class LeaveAssistantApp {
     // ==========================================
     // UTILITIES
     // ==========================================
+    
+    updateFooterYear() {
+        const currentYear = new Date().getFullYear();
+        const yearElement = document.getElementById('currentYear');
+        if (yearElement) {
+            yearElement.textContent = currentYear;
+        }
+    }
 
     setToolMode(tool, mode) {
         // Update active mode button
@@ -1552,26 +1679,82 @@ class LeaveAssistantApp {
         // Store current user for modal actions
         this.currentModalUser = user;
         
-        // Populate user details modal
-        document.getElementById('userDetailsTitle').textContent = `${user.firstName} ${user.lastName}${user.isAdmin ? ' (Administrator)' : ''}`;
-        document.getElementById('userFullName').textContent = `${user.firstName} ${user.lastName}`;
-        document.getElementById('userEmail').textContent = user.email;
-        
-        // Status badge
-        const statusEl = document.getElementById('userStatus');
-        if (isPending) {
-            statusEl.innerHTML = '<span class="badge badge-warning">Pending Verification</span>';
-        } else if (user.isAdmin) {
-            statusEl.innerHTML = '<span class="badge badge-admin">Administrator</span>';
-        } else {
-            const status = this.getSubscriptionStatus(user);
-            const statusClass = status.active ? (status.type === 'trial' ? 'badge-warning' : 'badge-success') : 'badge-danger';
-            const statusText = status.active ? (status.type === 'trial' ? 'Trial Active' : 'Premium Active') : 'Access Expired';
-            statusEl.innerHTML = `<span class="badge ${statusClass}">${statusText}</span>`;
+        try {
+            // Populate user details modal
+            document.getElementById('userDetailsTitle').textContent = `${user.firstName} ${user.lastName}${user.isAdmin ? ' (Administrator)' : ''}`;
+            document.getElementById('userFullName').textContent = `${user.firstName} ${user.lastName}`;
+            document.getElementById('userEmail').textContent = user.email;
+            
+            // Status badge
+            const statusEl = document.getElementById('userStatus');
+            if (isPending) {
+                statusEl.innerHTML = '<span class="badge badge-warning">Pending Verification</span>';
+            } else if (user.isAdmin) {
+                statusEl.innerHTML = '<span class="badge badge-admin">Administrator</span>';
+            } else {
+                const status = this.getSubscriptionStatus(user);
+                const statusClass = status.active ? (status.type === 'trial' ? 'badge-warning' : 'badge-success') : 'badge-danger';
+                const statusText = status.active ? (status.type === 'trial' ? 'Trial Active' : 'Premium Active') : 'Access Expired';
+                statusEl.innerHTML = `<span class="badge ${statusClass}">${statusText}</span>`;
+            }
+            
+            // Account information
+            document.getElementById('userDetailId').textContent = user.id;
+            document.getElementById('userDetailVerified').textContent = user.emailVerified ? 'Yes' : 'No';
+            document.getElementById('userDetailCreated').textContent = new Date(user.createdAt).toLocaleDateString();
+            document.getElementById('userDetailProvider').textContent = user.aiProvider || 'Not Set';
+            
+            // Subscription status
+            if (isPending) {
+                document.getElementById('userDetailStatus').textContent = 'Pending Verification';
+                document.getElementById('userDetailTrial').textContent = 'N/A';
+                document.getElementById('userDetailExpiry').textContent = 'N/A';
+                document.getElementById('userDetailAccess').textContent = 'No Access';
+            } else if (user.isAdmin) {
+                document.getElementById('userDetailStatus').textContent = 'Administrator';
+                document.getElementById('userDetailTrial').textContent = 'N/A';
+                document.getElementById('userDetailExpiry').textContent = 'Permanent';
+                document.getElementById('userDetailAccess').textContent = 'Full Access';
+            } else {
+                const status = this.getSubscriptionStatus(user);
+                document.getElementById('userDetailStatus').textContent = status.active ? 
+                    (status.type === 'trial' ? 'Trial Active' : 'Premium Active') : 'Expired';
+                
+                if (status.type === 'trial') {
+                    const timeLeft = new Date(status.expiry).getTime() - Date.now();
+                    const hoursLeft = Math.floor(timeLeft / (1000 * 60 * 60));
+                    document.getElementById('userDetailTrial').textContent = timeLeft > 0 ? `${hoursLeft} hours remaining` : 'Expired';
+                } else {
+                    document.getElementById('userDetailTrial').textContent = 'N/A';
+                }
+                
+                document.getElementById('userDetailExpiry').textContent = status.expiry ? 
+                    new Date(status.expiry).toLocaleDateString() : 'N/A';
+                document.getElementById('userDetailAccess').textContent = status.active ? 'Active' : 'No Access';
+            }
+            
+            // Usage statistics (placeholder - you can implement actual tracking)
+            document.getElementById('userDetailConversations').textContent = '0'; // Implement conversation tracking
+            document.getElementById('userDetailLastLogin').textContent = 'Current Session'; // Implement last login tracking
+            document.getElementById('userDetailApiKeys').textContent = this.getUserApiKeyStatus(user);
+            document.getElementById('userDetailType').textContent = user.isAdmin ? 'Administrator' : 'Regular User';
+            
+            // Show/hide action buttons based on user type
+            const actionButtons = document.querySelector('.user-actions-section');
+            if (user.isAdmin || isPending) {
+                actionButtons.style.display = 'none';
+            } else {
+                actionButtons.style.display = 'flex';
+            }
+            
+            // Show the modal (it will appear on top due to higher z-index)
+            document.getElementById('userDetailsModal').classList.remove('hidden');
+            
+        } catch (error) {
+            console.error('Error showing user details:', error);
+            this.showError('Failed to load user details');
         }
-        
-        // Account information
-        document.getElementById('userDetailId').textContent = user.id;
+    }
         document.getElementById('userDetailVerified').textContent = user.emailVerified ? 'Yes' : 'No';
         document.getElementById('userDetailCreated').textContent = new Date(user.createdAt).toLocaleDateString();
         document.getElementById('userDetailProvider').textContent = user.aiProvider || 'Not Set';
@@ -1655,17 +1838,42 @@ class LeaveAssistantApp {
         }
     }
     
+    resetUserPasswordFromModal() {
+        if (this.currentModalUser) {
+            // Close user details modal
+            document.getElementById('userDetailsModal').classList.add('hidden');
+            // Reset password
+            this.resetUserPassword(this.currentModalUser.id);
+            // Refresh the filtered users modal if it was open
+            if (this.currentModalFilter) {
+                setTimeout(() => {
+                    this.showFilteredUsers(this.currentModalFilter);
+                }, 500);
+            }
+        }
+    }
+    
     editUserFromModal() {
         if (this.currentModalUser) {
-            // Implement user editing functionality
-            this.showError('User editing functionality coming soon');
+            // Close user details modal
+            document.getElementById('userDetailsModal').classList.add('hidden');
+            // Edit user
+            this.editUser(this.currentModalUser.id);
+            // Refresh the filtered users modal if it was open
+            if (this.currentModalFilter) {
+                setTimeout(() => {
+                    this.showFilteredUsers(this.currentModalFilter);
+                }, 500);
+            }
         }
     }
     
     viewUserConversationsFromModal() {
         if (this.currentModalUser) {
-            // Implement conversation viewing functionality
-            this.showError('Conversation viewing functionality coming soon');
+            // Close user details modal
+            document.getElementById('userDetailsModal').classList.add('hidden');
+            // View conversations
+            this.viewUserConversations(this.currentModalUser.id);
         }
     }
     
@@ -2100,9 +2308,6 @@ class LeaveAssistantApp {
         document.getElementById('adminFirstName').value = this.currentUser.firstName || '';
         document.getElementById('adminLastName').value = this.currentUser.lastName || '';
         document.getElementById('adminEmail').value = this.currentUser.email || '';
-        document.getElementById('adminUserId').textContent = this.currentUser.id || '-';
-        document.getElementById('adminCreatedDate').textContent = this.currentUser.createdAt ? 
-            new Date(this.currentUser.createdAt).toLocaleDateString() : '-';
         
         // Clear password fields
         document.getElementById('adminCurrentPassword').value = '';
@@ -2245,6 +2450,128 @@ class LeaveAssistantApp {
         } catch (error) {
             console.error('Grant access error:', error);
             this.showError('Failed to grant access');
+        }
+    }
+
+    async resetUserPassword(userId) {
+        const newPassword = prompt('Enter new password for user (minimum 6 characters):', '');
+        if (!newPassword) return;
+        
+        if (newPassword.length < 6) {
+            this.showError('Password must be at least 6 characters long');
+            return;
+        }
+        
+        if (!confirm(`Are you sure you want to reset this user's password to "${newPassword}"?`)) {
+            return;
+        }
+        
+        try {
+            const response = await fetch(this.getApiUrl(`admin/reset-password/${userId}`), {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${this.sessionToken}`
+                },
+                body: JSON.stringify({
+                    newPassword: newPassword
+                })
+            });
+            
+            const data = await response.json();
+            
+            if (response.ok && data.success) {
+                this.showSuccess('Password reset successfully');
+                this.loadAdminDashboard();
+            } else {
+                this.showError(data.error || 'Failed to reset password');
+            }
+        } catch (error) {
+            console.error('Reset password error:', error);
+            this.showError('Failed to reset password');
+        }
+    }
+
+    async editUser(userId) {
+        // Find the user
+        const user = this.users.find(u => u.id === userId);
+        if (!user) {
+            this.showError('User not found');
+            return;
+        }
+        
+        const firstName = prompt('First Name:', user.firstName);
+        if (firstName === null) return; // User cancelled
+        
+        const lastName = prompt('Last Name:', user.lastName);
+        if (lastName === null) return; // User cancelled
+        
+        const email = prompt('Email:', user.email);
+        if (email === null) return; // User cancelled
+        
+        if (!firstName.trim() || !lastName.trim() || !email.trim()) {
+            this.showError('All fields are required');
+            return;
+        }
+        
+        try {
+            const response = await fetch(this.getApiUrl(`admin/edit-user/${userId}`), {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${this.sessionToken}`
+                },
+                body: JSON.stringify({
+                    firstName: firstName.trim(),
+                    lastName: lastName.trim(),
+                    email: email.trim()
+                })
+            });
+            
+            const data = await response.json();
+            
+            if (response.ok && data.success) {
+                this.showSuccess('User updated successfully');
+                this.loadAdminDashboard();
+            } else {
+                this.showError(data.error || 'Failed to update user');
+            }
+        } catch (error) {
+            console.error('Edit user error:', error);
+            this.showError('Failed to update user');
+        }
+    }
+
+    async viewUserConversations(userId) {
+        try {
+            const response = await fetch(this.getApiUrl(`admin/user-conversations/${userId}`), {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${this.sessionToken}`
+                }
+            });
+            
+            const data = await response.json();
+            
+            if (response.ok && data.success) {
+                const conversations = data.conversations || [];
+                if (conversations.length === 0) {
+                    this.showSuccess('This user has no conversations yet');
+                } else {
+                    let conversationText = `User has ${conversations.length} conversation(s):\n\n`;
+                    conversations.forEach((conv, index) => {
+                        conversationText += `${index + 1}. ${conv.toolName} - ${new Date(conv.timestamp).toLocaleString()}\n`;
+                        conversationText += `Input: ${conv.input.substring(0, 100)}${conv.input.length > 100 ? '...' : ''}\n`;
+                        conversationText += `Provider: ${conv.provider}\n\n`;
+                    });
+                    alert(conversationText);
+                }
+            } else {
+                this.showError(data.error || 'Failed to load conversations');
+            }
+        } catch (error) {
+            console.error('View conversations error:', error);
+            this.showError('Failed to load conversations');
         }
     }
 
