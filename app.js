@@ -8,6 +8,7 @@ class LeaveAssistantApp {
             this.idleTimeout = 30 * 60 * 1000; // 30 minutes in milliseconds
             this.trialTimerInterval = null; // For countdown timer
             this.serverRunning = false;
+            this.lastConversation = {}; // Store conversation context for regeneration and follow-ups
             
             // Initialize users from localStorage for client-side fallback
             this.users = this.loadUsers();
@@ -793,7 +794,7 @@ Your sole function is to draft employee-facing email responses to questions abou
 All responses must:
 - Be written as if sent directly from Human Resources
 - Be ready to send without editing
-- Be concise, calm, and supportive
+- Be concise, friendly, and professional
 - Answer only what the employee asked
 - Avoid unnecessary legal explanation
 You do not replace HR judgment, employer policy, or legal determinations.
@@ -806,8 +807,9 @@ Required Equivalent Language: "We can review…", "We'll confirm…", "We can wa
 Never imply the employee must go elsewhere for answers.
 
 3. Response Style & Structure
-Length: Default to short, direct responses. Typically 2–4 short paragraphs. Expand only when needed to avoid confusion.
-Tone: Calm, Reassuring, Professional, Human. You are responding to a real employee — not explaining the law.
+Length: Keep responses concise and friendly. Maximum 2–3 short paragraphs. Be direct and professional.
+Tone: Warm, Reassuring, Professional, and Human. Write as if you're having a supportive conversation with the employee.
+Format: Use clear, simple language. Avoid jargon. Be conversational yet professional.
 
 4. Content Boundaries (Strict)
 You MAY: Answer the employee's specific question, Explain what generally happens next, Clarify job protection vs pay (briefly), Use conditional language when prior leave is mentioned, Acknowledge return-to-work or accommodation discussions without legal framing.
@@ -852,7 +854,7 @@ Analysis order: FMLA → CFRA → PDL.
 All responses must:
 - Be written as if sent directly from Human Resources
 - Be ready to send without editing
-- Be concise, calm, and supportive
+- Be concise, friendly, and professional
 - Answer only what the employee asked
 - Avoid unnecessary legal explanation
 You do not replace HR judgment, employer policy, or legal determinations.
@@ -865,8 +867,9 @@ Required Equivalent Language: "We can review…", "We'll confirm…", "We can wa
 Never imply the employee must go elsewhere for answers.
 
 3. Response Style & Structure
-Length: Default to short, direct responses. Typically 2–4 short paragraphs. Expand only when needed to avoid confusion.
-Tone: Calm, Reassuring, Professional, Human. You are responding to a real employee — not explaining the law.
+Length: Keep responses concise and friendly. Maximum 2–3 short paragraphs. Be direct and professional.
+Tone: Warm, Reassuring, Professional, and Human. Write as if you're having a supportive conversation with the employee.
+Format: Use clear, simple language. Avoid jargon. Be conversational yet professional.
 
 4. Content Boundaries (Strict)
 You MAY: Answer the employee's specific question, Explain what generally happens next, Clarify job protection vs pay (briefly), Use conditional language when prior leave is mentioned, Acknowledge return-to-work or accommodation discussions without legal framing.
@@ -1037,6 +1040,21 @@ If no, simplify and shorten.`
 
             document.getElementById(outputId).textContent = responseText;
             
+            // Show the regenerate button after response is generated
+            const regenerateBtn = document.getElementById(`${toolName}Regenerate`);
+            if (regenerateBtn) {
+                regenerateBtn.classList.remove('hidden');
+            }
+            
+            // Store the last input and response for context and regeneration
+            this.lastConversation = this.lastConversation || {};
+            this.lastConversation[toolName] = {
+                input: fullInput,
+                response: responseText,
+                provider: provider,
+                timestamp: Date.now()
+            };
+            
             // Show follow-up section after first response is generated (only if it's not already visible)
             const followupSection = document.getElementById(followupSectionId);
             if (followupSection && followupSection.classList.contains('hidden')) {
@@ -1050,6 +1068,91 @@ If no, simplify and shorten.`
             this.showError(`❌ ${error.message}`);
         } finally {
             this.hideLoading();
+        }
+    }
+
+    async regenerateResponse(toolName) {
+        const lastConv = this.lastConversation?.[toolName];
+        if (!lastConv) {
+            this.showError('No previous response to regenerate');
+            return;
+        }
+        
+        // Use the stored input to regenerate
+        const inputId = `${toolName}Input`;
+        const currentInput = document.getElementById(inputId).value.trim();
+        
+        // If the input field is empty, use the last input
+        if (!currentInput && lastConv.input) {
+            document.getElementById(inputId).value = lastConv.input;
+        }
+        
+        // Clear the follow-up field for regeneration
+        const followupId = `${toolName}Followup`;
+        const followupField = document.getElementById(followupId);
+        if (followupField) {
+            followupField.value = '';
+        }
+        
+        // Call the regular AI submit function
+        await this.handleAISubmit(toolName);
+    }
+
+    async handleFollowupSubmit(toolName) {
+        const followupId = `${toolName}Followup`;
+        const followupInput = document.getElementById(followupId)?.value.trim();
+        
+        if (!followupInput) {
+            this.showError('Please enter a follow-up question or additional information');
+            return;
+        }
+        
+        // Get the previous conversation context
+        const lastConv = this.lastConversation?.[toolName];
+        const inputId = `${toolName}Input`;
+        const originalInput = document.getElementById(inputId).value.trim();
+        
+        // Build context-aware prompt
+        let contextualInput = followupInput;
+        
+        if (lastConv && lastConv.input && lastConv.response) {
+            contextualInput = `PREVIOUS CONTEXT:
+Original Question/Email: ${lastConv.input}
+
+Previous Response: ${lastConv.response}
+
+FOLLOW-UP QUESTION/INFORMATION:
+${followupInput}
+
+Please provide an updated response that takes into account both the original context and this follow-up information. Keep the response concise, friendly, and professional.`;
+        } else if (originalInput) {
+            contextualInput = `ORIGINAL CONTEXT:
+${originalInput}
+
+FOLLOW-UP QUESTION/INFORMATION:
+${followupInput}
+
+Please provide a response that addresses both the original context and this follow-up information. Keep the response concise, friendly, and professional.`;
+        }
+        
+        // Temporarily update the main input field with the contextual prompt
+        const originalValue = document.getElementById(inputId).value;
+        document.getElementById(inputId).value = contextualInput;
+        
+        try {
+            // Submit the contextual prompt
+            await this.handleAISubmit(toolName);
+            
+            // Clear the follow-up field after successful submission
+            document.getElementById(followupId).value = '';
+            
+            // Restore the original input value
+            document.getElementById(inputId).value = originalValue;
+            
+        } catch (error) {
+            // Restore the original input value even if there's an error
+            document.getElementById(inputId).value = originalValue;
+            throw error;
         }
     }
 
@@ -1754,56 +1857,6 @@ If no, simplify and shorten.`
             console.error('Error showing user details:', error);
             this.showError('Failed to load user details');
         }
-    }
-        document.getElementById('userDetailVerified').textContent = user.emailVerified ? 'Yes' : 'No';
-        document.getElementById('userDetailCreated').textContent = new Date(user.createdAt).toLocaleDateString();
-        document.getElementById('userDetailProvider').textContent = user.aiProvider || 'Not Set';
-        
-        // Subscription status
-        if (isPending) {
-            document.getElementById('userDetailStatus').textContent = 'Pending Verification';
-            document.getElementById('userDetailTrial').textContent = 'N/A';
-            document.getElementById('userDetailExpiry').textContent = 'N/A';
-            document.getElementById('userDetailAccess').textContent = 'No Access';
-        } else if (user.isAdmin) {
-            document.getElementById('userDetailStatus').textContent = 'Administrator';
-            document.getElementById('userDetailTrial').textContent = 'N/A';
-            document.getElementById('userDetailExpiry').textContent = 'Permanent';
-            document.getElementById('userDetailAccess').textContent = 'Full Access';
-        } else {
-            const status = this.getSubscriptionStatus(user);
-            document.getElementById('userDetailStatus').textContent = status.active ? 
-                (status.type === 'trial' ? 'Trial Active' : 'Premium Active') : 'Expired';
-            
-            if (status.type === 'trial') {
-                const timeLeft = new Date(status.expiry).getTime() - Date.now();
-                const hoursLeft = Math.floor(timeLeft / (1000 * 60 * 60));
-                document.getElementById('userDetailTrial').textContent = timeLeft > 0 ? `${hoursLeft} hours remaining` : 'Expired';
-            } else {
-                document.getElementById('userDetailTrial').textContent = 'N/A';
-            }
-            
-            document.getElementById('userDetailExpiry').textContent = status.expiry ? 
-                new Date(status.expiry).toLocaleDateString() : 'N/A';
-            document.getElementById('userDetailAccess').textContent = status.active ? 'Active' : 'No Access';
-        }
-        
-        // Usage statistics (placeholder - you can implement actual tracking)
-        document.getElementById('userDetailConversations').textContent = '0'; // Implement conversation tracking
-        document.getElementById('userDetailLastLogin').textContent = 'Current Session'; // Implement last login tracking
-        document.getElementById('userDetailApiKeys').textContent = this.getUserApiKeyStatus(user);
-        document.getElementById('userDetailType').textContent = user.isAdmin ? 'Administrator' : 'Regular User';
-        
-        // Show/hide action buttons based on user type
-        const actionButtons = document.querySelector('.user-actions-section');
-        if (user.isAdmin) {
-            actionButtons.style.display = 'none';
-        } else {
-            actionButtons.style.display = 'block';
-        }
-        
-        // Show the modal (it will appear on top due to higher z-index)
-        document.getElementById('userDetailsModal').classList.remove('hidden');
     }
     
     getUserApiKeyStatus(user) {
@@ -3099,6 +3152,17 @@ If no, simplify and shorten.`
     clearOutput(tool) {
         document.getElementById(`${tool}Output`).textContent = '';
         document.getElementById(`${tool}Input`).value = '';
+        
+        // Hide the regenerate button
+        const regenerateBtn = document.getElementById(`${tool}Regenerate`);
+        if (regenerateBtn) {
+            regenerateBtn.classList.add('hidden');
+        }
+        
+        // Clear conversation context
+        if (this.lastConversation && this.lastConversation[tool]) {
+            delete this.lastConversation[tool];
+        }
         
         // Clear and hide follow-up section
         const followupInput = document.getElementById(`${tool}Followup`);
