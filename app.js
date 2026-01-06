@@ -1043,7 +1043,7 @@ If no, simplify and shorten.`
             // Show the regenerate button after response is generated
             const regenerateBtn = document.getElementById(`${toolName}Regenerate`);
             if (regenerateBtn) {
-                regenerateBtn.classList.remove('hidden');
+                regenerateBtn.style.display = 'inline-flex';
             }
             
             // Store the last input and response for context and regeneration
@@ -1055,10 +1055,10 @@ If no, simplify and shorten.`
                 timestamp: Date.now()
             };
             
-            // Show follow-up section after first response is generated (only if it's not already visible)
+            // Show follow-up section after first response is generated
             const followupSection = document.getElementById(followupSectionId);
-            if (followupSection && followupSection.classList.contains('hidden')) {
-                followupSection.classList.remove('hidden');
+            if (followupSection) {
+                followupSection.style.display = 'block';
             }
             
             this.showSuccess(`Response Generated! (${provider.toUpperCase()})`);
@@ -2253,7 +2253,7 @@ Please provide a response that addresses both the original context and this foll
     }
 
     populateUserTable(users) {
-        const tbody = document.getElementById('usersListTableBody');
+        const tbody = document.getElementById('usersTableBody');
         tbody.innerHTML = users.map(u => {
             const status = u.status;
             const statusIcon = u.emailVerified ? '✅' : '❌';
@@ -2272,18 +2272,18 @@ Please provide a response that addresses both the original context and this foll
             // Different actions for admin users
             const userActions = isAdmin ? `
                 <div class="btn-group">
-                    <button class="btn btn-sm btn-primary" onclick="app.editUser('${u.id}')">
-                        <i class="fa-solid fa-edit"></i> Edit
+                    <button class="btn btn-sm btn-primary" onclick="app.showUserDetails('${u.id}')">
+                        <i class="fa-solid fa-eye"></i> View Details
                     </button>
                     <span class="badge badge-admin">Admin User</span>
                 </div>
             ` : `
                 <div class="btn-group">
-                    <button class="btn btn-sm btn-primary" onclick="app.editUser('${u.id}')">
-                        <i class="fa-solid fa-edit"></i> Edit
+                    <button class="btn btn-sm btn-primary" onclick="app.showUserDetails('${u.id}')">
+                        <i class="fa-solid fa-eye"></i> View Details
                     </button>
                     <button class="btn btn-sm btn-success" onclick="app.grantAccess('${u.id}')">
-                        <i class="fa-solid fa-key"></i> Grant
+                        <i class="fa-solid fa-key"></i> Grant Access
                     </button>
                     <button class="btn btn-sm btn-danger" onclick="app.deleteUser('${u.id}')">
                         <i class="fa-solid fa-trash"></i> Delete
@@ -2295,9 +2295,16 @@ Please provide a response that addresses both the original context and this foll
                 <tr data-user-id="${u.id}" ${isAdmin ? 'class="admin-user-row"' : ''}>
                     <td><input type="checkbox" class="user-select-cb" value="${u.id}" ${isAdmin ? 'disabled' : ''}></td>
                     <td>
-                        <strong>${u.firstName} ${u.lastName}</strong>${isAdmin ? ' 👑' : ''}<br>
-                        <small>${u.email}</small><br>
-                        <small class="text-muted">Joined: ${new Date(u.createdAt).toLocaleDateString()}</small>
+                        <div class="user-info">
+                            <div class="user-name">
+                                <strong>${u.firstName} ${u.lastName}</strong> ${isAdmin ? '👑' : statusText}
+                            </div>
+                            <div class="user-email">${u.email}</div>
+                            <div class="user-meta">
+                                <span>Joined: ${new Date(u.createdAt).toLocaleDateString()}</span>
+                                <span>Email: ${u.emailVerified ? 'Verified' : 'Pending'}</span>
+                            </div>
+                        </div>
                     </td>
                     <td>${statusIcon} ${u.emailVerified ? 'Verified' : 'Pending'}</td>
                     <td>
@@ -3153,10 +3160,10 @@ Please provide a response that addresses both the original context and this foll
         document.getElementById(`${tool}Output`).textContent = '';
         document.getElementById(`${tool}Input`).value = '';
         
-        // Hide the regenerate button
+        // Hide the regenerate button when clearing
         const regenerateBtn = document.getElementById(`${tool}Regenerate`);
         if (regenerateBtn) {
-            regenerateBtn.classList.add('hidden');
+            regenerateBtn.style.display = 'none';
         }
         
         // Clear conversation context
@@ -3168,7 +3175,7 @@ Please provide a response that addresses both the original context and this foll
         const followupInput = document.getElementById(`${tool}Followup`);
         const followupSection = document.getElementById(`${tool}FollowupSection`);
         if (followupInput) followupInput.value = '';
-        if (followupSection) followupSection.classList.add('hidden');
+        if (followupSection) followupSection.style.display = 'none';
     }
     
     switchAdminTab(tab) {

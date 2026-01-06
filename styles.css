@@ -1378,6 +1378,71 @@ body {
     justify-content: flex-end;
 }
 
+/* Initially hide regenerate buttons and follow-up sections */
+#federalRegenerate,
+#californiaRegenerate {
+    display: none;
+}
+
+#federalFollowupSection,
+#californiaFollowupSection {
+    display: none;
+}
+
+/* User info styling in admin table */
+.user-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.user-name {
+    font-weight: 600;
+    color: #1f2937;
+}
+
+.user-email {
+    color: #6b7280;
+    font-size: 0.875rem;
+}
+
+.user-meta {
+    display: flex;
+    gap: 1rem;
+    font-size: 0.75rem;
+    color: #9ca3af;
+}
+
+.user-meta span {
+    white-space: nowrap;
+}
+
+/* Ensure regenerate buttons are properly styled when shown */
+#federalRegenerate.show,
+#californiaRegenerate.show {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+/* Follow-up section styling */
+.followup-section {
+    margin-top: 1rem;
+    padding: 1rem;
+    background: #f8fafc;
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+}
+
+.followup-header {
+    margin-bottom: 0.5rem;
+}
+
+.followup-header label {
+    font-weight: 500;
+    color: #374151;
+}
+
 .panel-header label {
     font-weight: 600;
     color: var(--gray-700);
