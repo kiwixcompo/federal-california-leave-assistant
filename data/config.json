@@ -8,5 +8,44 @@
   "paypalClientSecret": "",
   "stripeSecretKey": "",
   "stripeWebhookSecret": "",
-  "systemGeminiKey": ""
+  "systemGeminiKey": "",
+  "accessCodes": [
+    {
+      "code": "LBNY91",
+      "description": "Conference Attendees",
+      "duration": 3,
+      "durationType": "days",
+      "createdAt": 1767904614232,
+      "usedCount": 0,
+      "active": true
+    },
+    {
+      "code": "67BB0U",
+      "description": "",
+      "duration": 1,
+      "durationType": "months",
+      "createdAt": 1767905393150,
+      "usedCount": 0,
+      "active": true
+    },
+    {
+      "code": "B2P6BOKU",
+      "description": "Test singular day",
+      "duration": 1,
+      "durationType": "days",
+      "createdAt": 1767908201823,
+      "usedCount": 0,
+      "active": true
+    },
+    {
+      "code": "NY9XEMXA",
+      "description": "Test singular month",
+      "duration": 1,
+      "durationType": "months",
+      "createdAt": 1767908220535,
+      "usedCount": 0,
+      "active": true
+    }
+  ],
+  "systemOpenaiKey": "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"
 }

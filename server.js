@@ -61,7 +61,6 @@ function initializeData() {
         firstName: 'Super',
         lastName: 'Admin',
         emailVerified: true,
-        aiProvider: 'puter',
         createdAt: Date.now()
     }]);
     saveData(USERS_FILE, users);
@@ -416,7 +415,6 @@ app.post('/api/auth/login', (req, res) => {
             lastName: user.lastName,
             isAdmin: user.isAdmin,
             emailVerified: user.emailVerified,
-            aiProvider: user.aiProvider,
             subscriptionExpiry: user.subscriptionExpiry,
             createdAt: user.createdAt
         },
@@ -424,111 +422,7 @@ app.post('/api/auth/login', (req, res) => {
     });
 });
 
-app.post('/api/auth/register', async (req, res) => {
-    const { email, firstName, lastName, password } = req.body;
-    const users = loadData(USERS_FILE, []);
-    const pending = loadData(PENDING_FILE, []);
-    
-    // Check if user already exists in users table
-    if (users.find(u => u.email.toLowerCase() === email.toLowerCase())) {
-        return res.status(400).json({ error: 'This email address is already registered. Please use a different email or try logging in.' });
-    }
-    
-    // Check if user already has a pending verification
-    if (pending.find(p => p.userData.email.toLowerCase() === email.toLowerCase())) {
-        return res.status(400).json({ error: 'This email address already has a pending verification. Please check your email or contact support.' });
-    }
-    
-    // Create verification token
-    const token = Math.random().toString(36).substring(2) + Date.now().toString(36);
-    const verificationLink = `${req.headers.origin || 'http://localhost:3001'}?verify=${token}`;
-    
-    // Store pending verification
-    pending.push({
-        token: token,
-        userData: {
-            email: email.toLowerCase(),
-            firstName: firstName,
-            lastName: lastName,
-            password: password,
-            isAdmin: false,
-            emailVerified: false,
-            aiProvider: 'puter',
-            createdAt: Date.now()
-        },
-        createdAt: Date.now()
-    });
-    saveData(PENDING_FILE, pending);
-    
-    // Send verification email using webhook service
-    try {
-        const emailHtml = `
-            <!DOCTYPE html>
-            <html>
-            <head>
-                <style>
-                    body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-                    .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-                    .header { background: linear-gradient(135deg, #0023F5 0%, #0322D8 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
-                    .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
-                    .button { display: inline-block; background: #0023F5; color: white; padding: 15px 30px; text-decoration: none; border-radius: 5px; margin: 20px 0; }
-                    .footer { text-align: center; margin-top: 20px; font-size: 0.9rem; color: #666; }
-                </style>
-            </head>
-            <body>
-                <div class="container">
-                    <div class="header">
-                        <h1>🏛️ Leave Assistant</h1>
-                        <p>HR Compliance & Response Tool</p>
-                    </div>
-                    <div class="content">
-                        <h2>Welcome, ${firstName}!</h2>
-                        <p>Thank you for registering with Leave Assistant. To complete your registration and start your <strong>24-hour free trial</strong>, please verify your email address.</p>
-                        
-                        <div style="text-align: center;">
-                            <a href="${verificationLink}" class="button">✅ Verify Email Address</a>
-                        </div>
-                        
-                        <p>If the button doesn't work, copy and paste this link into your browser:</p>
-                        <p style="word-break: break-all; background: #e9ecef; padding: 10px; border-radius: 5px; font-family: monospace;">
-                            ${verificationLink}
-                        </p>
-                    </div>
-                    <div class="footer">
-                        <p>© 2024 Leave Assistant - HR Compliance Tool</p>
-                    </div>
-                </div>
-            </body>
-            </html>
-        `;
-
-        const textContent = `
-Welcome to Leave Assistant, ${firstName}!
-
-Thank you for registering with Leave Assistant. To complete your registration and start your 24-hour free trial, please verify your email address by clicking the link below:
-
-${verificationLink}
-
-If you have any issues, please contact support.
-
-© 2024 Leave Assistant - HR Compliance Tool
-        `;
-
-        // Send email using the new confirmation email function
-        await sendConfirmationEmail(email, '✅ Verify your Leave Assistant account - Start your free trial', emailHtml, textContent);
-        
-    } catch (error) {
-        console.error('Email sending error:', error);
-        // Don't fail registration if email sending fails
-    }
-    
-    res.json({
-        success: true,
-        message: 'Registration successful. Please check your email for verification.',
-        verificationLink: verificationLink,
-        email: email
-    });
-});
+// Registration endpoint moved below to handle access codes
 
 app.post('/api/auth/verify', (req, res) => {
     const { token } = req.body;
@@ -581,7 +475,6 @@ app.get('/api/user/profile', requireAuth, (req, res) => {
             lastName: req.user.lastName,
             isAdmin: req.user.isAdmin,
             emailVerified: req.user.emailVerified,
-            aiProvider: req.user.aiProvider,
             subscriptionExpiry: req.user.subscriptionExpiry,
             createdAt: req.user.createdAt
         }
@@ -589,7 +482,7 @@ app.get('/api/user/profile', requireAuth, (req, res) => {
 });
 
 app.put('/api/user/profile', requireAuth, (req, res) => {
-    const { firstName, lastName, aiProvider, openaiApiKey, geminiApiKey, password } = req.body;
+    const { firstName, lastName, password } = req.body;
     const users = loadData(USERS_FILE, []);
     
     const userIndex = users.findIndex(u => u.id === req.user.id);
@@ -600,9 +493,6 @@ app.put('/api/user/profile', requireAuth, (req, res) => {
     // Update user data
     if (firstName) users[userIndex].firstName = firstName;
     if (lastName) users[userIndex].lastName = lastName;
-    if (aiProvider) users[userIndex].aiProvider = aiProvider;
-    if (openaiApiKey !== undefined) users[userIndex].openaiApiKey = openaiApiKey;
-    if (geminiApiKey !== undefined) users[userIndex].geminiApiKey = geminiApiKey;
     if (password) users[userIndex].password = password;
     
     saveData(USERS_FILE, users);
@@ -1505,23 +1395,13 @@ app.get('/api/admin/api-usage', requireAdmin, (req, res) => {
     // Calculate usage statistics
     let totalRequests = 0;
     let openaiRequests = 0;
-    let geminiRequests = 0;
-    let puterRequests = 0;
     
     Object.values(conversations).forEach(userConversations => {
         if (Array.isArray(userConversations)) {
             totalRequests += userConversations.length;
             userConversations.forEach(conv => {
-                switch (conv.provider) {
-                    case 'openai':
-                        openaiRequests++;
-                        break;
-                    case 'gemini':
-                        geminiRequests++;
-                        break;
-                    case 'puter':
-                        puterRequests++;
-                        break;
+                if (conv.provider === 'openai') {
+                    openaiRequests++;
                 }
             });
         }
@@ -1532,8 +1412,6 @@ app.get('/api/admin/api-usage', requireAdmin, (req, res) => {
         usage: {
             totalRequests,
             openaiRequests,
-            geminiRequests,
-            puterRequests,
             lastUpdated: Date.now()
         }
     });

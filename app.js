@@ -2,6 +2,9 @@ class LeaveAssistantApp {
     constructor() {
         try {
             console.log('🚀 Initializing Leave Assistant App (Pro Version)...');
+            
+            // Initialize basic properties
+            console.log('📝 Setting up basic properties...');
             this.currentUser = null;
             this.sessionToken = null;
             this.idleTimer = null;
@@ -11,20 +14,31 @@ class LeaveAssistantApp {
             this.lastConversation = {}; // Store conversation context for regeneration and follow-ups
             
             // Initialize users from localStorage for client-side fallback
+            console.log('💾 Loading user data...');
             this.users = this.loadUsers();
+            
+            console.log('⚙️ Loading payment config...');
             this.paymentConfig = this.loadPaymentConfig();
             
             // Check for stored session
+            console.log('🔐 Checking stored session...');
             this.sessionToken = localStorage.getItem('sessionToken');
             
             // Update footer year
+            console.log('📅 Updating footer year...');
             this.updateFooterYear();
             
-            // 3. Start App
+            // Start App
+            console.log('🚀 Starting app initialization...');
             this.init();
+            
+            console.log('⏰ Setting up idle timer...');
             this.setupIdleTimer();
+            
+            console.log('✅ Constructor completed successfully');
         } catch (error) {
             console.error('❌ Critical Init Error:', error);
+            console.error('❌ Error stack:', error.stack);
             setTimeout(() => this.showPage('loginPage'), 100);
         }
     }
@@ -289,10 +303,40 @@ class LeaveAssistantApp {
     }
 
     bindEvents() {
+        console.log('🔗 Binding events...');
+        
         // Landing page navigation
-        document.getElementById('loginBtn')?.addEventListener('click', () => this.showPage('loginPage'));
-        document.getElementById('getStartedBtn')?.addEventListener('click', () => this.showPage('registerPage'));
-        document.getElementById('startTrialBtn')?.addEventListener('click', () => this.showPage('registerPage'));
+        const loginBtn = document.getElementById('loginBtn');
+        const getStartedBtn = document.getElementById('getStartedBtn');
+        const startTrialBtn = document.getElementById('startTrialBtn');
+        
+        console.log('🔍 Button elements found:', {
+            loginBtn: !!loginBtn,
+            getStartedBtn: !!getStartedBtn,
+            startTrialBtn: !!startTrialBtn
+        });
+        
+        if (loginBtn) {
+            loginBtn.addEventListener('click', () => {
+                console.log('🔘 Login button clicked');
+                this.showPage('loginPage');
+            });
+        }
+        
+        if (getStartedBtn) {
+            getStartedBtn.addEventListener('click', () => {
+                console.log('🔘 Get Started button clicked');
+                this.showPage('registerPage');
+            });
+        }
+        
+        if (startTrialBtn) {
+            startTrialBtn.addEventListener('click', () => {
+                console.log('🔘 Start Trial button clicked');
+                this.showPage('registerPage');
+            });
+        }
+        
         document.getElementById('watchDemoBtn')?.addEventListener('click', () => this.showDemo());
         document.getElementById('finalCtaBtn')?.addEventListener('click', () => this.showPage('registerPage'));
         
@@ -506,11 +550,11 @@ class LeaveAssistantApp {
             return;
         }
 
-        // Ensure user has aiProvider set (migration for existing users)
-        if (!this.currentUser.aiProvider) {
-            this.currentUser.aiProvider = 'puter';
+        // Ensure user has required properties (migration for existing users)
+        if (!this.currentUser.createdAt) {
+            this.currentUser.createdAt = Date.now();
             this.updateUserRecord(this.currentUser);
-            console.log('✅ Set default AI provider to Puter.js for existing user');
+            console.log('✅ Set createdAt for existing user');
         }
 
         const status = this.getSubscriptionStatus(this.currentUser);
@@ -750,9 +794,7 @@ class LeaveAssistantApp {
         try {
             console.log('🔍 AI Submit Debug:', {
                 currentUser: this.currentUser,
-                userProvider: this.currentUser?.aiProvider,
-                userOpenAI: this.currentUser?.openaiApiKey ? 'present' : 'missing',
-                userGemini: this.currentUser?.geminiApiKey ? 'present' : 'missing'
+                hasSystemKey: this.paymentConfig?.systemOpenaiKey ? 'present' : 'missing'
             });
             
             // Ensure we have a current user
@@ -760,17 +802,17 @@ class LeaveAssistantApp {
                 throw new Error('No user session found. Please log in again.');
             }
             
-            // Always use Puter.js for regular users since admin controls the API key
-            let provider = 'puter';
+            // Always use OpenAI with system key - no other options
+            let provider = 'openai';
             let apiKey = '';
             
-            // Only use OpenAI if system key is available and we're in server mode
-            if (this.paymentConfig?.systemOpenaiKey && this.serverRunning) {
-                provider = 'openai';
+            // Check if admin has configured system OpenAI key
+            if (this.paymentConfig?.systemOpenaiKey) {
                 apiKey = this.paymentConfig.systemOpenaiKey;
                 console.log('🎯 Using system OpenAI key');
             } else {
-                console.log('🎯 Using Puter.js AI (free)');
+                this.showError('System OpenAI API key not configured. Please contact administrator to set up the API key.');
+                return;
             }
 
             let responseText = '';
@@ -896,116 +938,58 @@ Before finalizing, ask internally: "Would an experienced HR professional send th
 If no, simplify and shorten.`
             };
 
-            if (provider === 'demo') {
-                console.log('🎭 Using demo mode...');
-                await new Promise(r => setTimeout(r, 1000));
-                responseText = "DEMO RESPONSE: This is a simulated response. Please configure an AI provider in settings for real results.";
-            } 
-            else if (provider === 'puter') {
-                // Use Puter.js AI - no API key required!
-                try {
-                    console.log('🤖 Using Puter.js AI (Free)...');
-                    
-                    // Check if Puter.js is available and initialized
-                    if (typeof puter === 'undefined' || !puter.ai) {
-                        throw new Error('Puter.js not available');
-                    }
-                    
-                    // Create the full prompt with system context
-                    const fullPrompt = `${systemPrompts[toolName]}\n\nUser Query: ${fullInput}\n\nPlease provide a helpful, compliant response:`;
-                    
-                    // Use Puter.js AI chat function with timeout
-                    const response = await Promise.race([
-                        puter.ai.chat(fullPrompt, {
-                            model: 'gpt-4o-mini',
-                            max_tokens: 800,
-                            temperature: 0.3
-                        }),
-                        new Promise((_, reject) => 
-                            setTimeout(() => reject(new Error('Puter.js timeout')), 15000)
-                        )
-                    ]);
-                    
-                    responseText = response || 'No response received from Puter.js AI';
-                    console.log('✅ Puter.js AI success');
-                    
-                } catch (puterError) {
-                    console.error('❌ Puter.js AI error:', puterError);
-                    // If Puter.js fails, fall back to demo mode
-                    console.log('⚠️ Puter.js failed, falling back to demo mode');
-                    responseText = `DEMO RESPONSE: Puter.js AI is temporarily unavailable (${puterError.message}). This is a simulated response for ${toolName === 'federal' ? 'Federal FMLA' : 'California Leave'} compliance. Please try again later or configure an API key in settings for reliable service.`;
-                }
-            }
-            else if (provider === 'openai') {
-                // Check server status for API-based providers
+            // Only OpenAI is supported - use system key
+            if (provider === 'openai') {
+                // Check server status for OpenAI API
                 const endpoint = this.getApiUrl('openai');
                 
                 if (!endpoint || !this.serverRunning) {
-                    console.warn('⚠️ Server not available. Falling back to Puter.js/Demo mode.');
+                    this.showError('Server not available. Please try again later or contact administrator.');
+                    return;
+                }
+                
+                // Server is available, proceed with API call
+                const requestBody = {
+                    apiKey: apiKey,
+                    messages: [
+                        { role: 'system', content: systemPrompts[toolName] },
+                        { role: 'user', content: fullInput }
+                    ],
+                    model: 'gpt-4o-mini',
+                    toolName: toolName
+                };
+
+                try {
+                    const res = await fetch(endpoint, {
+                        method: 'POST',
+                        headers: { 
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${this.sessionToken}`
+                        },
+                        body: JSON.stringify(requestBody)
+                    });
                     
-                    // Fall back to Puter.js or demo mode
-                    if (typeof puter !== 'undefined' && puter.ai) {
-                        console.log('🔄 Falling back to Puter.js AI...');
-                        try {
-                            const fullPrompt = `${systemPrompts[toolName]}\n\nUser Query: ${fullInput}\n\nPlease provide a helpful, compliant response:`;
-                            const response = await puter.ai.chat(fullPrompt, {
-                                model: 'gpt-4o-mini',
-                                max_tokens: 800,
-                                temperature: 0.3
-                            });
-                            responseText = response || 'No response received from Puter.js AI';
-                        } catch (puterFallbackError) {
-                            console.error('❌ Puter.js fallback failed:', puterFallbackError);
-                            responseText = `DEMO RESPONSE: Server unavailable and Puter.js failed. This is a simulated response for ${toolName === 'federal' ? 'Federal FMLA' : 'California Leave'} compliance. Please try again later.`;
-                        }
+                    // Handle both JSON and HTML error responses
+                    let data;
+                    const contentType = res.headers.get('content-type');
+                    if (contentType && contentType.includes('application/json')) {
+                        data = await res.json();
                     } else {
-                        console.log('🔄 Falling back to demo mode...');
-                        responseText = `DEMO RESPONSE: Server unavailable. This is a simulated response for ${toolName === 'federal' ? 'Federal FMLA' : 'California Leave'} compliance. The admin can configure the server for real AI responses.`;
+                        throw new Error(`Server Error (${res.status}): Unable to connect to OpenAI API endpoint.`);
                     }
-                } else {
-                    // Server is available, proceed with API call
-                    const requestBody = {
-                        apiKey: apiKey,
-                        messages: [
-                            { role: 'system', content: systemPrompts[toolName] },
-                            { role: 'user', content: fullInput }
-                        ],
-                        model: 'gpt-4o-mini',
-                        toolName: toolName
-                    };
-
-                    try {
-                        const res = await fetch(endpoint, {
-                            method: 'POST',
-                            headers: { 
-                                'Content-Type': 'application/json',
-                                'Authorization': `Bearer ${this.sessionToken}`
-                            },
-                            body: JSON.stringify(requestBody)
-                        });
-                        
-                        // Handle both JSON and HTML error responses
-                        let data;
-                        const contentType = res.headers.get('content-type');
-                        if (contentType && contentType.includes('application/json')) {
-                            data = await res.json();
-                        } else {
-                            throw new Error(`Server Error (${res.status}): Unable to connect to OpenAI API endpoint.`);
-                        }
-                        
-                        if (!res.ok || data.error) {
-                            throw new Error(data.error?.message || data.error || `API Error: ${res.status}`);
-                        }
-                        
-                        // Parse OpenAI response
-                        responseText = data.choices?.[0]?.message?.content || 'No response received';
-
-                    } catch (fetchError) {
-                        if (fetchError.message.includes('Failed to fetch') || fetchError.name === 'TypeError') {
-                            throw new Error(`❌ Connection Error: Cannot connect to OpenAI API. Please ensure the server is running.`);
-                        }
-                        throw fetchError;
+                    
+                    if (!res.ok || data.error) {
+                        throw new Error(data.error?.message || data.error || `API Error: ${res.status}`);
                     }
+                    
+                    // Parse OpenAI response
+                    responseText = data.choices?.[0]?.message?.content || 'No response received';
+
+                } catch (fetchError) {
+                    if (fetchError.message.includes('Failed to fetch') || fetchError.name === 'TypeError') {
+                        throw new Error(`❌ Connection Error: Cannot connect to OpenAI API. Please ensure the server is running.`);
+                    }
+                    throw fetchError;
                 }
             }
 
@@ -1156,11 +1140,11 @@ Please provide a response that addresses both the original context and this foll
     findUser(email) { 
         const user = this.users.find(u => u.email === email);
         
-        // Migrate existing users to have aiProvider if they don't have one
-        if (user && !user.aiProvider) {
-            user.aiProvider = 'puter';
+        // Migrate existing users to have required properties if they don't have them
+        if (user && !user.createdAt) {
+            user.createdAt = Date.now();
             this.saveUsers(this.users);
-            console.log(`✅ Migrated user ${email} to use Puter.js AI`);
+            console.log(`✅ Migrated user ${email} to have createdAt`);
         }
         
         return user;
@@ -1402,8 +1386,7 @@ Please provide a response that addresses both the original context and this foll
                     lastName: lastName,
                     password: password,
                     emailVerified: false,
-                    createdAt: Date.now(),
-                    aiProvider: 'puter'
+                    createdAt: Date.now()
                 },
                 createdAt: Date.now()
             });
@@ -1792,7 +1775,6 @@ Please provide a response that addresses both the original context and this foll
             document.getElementById('userDetailId').textContent = user.id;
             document.getElementById('userDetailVerified').textContent = user.emailVerified ? 'Yes' : 'No';
             document.getElementById('userDetailCreated').textContent = new Date(user.createdAt).toLocaleDateString();
-            document.getElementById('userDetailProvider').textContent = user.aiProvider || 'Not Set';
             
             // Subscription status
             if (isPending) {
@@ -2035,8 +2017,7 @@ Please provide a response that addresses both the original context and this foll
             
             document.getElementById('totalUsers').textContent = stats.totalUsers || 0;
             document.getElementById('verifiedUsers').textContent = stats.verifiedUsers || 0;
-            document.getElementById('pendingVerifications').textContent = stats.pendingVerifications || 0;
-            document.getElementById('activeSubscriptions').textContent = stats.activeSubscriptions || 0;
+            document.getElementById('subscribedUsers').textContent = stats.activeSubscriptions || 0;
             document.getElementById('trialUsers').textContent = stats.trialUsers || 0;
         }
         
@@ -2078,8 +2059,7 @@ Please provide a response that addresses both the original context and this foll
         // Update stats display - show all users including admins for total
         document.getElementById('totalUsers').textContent = allUsers.length;
         document.getElementById('verifiedUsers').textContent = verifiedUsers.length;
-        document.getElementById('pendingVerifications').textContent = pending.length;
-        document.getElementById('activeSubscriptions').textContent = activeSubscriptions.length;
+        document.getElementById('subscribedUsers').textContent = activeSubscriptions.length;
         document.getElementById('trialUsers').textContent = trialUsers.length;
         
         // Load users table (exclude admins from main table)
@@ -3062,12 +3042,20 @@ Please provide a response that addresses both the original context and this foll
     // UI Helpers
     showPage(id) { 
         console.log(`📄 Showing page: ${id}`);
-        document.querySelectorAll('.page').forEach(p => p.classList.add('hidden')); 
+        
+        // Hide all pages
+        const allPages = document.querySelectorAll('.page');
+        console.log(`📄 Found ${allPages.length} pages to hide`);
+        allPages.forEach(p => p.classList.add('hidden')); 
+        
+        // Show target page
         const targetPage = document.getElementById(id);
         if (targetPage) {
             targetPage.classList.remove('hidden');
+            console.log(`✅ Successfully showed page: ${id}`);
         } else {
             console.error(`❌ Page not found: ${id}`);
+            console.log('📄 Available pages:', Array.from(document.querySelectorAll('.page')).map(p => p.id));
         }
     }
     showSettings() { 
@@ -3158,13 +3146,30 @@ Please provide a response that addresses both the original context and this foll
     }
     
     switchAdminTab(tab) {
+        console.log(`🔄 Switching to admin tab: ${tab}`);
+        
         // Hide all tab contents
         document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
         
-        // Show selected tab
-        const targetTab = document.getElementById(`${tab}Tab`);
+        // Convert kebab-case to camelCase for tab IDs
+        const tabIdMap = {
+            'users': 'usersTab',
+            'payments': 'paymentsTab',
+            'email': 'emailTab',
+            'system': 'systemTab',
+            'access-codes': 'accessCodesTab',
+            'api-settings': 'apiSettingsTab',
+            'deployment': 'deploymentTab'
+        };
+        
+        const targetTabId = tabIdMap[tab];
+        const targetTab = document.getElementById(targetTabId);
+        
         if (targetTab) {
             targetTab.classList.add('active');
+            console.log(`✅ Activated tab: ${targetTabId}`);
+        } else {
+            console.error(`❌ Tab not found: ${targetTabId}`);
         }
         
         // Update tab buttons
@@ -3172,6 +3177,15 @@ Please provide a response that addresses both the original context and this foll
         const activeBtn = document.querySelector(`button[data-tab="${tab}"]`);
         if (activeBtn) {
             activeBtn.classList.add('active');
+        }
+        
+        // Load tab-specific content
+        if (tab === 'access-codes') {
+            console.log('📋 Loading access codes...');
+            this.loadAccessCodes();
+        } else if (tab === 'api-settings') {
+            console.log('🔧 Loading API settings...');
+            this.loadApiSettings();
         }
         
         console.log(`📋 Switched to admin tab: ${tab}`);
@@ -3245,25 +3259,39 @@ Please provide a response that addresses both the original context and this foll
     displayAccessCodes(codes) {
         const tbody = document.getElementById('accessCodesTableBody');
         
+        if (!tbody) {
+            console.error('Access codes table body not found');
+            return;
+        }
+        
         if (!codes || codes.length === 0) {
             tbody.innerHTML = '<tr><td colspan="6" class="text-center">No access codes generated yet</td></tr>';
             return;
         }
         
-        tbody.innerHTML = codes.map(code => `
-            <tr>
-                <td><code>${code.code}</code></td>
-                <td>${code.description || 'No description'}</td>
-                <td>${code.duration} ${code.durationType}${code.duration > 1 ? 's' : ''}</td>
-                <td>${code.usedCount || 0}</td>
-                <td>${new Date(code.createdAt).toLocaleDateString()}</td>
-                <td>
-                    <button class="btn btn-sm btn-danger" onclick="app.deleteAccessCode('${code.code}')">
-                        <i class="fas fa-trash"></i> Delete
-                    </button>
-                </td>
-            </tr>
-        `).join('');
+        tbody.innerHTML = codes.map(code => {
+            // Fix plural spelling
+            let durationText = `${code.duration} ${code.durationType}`;
+            if (code.duration === 1) {
+                // Remove 's' for singular
+                durationText = `${code.duration} ${code.durationType.replace(/s$/, '')}`;
+            }
+            
+            return `
+                <tr>
+                    <td><code style="background: #f3f4f6; padding: 0.25rem 0.5rem; border-radius: 0.25rem; font-family: monospace;">${code.code}</code></td>
+                    <td>${durationText}</td>
+                    <td>${code.description || 'No description'}</td>
+                    <td>${code.usedCount || 0}</td>
+                    <td>${new Date(code.createdAt).toLocaleDateString()}</td>
+                    <td>
+                        <button class="btn btn-sm btn-danger" onclick="app.deleteAccessCode('${code.code}')">
+                            <i class="fas fa-trash"></i> Delete
+                        </button>
+                    </td>
+                </tr>
+            `;
+        }).join('');
     }
 
     async deleteAccessCode(code) {
@@ -3402,16 +3430,40 @@ Please provide a response that addresses both the original context and this foll
     }
 
     initializeAdminTabs() {
+        console.log('🔧 Initializing admin tabs...');
+        
+        // Check if required elements exist
+        const requiredElements = [
+            'accessCodesTableBody',
+            'systemOpenaiKey',
+            'apiStatus',
+            'totalRequests',
+            'openaiRequests'
+        ];
+        
+        requiredElements.forEach(id => {
+            const element = document.getElementById(id);
+            if (element) {
+                console.log(`✅ Found element: ${id}`);
+            } else {
+                console.warn(`⚠️ Missing element: ${id}`);
+            }
+        });
+        
         // Load access codes if on that tab
         if (document.getElementById('accessCodesTab')) {
+            console.log('📋 Access codes tab found, loading codes...');
             this.loadAccessCodes();
         }
         
         // Load API settings
+        console.log('🔧 Loading API settings...');
         this.loadApiSettings();
         
         // Set default tab to users
         this.switchAdminTab('users');
+        
+        console.log('✅ Admin tabs initialized');
     }
 
     async loadApiSettings() {
@@ -3453,7 +3505,6 @@ Please provide a response that addresses both the original context and this foll
                 
                 document.getElementById('totalRequests').textContent = usage.totalRequests || 0;
                 document.getElementById('openaiRequests').textContent = usage.openaiRequests || 0;
-                document.getElementById('puterRequests').textContent = usage.puterRequests || 0;
             }
         } catch (error) {
             console.error('Load API usage stats error:', error);
@@ -3629,7 +3680,14 @@ Please provide a response that addresses both the original context and this foll
 
 // Global error handlers to prevent refresh loops
 window.addEventListener('error', (event) => {
-    console.error('❌ Global error caught:', event.error);
+    console.error('❌ Global JavaScript error caught:', event.error);
+    console.error('❌ Error details:', {
+        message: event.message,
+        filename: event.filename,
+        lineno: event.lineno,
+        colno: event.colno,
+        stack: event.error?.stack
+    });
     // Prevent default error handling that might cause refresh
     event.preventDefault();
     return false;
@@ -3646,17 +3704,38 @@ let app;
 document.addEventListener('DOMContentLoaded', () => { 
     try {
         console.log('🚀 DOM loaded, starting app...');
+        
+        // Check if required elements exist
+        const requiredElements = ['landingPage', 'loginPage', 'registerPage'];
+        const missingElements = requiredElements.filter(id => !document.getElementById(id));
+        
+        if (missingElements.length > 0) {
+            console.error('❌ Missing required page elements:', missingElements);
+        }
+        
         app = new LeaveAssistantApp(); 
+        
+        // Make app globally accessible for debugging
+        window.app = app;
+        
+        console.log('✅ App initialized successfully');
+        
     } catch (error) {
         console.error('❌ Failed to start app:', error);
+        console.error('❌ Error stack:', error.stack);
+        
         // Show error message to user without causing refresh
         const errorDiv = document.createElement('div');
-        errorDiv.style.cssText = 'display: flex; justify-content: center; align-items: center; height: 100vh; flex-direction: column; font-family: Arial, sans-serif;';
+        errorDiv.style.cssText = 'display: flex; justify-content: center; align-items: center; height: 100vh; flex-direction: column; font-family: Arial, sans-serif; background: white; position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 10000;';
         errorDiv.innerHTML = `
             <h2 style="color: #ef4444;">Application Error</h2>
             <p>Failed to initialize the Leave Assistant application.</p>
             <p style="font-size: 0.9rem; color: #666;">Error: ${error.message}</p>
-            <button onclick="window.location.reload()" style="padding: 10px 20px; background: #0023F5; color: white; border: none; border-radius: 5px; cursor: pointer;">Reload Page</button>
+            <button onclick="window.location.reload()" style="padding: 10px 20px; background: #0023F5; color: white; border: none; border-radius: 5px; cursor: pointer; margin-top: 1rem;">Reload Page</button>
+            <details style="margin-top: 1rem; max-width: 600px;">
+                <summary style="cursor: pointer;">Technical Details</summary>
+                <pre style="background: #f5f5f5; padding: 1rem; border-radius: 5px; overflow: auto; font-size: 0.8rem;">${error.stack}</pre>
+            </details>
         `;
         document.body.appendChild(errorDiv);
     }

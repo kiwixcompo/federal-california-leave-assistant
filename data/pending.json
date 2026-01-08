@@ -12,5 +12,21 @@
       "createdAt": 1767648931039
     },
     "createdAt": 1767648931039
+  },
+  {
+    "token": "ozsi0ablrj8mk5vkb8x",
+    "userData": {
+      "email": "test@example.com",
+      "firstName": "Test",
+      "lastName": "User",
+      "password": "password123",
+      "isAdmin": false,
+      "emailVerified": false,
+      "aiProvider": "puter",
+      "createdAt": 1767902603505,
+      "subscriptionExpiry": "2026-02-07T20:03:23.505Z",
+      "accessCodeUsed": "7SR2G512"
+    },
+    "createdAt": 1767902603505
   }
 ]
