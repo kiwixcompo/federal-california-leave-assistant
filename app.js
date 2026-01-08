@@ -390,7 +390,6 @@ class LeaveAssistantApp {
         document.getElementById('settingsBtn3')?.addEventListener('click', toggleSettings);
         document.getElementById('closeSettings')?.addEventListener('click', () => this.hideSettings());
         document.getElementById('settingsForm')?.addEventListener('submit', (e) => this.handleSettings(e));
-        document.getElementById('aiProvider')?.addEventListener('change', (e) => this.toggleKeyFields(e.target.value));
 
         // Tool Logic
         document.getElementById('federalSubmit')?.addEventListener('click', () => this.handleAISubmit('federal'));
@@ -478,6 +477,21 @@ class LeaveAssistantApp {
         document.querySelectorAll('.tab-btn').forEach(btn => {
             btn.addEventListener('click', (e) => this.switchAdminTab(e.target.dataset.tab));
         });
+        
+        // Admin tab specific event handlers
+        document.getElementById('generateAccessCodeForm')?.addEventListener('submit', (e) => this.handleGenerateAccessCode(e));
+        document.getElementById('apiSettingsForm')?.addEventListener('submit', (e) => this.handleApiSettings(e));
+        document.getElementById('testApiKey')?.addEventListener('click', () => this.testApiKey());
+        document.getElementById('testDeployment')?.addEventListener('click', () => this.testDeployment());
+        document.getElementById('viewDeploymentLogs')?.addEventListener('click', () => this.viewDeploymentLogs());
+        
+        // Subscription and payment handlers
+        document.querySelectorAll('.subscribe-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => this.handleSubscriptionClick(e));
+        });
+        document.getElementById('upgradeBtn')?.addEventListener('click', () => this.showUpgradeOptions());
+        document.getElementById('stripePaymentBtn')?.addEventListener('click', () => this.handleStripePayment());
+        document.getElementById('paypalPaymentBtn')?.addEventListener('click', () => this.handlePayPalPayment());
     }
 
     // ==========================================
@@ -533,6 +547,8 @@ class LeaveAssistantApp {
 
     updateTrialTimer(status) {
         const timerEl = document.getElementById('trialTimer');
+        const upgradeBtn = document.getElementById('upgradeBtn');
+        
         if (status.type === 'trial') {
             const timeLeft = new Date(status.expiry).getTime() - Date.now();
             
@@ -545,6 +561,11 @@ class LeaveAssistantApp {
                 timerEl.classList.remove('hidden');
                 timerEl.style.background = '#f59e0b';
                 timerEl.style.color = 'white';
+                
+                // Show upgrade button for trial users
+                if (upgradeBtn) {
+                    upgradeBtn.classList.remove('hidden');
+                }
                 
                 // Update every second
                 if (!this.trialTimerInterval) {
@@ -574,6 +595,11 @@ class LeaveAssistantApp {
                     this.trialTimerInterval = null;
                 }
                 
+                // Hide upgrade button when expired
+                if (upgradeBtn) {
+                    upgradeBtn.classList.add('hidden');
+                }
+                
                 // Redirect to subscription page
                 setTimeout(() => {
                     this.showPage('subscriptionPage');
@@ -584,8 +610,13 @@ class LeaveAssistantApp {
         } else if (status.type === 'subscription') {
             timerEl.textContent = 'Premium Active 👑';
             timerEl.classList.remove('hidden');
-            timerEl.style.background = '#10b981';
+            timerEl.style.background = '#4FCD1A';
             timerEl.style.color = 'white';
+            
+            // Hide upgrade button for premium users
+            if (upgradeBtn) {
+                upgradeBtn.classList.add('hidden');
+            }
             
             if (this.trialTimerInterval) {
                 clearInterval(this.trialTimerInterval);
@@ -593,6 +624,9 @@ class LeaveAssistantApp {
             }
         } else {
             timerEl.classList.add('hidden');
+            if (upgradeBtn) {
+                upgradeBtn.classList.add('hidden');
+            }
             if (this.trialTimerInterval) {
                 clearInterval(this.trialTimerInterval);
                 this.trialTimerInterval = null;
@@ -691,31 +725,8 @@ class LeaveAssistantApp {
     }
 
     // ==========================================
-    // AI LOGIC (MULTI-MODEL)
+    // AI LOGIC (SIMPLIFIED FOR ADMIN-CONTROLLED API)
     // ==========================================
-
-    toggleKeyFields(provider) {
-        // Hide all sections first
-        const sections = ['openaiKeySection', 'geminiKeySection'];
-        sections.forEach(sectionId => {
-            const element = document.getElementById(sectionId);
-            if (element) element.classList.add('hidden');
-        });
-        
-        // Show the relevant section
-        let targetSection = '';
-        if (provider === 'openai') {
-            targetSection = 'openaiKeySection';
-        } else if (provider === 'gemini') {
-            targetSection = 'geminiKeySection';
-        }
-        // Puter and demo don't need API key sections
-        
-        if (targetSection) {
-            const element = document.getElementById(targetSection);
-            if (element) element.classList.remove('hidden');
-        }
-    }
 
     async handleAISubmit(toolName) {
         const inputId = `${toolName}Input`;
@@ -749,35 +760,18 @@ class LeaveAssistantApp {
                 throw new Error('No user session found. Please log in again.');
             }
             
-            // Determine which provider to use
-            let provider = this.currentUser.aiProvider || 'puter';
+            // Always use Puter.js for regular users since admin controls the API key
+            let provider = 'puter';
             let apiKey = '';
             
-            console.log(`🎯 Selected provider: ${provider}`);
-            
-            // Check for API keys and validate them
-            const keys = {
-                openai: this.currentUser.openaiApiKey,
-                gemini: this.currentUser.geminiApiKey || this.paymentConfig?.systemGeminiKey
-            };
-            
-            // If user selected a specific provider, validate they have the key
-            if (provider === 'openai' && (!keys.openai || !keys.openai.startsWith('sk-'))) {
-                // Fall back to Puter.js if OpenAI key is invalid
-                console.log('⚠️ OpenAI selected but no valid key found, falling back to Puter.js');
-                provider = 'puter';
-            } else if (provider === 'gemini' && (!keys.gemini || !keys.gemini.startsWith('AIza'))) {
-                // Fall back to Puter.js if Gemini key is invalid
-                console.log('⚠️ Gemini selected but no valid key found, falling back to Puter.js');
-                provider = 'puter';
-            } else if (provider === 'openai') {
-                apiKey = keys.openai;
-            } else if (provider === 'gemini') {
-                apiKey = keys.gemini;
+            // Only use OpenAI if system key is available and we're in server mode
+            if (this.paymentConfig?.systemOpenaiKey && this.serverRunning) {
+                provider = 'openai';
+                apiKey = this.paymentConfig.systemOpenaiKey;
+                console.log('🎯 Using system OpenAI key');
+            } else {
+                console.log('🎯 Using Puter.js AI (free)');
             }
-            // For 'puter' and 'demo', no API key needed
-            
-            console.log(`✅ Final provider: ${provider}, API key: ${apiKey ? 'present' : 'not needed'}`);
 
             let responseText = '';
             const systemPrompts = {
@@ -942,25 +936,16 @@ If no, simplify and shorten.`
                     responseText = `DEMO RESPONSE: Puter.js AI is temporarily unavailable (${puterError.message}). This is a simulated response for ${toolName === 'federal' ? 'Federal FMLA' : 'California Leave'} compliance. Please try again later or configure an API key in settings for reliable service.`;
                 }
             }
-            else {
+            else if (provider === 'openai') {
                 // Check server status for API-based providers
-                const endpoint = this.getApiUrl(provider);
+                const endpoint = this.getApiUrl('openai');
                 
                 if (!endpoint || !this.serverRunning) {
-                    if (!endpoint) {
-                        console.warn('⚠️ Server endpoints not available in production. Falling back to Puter.js/Demo mode.');
-                    } else {
-                        await this.checkServerStatus();
-                        if (!this.serverRunning) {
-                            console.warn('⚠️ Server not running. Falling back to Puter.js/Demo mode.');
-                        }
-                    }
+                    console.warn('⚠️ Server not available. Falling back to Puter.js/Demo mode.');
                     
                     // Fall back to Puter.js or demo mode
                     if (typeof puter !== 'undefined' && puter.ai) {
                         console.log('🔄 Falling back to Puter.js AI...');
-                        provider = 'puter';
-                        // Retry with Puter.js
                         try {
                             const fullPrompt = `${systemPrompts[toolName]}\n\nUser Query: ${fullInput}\n\nPlease provide a helpful, compliant response:`;
                             const response = await puter.ai.chat(fullPrompt, {
@@ -975,24 +960,19 @@ If no, simplify and shorten.`
                         }
                     } else {
                         console.log('🔄 Falling back to demo mode...');
-                        responseText = `DEMO RESPONSE: Server unavailable. This is a simulated response for ${toolName === 'federal' ? 'Federal FMLA' : 'California Leave'} compliance. Please configure the server or use Puter.js for real AI responses.`;
+                        responseText = `DEMO RESPONSE: Server unavailable. This is a simulated response for ${toolName === 'federal' ? 'Federal FMLA' : 'California Leave'} compliance. The admin can configure the server for real AI responses.`;
                     }
                 } else {
                     // Server is available, proceed with API call
                     const requestBody = {
                         apiKey: apiKey,
-                        prompt: fullInput,
-                        systemPrompt: systemPrompts[toolName]
-                    };
-
-                    // Add model-specific parameters
-                    if (provider === 'openai') {
-                        requestBody.messages = [
+                        messages: [
                             { role: 'system', content: systemPrompts[toolName] },
                             { role: 'user', content: fullInput }
-                        ];
-                        requestBody.model = 'gpt-4o-mini';
-                    }
+                        ],
+                        model: 'gpt-4o-mini',
+                        toolName: toolName
+                    };
 
                     try {
                         const res = await fetch(endpoint, {
@@ -1010,28 +990,19 @@ If no, simplify and shorten.`
                         if (contentType && contentType.includes('application/json')) {
                             data = await res.json();
                         } else {
-                            throw new Error(`Server Error (${res.status}): Unable to connect to ${provider} API endpoint.`);
+                            throw new Error(`Server Error (${res.status}): Unable to connect to OpenAI API endpoint.`);
                         }
                         
                         if (!res.ok || data.error) {
                             throw new Error(data.error?.message || data.error || `API Error: ${res.status}`);
                         }
                         
-                        // Parse response based on provider
-                        if (provider === 'gemini') {
-                            if (data.candidates && data.candidates[0]?.content?.parts?.[0]?.text) {
-                                responseText = data.candidates[0].content.parts[0].text;
-                            } else {
-                                throw new Error('Invalid response format from Gemini API');
-                            }
-                        } else {
-                            // OpenAI uses standardized format
-                            responseText = data.choices?.[0]?.message?.content || 'No response received';
-                        }
+                        // Parse OpenAI response
+                        responseText = data.choices?.[0]?.message?.content || 'No response received';
 
                     } catch (fetchError) {
                         if (fetchError.message.includes('Failed to fetch') || fetchError.name === 'TypeError') {
-                            throw new Error(`❌ Connection Error: Cannot connect to ${provider} API. Please ensure the server is running.`);
+                            throw new Error(`❌ Connection Error: Cannot connect to OpenAI API. Please ensure the server is running.`);
                         }
                         throw fetchError;
                     }
@@ -1262,6 +1233,10 @@ Please provide a response that addresses both the original context and this foll
                 this.sessionToken = data.sessionToken;
                 localStorage.setItem('sessionToken', this.sessionToken);
                 this.resetIdleTimer();
+                
+                // Check for stored plan selection
+                this.checkStoredPlanSelection();
+                
                 this.checkSubscriptionAndRedirect();
                 this.showSuccess('Login successful!');
             } else {
@@ -1306,6 +1281,10 @@ Please provide a response that addresses both the original context and this foll
             localStorage.setItem('currentUser', JSON.stringify(this.currentUser));
             
             this.resetIdleTimer();
+            
+            // Check for stored plan selection
+            this.checkStoredPlanSelection();
+            
             this.checkSubscriptionAndRedirect();
             this.showSuccess('Login successful! (Client-side mode)');
             this.hideLoading();
@@ -1325,6 +1304,7 @@ Please provide a response that addresses both the original context and this foll
         const lastName = document.getElementById('lastName').value.trim();
         const password = document.getElementById('registerPassword').value;
         const confirmPassword = document.getElementById('confirmPassword').value;
+        const accessCode = document.getElementById('accessCode').value.trim();
         
         // Basic validation
         if (!email || !firstName || !lastName || !password || !confirmPassword) {
@@ -1359,14 +1339,14 @@ Please provide a response that addresses both the original context and this foll
         const apiUrl = this.getApiUrl('auth/register');
         if (!apiUrl || !this.serverRunning) {
             console.log('🔄 Server not available, using client-side registration');
-            return this.handleClientSideRegister(email, firstName, lastName, password);
+            return this.handleClientSideRegister(email, firstName, lastName, password, accessCode);
         }
         
         try {
             const response = await fetch(apiUrl, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email, firstName, lastName, password })
+                body: JSON.stringify({ email, firstName, lastName, password, accessCode })
             });
             
             const data = await response.json();
@@ -1381,13 +1361,13 @@ Please provide a response that addresses both the original context and this foll
             console.error('Registration error:', error);
             console.log('🔄 Server connection failed, falling back to client-side registration');
             // Fall back to client-side registration
-            this.handleClientSideRegister(email, firstName, lastName, password);
+            this.handleClientSideRegister(email, firstName, lastName, password, accessCode);
         } finally {
             this.hideLoading();
         }
     }
     
-    handleClientSideRegister(email, firstName, lastName, password) {
+    handleClientSideRegister(email, firstName, lastName, password, accessCode = '') {
         try {
             // Enhanced disposable email check
             const disposableDomains = [
@@ -1508,6 +1488,13 @@ Please provide a response that addresses both the original context and this foll
             this.savePendingVerifications(pending);
             
             this.showSuccess('Email verified successfully! Please login.');
+            
+            // Check if there's a stored plan selection
+            const storedPlan = localStorage.getItem('selectedPlan');
+            if (storedPlan) {
+                this.showSuccess('Your account is verified! Please login to continue with your subscription.');
+            }
+            
             this.showPage('loginPage');
             
         } catch (error) {
@@ -2003,27 +1990,12 @@ Please provide a response that addresses both the original context and this foll
     handleSettings(e) {
         e.preventDefault();
         
-        // Get AI provider
-        this.currentUser.aiProvider = document.getElementById('aiProvider').value;
-        
-        // Only get API keys from fields that exist
-        const openaiField = document.getElementById('openaiApiKey');
-        const geminiField = document.getElementById('geminiApiKey');
-        
-        if (openaiField) this.currentUser.openaiApiKey = openaiField.value;
-        if (geminiField) this.currentUser.geminiApiKey = geminiField.value;
-        
         const newPass = document.getElementById('newPassword').value;
         if (newPass) this.currentUser.password = newPass;
 
         this.updateUserRecord(this.currentUser);
         
-        // Show which provider is active
-        const provider = this.currentUser.aiProvider;
-        let providerName = provider.charAt(0).toUpperCase() + provider.slice(1);
-        if (provider === 'puter') providerName = 'Puter.js AI (Free)';
-        
-        this.showSuccess(`Settings Saved (${providerName} Active)`);
+        this.showSuccess('Settings Saved');
         this.hideSettings();
     }
 
@@ -2072,6 +2044,9 @@ Please provide a response that addresses both the original context and this foll
         await this.loadUsers();
         await this.loadPendingVerifications();
         await this.loadAdminConfig();
+        
+        // Initialize admin tabs
+        this.initializeAdminTabs();
     }
     
     loadClientSideAdminDashboard() {
@@ -2112,6 +2087,9 @@ Please provide a response that addresses both the original context and this foll
         
         // Load pending verifications
         this.displayPendingVerifications(pending);
+        
+        // Initialize admin tabs
+        this.initializeAdminTabs();
         
         console.log('📊 Client-side admin dashboard loaded');
         console.log('📊 Stats:', {
@@ -3050,7 +3028,36 @@ Please provide a response that addresses both the original context and this foll
     saveUsers(u) { localStorage.setItem('users', JSON.stringify(u)); }
     loadPendingVerificationsData() { const p = localStorage.getItem('pendingVerifications'); return p ? JSON.parse(p) : []; }
     savePendingVerifications(p) { localStorage.setItem('pendingVerifications', JSON.stringify(p)); }
-    loadPaymentConfig() { const c = localStorage.getItem('paymentConfig'); return c ? JSON.parse(c) : {}; }
+    loadPaymentConfig() { 
+        const c = localStorage.getItem('paymentConfig'); 
+        const config = c ? JSON.parse(c) : {};
+        
+        // Try to load system API key from server if available
+        if (this.serverRunning && this.sessionToken) {
+            this.loadSystemConfig();
+        }
+        
+        return config;
+    }
+    
+    async loadSystemConfig() {
+        try {
+            const response = await fetch(this.getApiUrl('config'), {
+                headers: { 'Authorization': `Bearer ${this.sessionToken}` }
+            });
+            
+            if (response.ok) {
+                const data = await response.json();
+                if (data.success && data.config) {
+                    // Update payment config with system settings
+                    this.paymentConfig = { ...this.paymentConfig, ...data.config };
+                    localStorage.setItem('paymentConfig', JSON.stringify(this.paymentConfig));
+                }
+            }
+        } catch (error) {
+            console.error('Failed to load system config:', error);
+        }
+    }
 
     // UI Helpers
     showPage(id) { 
@@ -3074,33 +3081,8 @@ Please provide a response that addresses both the original context and this foll
                 return;
             }
             
-            // Populate current values
-            const aiProviderField = document.getElementById('aiProvider');
-            if (aiProviderField) {
-                aiProviderField.value = this.currentUser.aiProvider || 'puter';
-                console.log('✅ AI Provider set to:', aiProviderField.value);
-            } else {
-                console.error('❌ AI Provider field not found');
-            }
-            
-            // Only populate fields that exist in the HTML
-            const openaiField = document.getElementById('openaiApiKey');
-            const geminiField = document.getElementById('geminiApiKey');
+            // Only populate password field since API keys are now admin-controlled
             const passwordField = document.getElementById('newPassword');
-            
-            if (openaiField) {
-                openaiField.value = this.currentUser.openaiApiKey || '';
-                console.log('✅ OpenAI field populated');
-            } else {
-                console.log('ℹ️ OpenAI field not found (expected if removed)');
-            }
-            
-            if (geminiField) {
-                geminiField.value = this.currentUser.geminiApiKey || '';
-                console.log('✅ Gemini field populated');
-            } else {
-                console.log('ℹ️ Gemini field not found (expected if removed)');
-            }
             
             if (passwordField) {
                 passwordField.value = '';
@@ -3108,9 +3090,6 @@ Please provide a response that addresses both the original context and this foll
             } else {
                 console.error('❌ Password field not found');
             }
-            
-            // Show/hide appropriate sections
-            this.toggleKeyFields(this.currentUser.aiProvider || 'puter');
             
             const settingsModal = document.getElementById('settingsModal');
             if (settingsModal) {
@@ -3197,6 +3176,455 @@ Please provide a response that addresses both the original context and this foll
         
         console.log(`📋 Switched to admin tab: ${tab}`);
     }
+
+    // ==========================================
+    // NEW ADMIN FUNCTIONALITY
+    // ==========================================
+
+    async handleGenerateAccessCode(e) {
+        e.preventDefault();
+        this.showLoading();
+        
+        try {
+            const codeLength = document.getElementById('codeLength')?.value || 8;
+            const duration = document.getElementById('accessDuration').value;
+            const durationType = document.getElementById('durationType').value;
+            const description = document.getElementById('codeDescription').value;
+            
+            if (!duration || !durationType) {
+                this.showError('Please specify duration and type');
+                return;
+            }
+            
+            const response = await fetch(this.getApiUrl('admin/generate-access-code'), {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${this.sessionToken}`
+                },
+                body: JSON.stringify({
+                    codeLength: parseInt(codeLength),
+                    duration: parseInt(duration),
+                    durationType: durationType,
+                    description: description
+                })
+            });
+            
+            const data = await response.json();
+            
+            if (response.ok && data.success) {
+                this.showSuccess(`Access code generated: ${data.code}`);
+                this.loadAccessCodes();
+                document.getElementById('generateAccessCodeForm').reset();
+            } else {
+                this.showError(data.error || 'Failed to generate access code');
+            }
+        } catch (error) {
+            console.error('Generate access code error:', error);
+            this.showError('Failed to generate access code');
+        } finally {
+            this.hideLoading();
+        }
+    }
+
+    async loadAccessCodes() {
+        try {
+            const response = await fetch(this.getApiUrl('admin/access-codes'), {
+                headers: { 'Authorization': `Bearer ${this.sessionToken}` }
+            });
+            
+            if (response.ok) {
+                const data = await response.json();
+                this.displayAccessCodes(data.codes || []);
+            }
+        } catch (error) {
+            console.error('Load access codes error:', error);
+        }
+    }
+
+    displayAccessCodes(codes) {
+        const tbody = document.getElementById('accessCodesTableBody');
+        
+        if (!codes || codes.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="6" class="text-center">No access codes generated yet</td></tr>';
+            return;
+        }
+        
+        tbody.innerHTML = codes.map(code => `
+            <tr>
+                <td><code>${code.code}</code></td>
+                <td>${code.description || 'No description'}</td>
+                <td>${code.duration} ${code.durationType}${code.duration > 1 ? 's' : ''}</td>
+                <td>${code.usedCount || 0}</td>
+                <td>${new Date(code.createdAt).toLocaleDateString()}</td>
+                <td>
+                    <button class="btn btn-sm btn-danger" onclick="app.deleteAccessCode('${code.code}')">
+                        <i class="fas fa-trash"></i> Delete
+                    </button>
+                </td>
+            </tr>
+        `).join('');
+    }
+
+    async deleteAccessCode(code) {
+        if (!confirm('Are you sure you want to delete this access code?')) {
+            return;
+        }
+        
+        try {
+            const response = await fetch(this.getApiUrl(`admin/access-codes/${code}`), {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${this.sessionToken}` }
+            });
+            
+            const data = await response.json();
+            
+            if (response.ok && data.success) {
+                this.showSuccess('Access code deleted');
+                this.loadAccessCodes();
+            } else {
+                this.showError(data.error || 'Failed to delete access code');
+            }
+        } catch (error) {
+            console.error('Delete access code error:', error);
+            this.showError('Failed to delete access code');
+        }
+    }
+
+    async handleApiSettings(e) {
+        e.preventDefault();
+        this.showLoading();
+        
+        try {
+            const openaiApiKey = document.getElementById('systemOpenaiKey').value;
+            
+            const response = await fetch(this.getApiUrl('admin/api-settings'), {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${this.sessionToken}`
+                },
+                body: JSON.stringify({
+                    openaiApiKey: openaiApiKey
+                })
+            });
+            
+            const data = await response.json();
+            
+            if (response.ok && data.success) {
+                this.showSuccess('API settings saved successfully');
+                this.updateApiStatus(true);
+            } else {
+                this.showError(data.error || 'Failed to save API settings');
+            }
+        } catch (error) {
+            console.error('API settings error:', error);
+            this.showError('Failed to save API settings');
+        } finally {
+            this.hideLoading();
+        }
+    }
+
+    async testApiKey() {
+        this.showLoading();
+        
+        try {
+            const response = await fetch(this.getApiUrl('admin/test-api-key'), {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${this.sessionToken}`
+                }
+            });
+            
+            const data = await response.json();
+            
+            if (response.ok && data.success) {
+                this.showSuccess('API key test successful!');
+                this.updateApiStatus(true);
+            } else {
+                this.showError(data.error || 'API key test failed');
+            }
+        } catch (error) {
+            console.error('Test API key error:', error);
+            this.showError('Failed to test API key');
+        } finally {
+            this.hideLoading();
+        }
+    }
+
+    updateApiStatus() {
+        // Update API status indicators
+        const statusElement = document.querySelector('.api-status .status-indicator');
+        if (statusElement) {
+            statusElement.innerHTML = '<i class="fas fa-check-circle text-success"></i> API Key Configured';
+        }
+    }
+
+    async testDeployment() {
+        this.showLoading();
+        
+        try {
+            // Open deployment URL in new tab
+            const deployUrl = `${window.location.origin}/deploy.php?manual=true`;
+            window.open(deployUrl, '_blank');
+            
+            this.showSuccess('Manual deployment initiated. Check the new tab for results.');
+        } catch (error) {
+            console.error('Test deployment error:', error);
+            this.showError('Failed to initiate deployment test');
+        } finally {
+            this.hideLoading();
+        }
+    }
+
+    async viewDeploymentLogs() {
+        this.showLoading();
+        
+        try {
+            // Try to fetch deployment logs
+            const response = await fetch('/deploy.log');
+            
+            if (response.ok) {
+                const logs = await response.text();
+                document.getElementById('deploymentLogContent').textContent = logs || 'No logs available';
+                document.getElementById('deploymentLogs').classList.remove('hidden');
+                this.showSuccess('Deployment logs loaded');
+            } else {
+                this.showError('Could not load deployment logs');
+            }
+        } catch (error) {
+            console.error('View deployment logs error:', error);
+            this.showError('Failed to load deployment logs');
+        } finally {
+            this.hideLoading();
+        }
+    }
+
+    initializeAdminTabs() {
+        // Load access codes if on that tab
+        if (document.getElementById('accessCodesTab')) {
+            this.loadAccessCodes();
+        }
+        
+        // Load API settings
+        this.loadApiSettings();
+        
+        // Set default tab to users
+        this.switchAdminTab('users');
+    }
+
+    async loadApiSettings() {
+        try {
+            const response = await fetch(this.getApiUrl('config'), {
+                headers: { 'Authorization': `Bearer ${this.sessionToken}` }
+            });
+            
+            if (response.ok) {
+                const data = await response.json();
+                const config = data.config;
+                
+                // Update API settings form
+                const systemOpenaiKeyEl = document.getElementById('systemOpenaiKey');
+                if (systemOpenaiKeyEl && config.systemOpenaiKey) {
+                    systemOpenaiKeyEl.value = config.systemOpenaiKey;
+                }
+                
+                // Update API status
+                this.updateApiStatus(config.hasSystemOpenaiKey);
+                
+                // Load usage stats
+                this.loadApiUsageStats();
+            }
+        } catch (error) {
+            console.error('Load API settings error:', error);
+        }
+    }
+
+    async loadApiUsageStats() {
+        try {
+            const response = await fetch(this.getApiUrl('admin/api-usage'), {
+                headers: { 'Authorization': `Bearer ${this.sessionToken}` }
+            });
+            
+            if (response.ok) {
+                const data = await response.json();
+                const usage = data.usage;
+                
+                document.getElementById('totalRequests').textContent = usage.totalRequests || 0;
+                document.getElementById('openaiRequests').textContent = usage.openaiRequests || 0;
+                document.getElementById('puterRequests').textContent = usage.puterRequests || 0;
+            }
+        } catch (error) {
+            console.error('Load API usage stats error:', error);
+        }
+    }
+
+    updateApiStatus(hasKey = false) {
+        const statusIcon = document.getElementById('apiStatusIcon');
+        const statusText = document.getElementById('apiStatusText');
+        
+        if (hasKey) {
+            statusIcon.className = 'fas fa-circle text-success';
+            statusText.textContent = 'API Key Configured';
+        } else {
+            statusIcon.className = 'fas fa-circle text-danger';
+            statusText.textContent = 'Not configured';
+        }
+    }
+
+    // ==========================================
+    // SUBSCRIPTION AND PAYMENT HANDLING
+    // ==========================================
+
+    handleSubscriptionClick(e) {
+        const plan = e.target.dataset.plan;
+        const amount = e.target.dataset.amount;
+        
+        // Store selected plan for after login/registration
+        localStorage.setItem('selectedPlan', JSON.stringify({ plan, amount }));
+        
+        // Check if user is logged in
+        if (!this.currentUser) {
+            // Redirect to registration/login
+            this.showPage('registerPage');
+            this.showSuccess('Please create an account or sign in to continue with your subscription.');
+            return;
+        }
+        
+        // If trial plan, handle directly
+        if (plan === 'trial') {
+            this.startFreeTrial();
+            return;
+        }
+        
+        // Show payment modal for paid plans
+        this.showPaymentModal(plan, amount);
+    }
+
+    showPaymentModal(plan, amount) {
+        // Update modal content
+        const planNames = {
+            monthly: 'Monthly Plan',
+            annual: 'Annual Plan', 
+            organization: 'Organization Plan'
+        };
+        
+        const planPeriods = {
+            monthly: '/month',
+            annual: '/year',
+            organization: '/year'
+        };
+        
+        document.getElementById('selectedPlanName').textContent = planNames[plan] || 'Selected Plan';
+        document.getElementById('selectedPlanAmount').textContent = amount;
+        document.getElementById('selectedPlanPeriod').textContent = planPeriods[plan] || '';
+        
+        // Store current selection
+        this.selectedPlan = { plan, amount };
+        
+        // Show modal
+        document.getElementById('paymentModal').classList.remove('hidden');
+    }
+
+    startFreeTrial() {
+        // For free trial, just redirect to dashboard
+        this.showSuccess('Free trial activated! You now have access to HR Leave Assist.');
+        this.checkSubscriptionAndRedirect();
+    }
+
+    async handleStripePayment() {
+        if (!this.selectedPlan) {
+            this.showError('No plan selected');
+            return;
+        }
+        
+        this.showLoading();
+        
+        try {
+            const response = await fetch(this.getApiUrl('payment/stripe/create-session'), {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${this.sessionToken}`
+                },
+                body: JSON.stringify({
+                    plan: this.selectedPlan.plan,
+                    amount: this.selectedPlan.amount
+                })
+            });
+            
+            const data = await response.json();
+            
+            if (response.ok && data.success) {
+                // Redirect to Stripe Checkout
+                window.location.href = data.url;
+            } else {
+                throw new Error(data.error || 'Failed to create Stripe session');
+            }
+        } catch (error) {
+            console.error('Stripe payment error:', error);
+            this.showError('Stripe payment failed: ' + error.message);
+        } finally {
+            this.hideLoading();
+        }
+    }
+
+    handlePayPalPayment() {
+        if (!this.selectedPlan) {
+            this.showError('No plan selected');
+            return;
+        }
+        
+        // Create PayPal URL
+        const paypalUrl = `https://www.paypal.com/cgi-bin/webscr?cmd=_xclick&business=talk2char@gmail.com&amount=${this.selectedPlan.amount}&currency_code=USD`;
+        
+        // Open PayPal in new window
+        window.open(paypalUrl, '_blank');
+        
+        // Show success message
+        this.showSuccess('Redirecting to PayPal. Please complete your payment there.');
+        
+        // Close payment modal
+        document.getElementById('paymentModal').classList.add('hidden');
+    }
+
+    checkStoredPlanSelection() {
+        const storedPlan = localStorage.getItem('selectedPlan');
+        if (storedPlan) {
+            try {
+                const { plan, amount } = JSON.parse(storedPlan);
+                localStorage.removeItem('selectedPlan'); // Clear stored plan
+                
+                // Show payment modal for the stored plan
+                setTimeout(() => {
+                    if (plan === 'trial') {
+                        this.startFreeTrial();
+                    } else {
+                        this.showPaymentModal(plan, amount);
+                    }
+                }, 1000); // Small delay to let login complete
+            } catch (error) {
+                console.error('Error parsing stored plan:', error);
+                localStorage.removeItem('selectedPlan');
+            }
+        }
+    }
+
+    showUpgradeOptions() {
+        // Navigate to landing page pricing section
+        this.showPage('landingPage');
+        
+        // Scroll to pricing section after a short delay
+        setTimeout(() => {
+            const pricingSection = document.getElementById('pricing');
+            if (pricingSection) {
+                pricingSection.scrollIntoView({ behavior: 'smooth' });
+            }
+        }, 100);
+        
+        this.showSuccess('Choose your subscription plan below');
+    }
 }
 
 // Global error handlers to prevent refresh loops
@@ -3228,7 +3656,7 @@ document.addEventListener('DOMContentLoaded', () => {
             <h2 style="color: #ef4444;">Application Error</h2>
             <p>Failed to initialize the Leave Assistant application.</p>
             <p style="font-size: 0.9rem; color: #666;">Error: ${error.message}</p>
-            <button onclick="window.location.reload()" style="padding: 10px 20px; background: #3b82f6; color: white; border: none; border-radius: 5px; cursor: pointer;">Reload Page</button>
+            <button onclick="window.location.reload()" style="padding: 10px 20px; background: #0023F5; color: white; border: none; border-radius: 5px; cursor: pointer;">Reload Page</button>
         `;
         document.body.appendChild(errorDiv);
     }

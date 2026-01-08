@@ -31,5 +31,16 @@
     "aiProvider": "puter",
     "createdAt": 1767177137931,
     "id": "1767177212633"
+  },
+  {
+    "email": "james@smith.com",
+    "firstName": "James",
+    "lastName": "Smith",
+    "password": "Password@123",
+    "isAdmin": false,
+    "emailVerified": true,
+    "aiProvider": "puter",
+    "createdAt": 1767887984211,
+    "id": "1767888016275"
   }
 ]

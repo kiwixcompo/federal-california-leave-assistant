@@ -469,9 +469,9 @@ app.post('/api/auth/register', async (req, res) => {
                 <style>
                     body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
                     .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-                    .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+                    .header { background: linear-gradient(135deg, #0023F5 0%, #0322D8 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
                     .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
-                    .button { display: inline-block; background: #667eea; color: white; padding: 15px 30px; text-decoration: none; border-radius: 5px; margin: 20px 0; }
+                    .button { display: inline-block; background: #0023F5; color: white; padding: 15px 30px; text-decoration: none; border-radius: 5px; margin: 20px 0; }
                     .footer { text-align: center; margin-top: 20px; font-size: 0.9rem; color: #666; }
                 </style>
             </head>
@@ -891,8 +891,16 @@ app.post('/api/payment/stripe/create-session', requireAuth, (req, res) => {
         return res.status(400).json({ error: 'Stripe not configured' });
     }
     
-    const config = loadData(CONFIG_FILE, {});
-    const amount = Math.round((config.monthlyFee || 29) * 100); // Convert to cents
+    const { plan, amount } = req.body;
+    const stripeAmount = Math.round(parseFloat(amount) * 100); // Convert to cents
+    
+    const planNames = {
+        monthly: 'Leave Assistant - Monthly Subscription',
+        annual: 'Leave Assistant - Annual Subscription',
+        organization: 'Leave Assistant - Organization Subscription'
+    };
+    
+    const mode = plan === 'monthly' ? 'subscription' : 'payment';
     
     stripeClient.checkout.sessions.create({
         payment_method_types: ['card'],
@@ -900,20 +908,22 @@ app.post('/api/payment/stripe/create-session', requireAuth, (req, res) => {
             price_data: {
                 currency: 'usd',
                 product_data: {
-                    name: 'Leave Assistant - Monthly Subscription',
+                    name: planNames[plan] || 'Leave Assistant Subscription',
                     description: 'HR Compliance & Response Tool'
                 },
-                unit_amount: amount,
+                unit_amount: stripeAmount,
             },
             quantity: 1,
         }],
-        mode: 'subscription',
+        mode: mode,
         success_url: `${req.headers.origin}/payment-success?session_id={CHECKOUT_SESSION_ID}`,
         cancel_url: `${req.headers.origin}/payment-cancelled`,
         client_reference_id: req.user.id,
         metadata: {
             userId: req.user.id,
-            email: req.user.email
+            email: req.user.email,
+            plan: plan,
+            amount: amount
         }
     }).then(session => {
         res.json({
@@ -1052,12 +1062,14 @@ app.post('/api/payment/paypal/capture-order', requireAuth, (req, res) => {
 
 app.get('/api/config', requireAdmin, (req, res) => {
     const config = loadData(CONFIG_FILE, {});
-    // Don't send sensitive data - remove email configuration
+    // Don't send sensitive data - remove email configuration but include system API key status
     const safeConfig = {
         monthlyFee: config.monthlyFee,
         systemSettings: config.systemSettings,
         hasStripe: !!config.stripeSecretKey,
-        hasPaypal: !!(config.paypalClientId && config.paypalClientSecret)
+        hasPaypal: !!(config.paypalClientId && config.paypalClientSecret),
+        systemOpenaiKey: config.systemOpenaiKey, // Include for admin use
+        hasSystemOpenaiKey: !!config.systemOpenaiKey
     };
     
     res.json({
@@ -1352,6 +1364,322 @@ app.get('/api/admin/user-conversations/:userId', requireAdmin, (req, res) => {
             lastName: user.lastName,
             email: user.email
         }
+    });
+});
+
+// ==========================================
+// NEW ADMIN ENDPOINTS FOR ACCESS CODES AND API SETTINGS
+// ==========================================
+
+// Generate access code
+app.post('/api/admin/generate-access-code', requireAdmin, (req, res) => {
+    const { codeLength = 8, duration, durationType, description } = req.body;
+    
+    if (!duration || !durationType) {
+        return res.status(400).json({ error: 'Duration and duration type are required' });
+    }
+    
+    // Generate random access code
+    const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    let code = '';
+    for (let i = 0; i < codeLength; i++) {
+        code += characters.charAt(Math.floor(Math.random() * characters.length));
+    }
+    
+    // Load existing access codes
+    const config = loadData(CONFIG_FILE, {});
+    if (!config.accessCodes) {
+        config.accessCodes = [];
+    }
+    
+    // Create new access code
+    const newCode = {
+        code: code,
+        description: description || '',
+        duration: parseInt(duration),
+        durationType: durationType,
+        createdAt: Date.now(),
+        usedCount: 0,
+        active: true
+    };
+    
+    config.accessCodes.push(newCode);
+    saveData(CONFIG_FILE, config);
+    
+    res.json({
+        success: true,
+        message: 'Access code generated successfully',
+        code: code
+    });
+});
+
+// Get all access codes
+app.get('/api/admin/access-codes', requireAdmin, (req, res) => {
+    const config = loadData(CONFIG_FILE, {});
+    const codes = config.accessCodes || [];
+    
+    res.json({
+        success: true,
+        codes: codes
+    });
+});
+
+// Delete access code
+app.delete('/api/admin/access-codes/:code', requireAdmin, (req, res) => {
+    const { code } = req.params;
+    const config = loadData(CONFIG_FILE, {});
+    
+    if (!config.accessCodes) {
+        return res.status(404).json({ error: 'Access code not found' });
+    }
+    
+    const codeIndex = config.accessCodes.findIndex(c => c.code === code);
+    if (codeIndex === -1) {
+        return res.status(404).json({ error: 'Access code not found' });
+    }
+    
+    config.accessCodes.splice(codeIndex, 1);
+    saveData(CONFIG_FILE, config);
+    
+    res.json({
+        success: true,
+        message: 'Access code deleted successfully'
+    });
+});
+
+// Save API settings
+app.post('/api/admin/api-settings', requireAdmin, (req, res) => {
+    const { openaiApiKey } = req.body;
+    
+    const config = loadData(CONFIG_FILE, {});
+    config.systemOpenaiKey = openaiApiKey;
+    
+    saveData(CONFIG_FILE, config);
+    
+    res.json({
+        success: true,
+        message: 'API settings saved successfully'
+    });
+});
+
+// Test API key
+app.post('/api/admin/test-api-key', requireAdmin, async (req, res) => {
+    try {
+        const config = loadData(CONFIG_FILE, {});
+        const apiKey = config.systemOpenaiKey;
+        
+        if (!apiKey) {
+            return res.status(400).json({ error: 'No API key configured' });
+        }
+        
+        const fetch = (await import('node-fetch')).default;
+        
+        // Test the API key with a simple request
+        const response = await fetch('https://api.openai.com/v1/models', {
+            headers: {
+                'Authorization': `Bearer ${apiKey}`
+            }
+        });
+        
+        if (response.ok) {
+            res.json({
+                success: true,
+                message: 'API key is valid and working'
+            });
+        } else {
+            res.status(400).json({
+                error: 'API key test failed',
+                details: response.statusText
+            });
+        }
+    } catch (error) {
+        console.error('API key test error:', error);
+        res.status(500).json({ error: 'Failed to test API key' });
+    }
+});
+
+// Get API usage stats
+app.get('/api/admin/api-usage', requireAdmin, (req, res) => {
+    const conversations = loadData(CONVERSATIONS_FILE, {});
+    
+    // Calculate usage statistics
+    let totalRequests = 0;
+    let openaiRequests = 0;
+    let geminiRequests = 0;
+    let puterRequests = 0;
+    
+    Object.values(conversations).forEach(userConversations => {
+        if (Array.isArray(userConversations)) {
+            totalRequests += userConversations.length;
+            userConversations.forEach(conv => {
+                switch (conv.provider) {
+                    case 'openai':
+                        openaiRequests++;
+                        break;
+                    case 'gemini':
+                        geminiRequests++;
+                        break;
+                    case 'puter':
+                        puterRequests++;
+                        break;
+                }
+            });
+        }
+    });
+    
+    res.json({
+        success: true,
+        usage: {
+            totalRequests,
+            openaiRequests,
+            geminiRequests,
+            puterRequests,
+            lastUpdated: Date.now()
+        }
+    });
+});
+
+// ==========================================
+// UPDATED REGISTRATION ENDPOINT TO HANDLE ACCESS CODES
+// ==========================================
+
+app.post('/api/auth/register', async (req, res) => {
+    const { email, firstName, lastName, password, accessCode } = req.body;
+    const users = loadData(USERS_FILE, []);
+    const pending = loadData(PENDING_FILE, []);
+    
+    // Check if user already exists in users table
+    if (users.find(u => u.email.toLowerCase() === email.toLowerCase())) {
+        return res.status(400).json({ error: 'This email address is already registered. Please use a different email or try logging in.' });
+    }
+    
+    // Check if user already has a pending verification
+    if (pending.find(p => p.userData.email.toLowerCase() === email.toLowerCase())) {
+        return res.status(400).json({ error: 'This email address already has a pending verification. Please check your email or contact support.' });
+    }
+    
+    // Handle access code if provided
+    let accessCodeData = null;
+    if (accessCode) {
+        const config = loadData(CONFIG_FILE, {});
+        const accessCodes = config.accessCodes || [];
+        
+        accessCodeData = accessCodes.find(c => c.code === accessCode && c.active);
+        if (!accessCodeData) {
+            return res.status(400).json({ error: 'Invalid access code' });
+        }
+        
+        // Update access code usage
+        accessCodeData.usedCount = (accessCodeData.usedCount || 0) + 1;
+        saveData(CONFIG_FILE, config);
+    }
+    
+    // Create verification token
+    const token = Math.random().toString(36).substring(2) + Date.now().toString(36);
+    const verificationLink = `${req.headers.origin || 'http://localhost:3001'}?verify=${token}`;
+    
+    // Store pending verification with access code info
+    const userData = {
+        email: email.toLowerCase(),
+        firstName: firstName,
+        lastName: lastName,
+        password: password,
+        isAdmin: false,
+        emailVerified: false,
+        aiProvider: 'puter',
+        createdAt: Date.now()
+    };
+    
+    // If access code was used, calculate extended expiry
+    if (accessCodeData) {
+        const expiryDate = new Date();
+        if (accessCodeData.durationType === 'days') {
+            expiryDate.setDate(expiryDate.getDate() + accessCodeData.duration);
+        } else if (accessCodeData.durationType === 'months') {
+            expiryDate.setMonth(expiryDate.getMonth() + accessCodeData.duration);
+        }
+        userData.subscriptionExpiry = expiryDate.toISOString();
+        userData.accessCodeUsed = accessCode;
+    }
+    
+    pending.push({
+        token: token,
+        userData: userData,
+        createdAt: Date.now()
+    });
+    saveData(PENDING_FILE, pending);
+    
+    // Send verification email
+    try {
+        const emailHtml = `
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <style>
+                    body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+                    .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+                    .header { background: linear-gradient(135deg, #0023F5 0%, #0322D8 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+                    .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
+                    .button { display: inline-block; background: #0023F5; color: white; padding: 15px 30px; text-decoration: none; border-radius: 5px; margin: 20px 0; }
+                    .footer { text-align: center; margin-top: 20px; font-size: 0.9rem; color: #666; }
+                </style>
+            </head>
+            <body>
+                <div class="container">
+                    <div class="header">
+                        <h1>🏛️ Leave Assistant</h1>
+                        <p>HR Compliance & Response Tool</p>
+                    </div>
+                    <div class="content">
+                        <h2>Welcome, ${firstName}!</h2>
+                        <p>Thank you for registering with Leave Assistant. To complete your registration and start your ${accessCodeData ? 'extended access period' : '24-hour free trial'}, please verify your email address.</p>
+                        
+                        ${accessCodeData ? `<p><strong>Access Code Applied:</strong> You will receive ${accessCodeData.duration} ${accessCodeData.durationType} of access once verified.</p>` : ''}
+                        
+                        <div style="text-align: center;">
+                            <a href="${verificationLink}" class="button">✅ Verify Email Address</a>
+                        </div>
+                        
+                        <p>If the button doesn't work, copy and paste this link into your browser:</p>
+                        <p style="word-break: break-all; background: #e9ecef; padding: 10px; border-radius: 5px; font-family: monospace;">
+                            ${verificationLink}
+                        </p>
+                    </div>
+                    <div class="footer">
+                        <p>© 2024 Leave Assistant - HR Compliance Tool</p>
+                    </div>
+                </div>
+            </body>
+            </html>
+        `;
+
+        const textContent = `
+Welcome to Leave Assistant, ${firstName}!
+
+Thank you for registering with Leave Assistant. To complete your registration and start your ${accessCodeData ? 'extended access period' : '24-hour free trial'}, please verify your email address by clicking the link below:
+
+${verificationLink}
+
+${accessCodeData ? `Access Code Applied: You will receive ${accessCodeData.duration} ${accessCodeData.durationType} of access once verified.` : ''}
+
+If you have any issues, please contact support.
+
+© 2024 Leave Assistant - HR Compliance Tool
+        `;
+
+        await sendConfirmationEmail(email, '✅ Verify your Leave Assistant account - Start your access', emailHtml, textContent);
+        
+    } catch (error) {
+        console.error('Email sending error:', error);
+        // Don't fail registration if email sending fails
+    }
+    
+    res.json({
+        success: true,
+        message: 'Registration successful. Please check your email for verification.',
+        verificationLink: verificationLink,
+        email: email,
+        accessCodeApplied: !!accessCodeData
     });
 });
 
