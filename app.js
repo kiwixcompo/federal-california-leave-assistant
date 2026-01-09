@@ -47,10 +47,24 @@ class LeaveAssistantApp {
     // API CONNECTION HELPER (The Fix)
     // ==========================================
     getApiUrl(endpoint) {
-        // For production/Netlify deployment, don't try to connect to localhost
+        // For production/Netlify deployment, use client-side storage for admin functions
         if (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
-            console.warn('⚠️ Production environment detected. Server endpoints not available.');
-            return null; // This will force fallback to client-only mode
+            console.warn('⚠️ Production environment detected. Using client-side admin functionality.');
+            
+            // Return null for server-dependent endpoints, but allow admin functions to work client-side
+            const clientSideEndpoints = [
+                'admin/generate-access-code',
+                'admin/access-codes', 
+                'admin/api-settings',
+                'admin/test-api-key',
+                'config'
+            ];
+            
+            if (clientSideEndpoints.some(ep => endpoint.includes(ep))) {
+                return 'client-side'; // Special flag for client-side handling
+            }
+            
+            return null; // This will force fallback to client-only mode for other endpoints
         }
         
         // If the app is loaded from port 3001, use relative path
@@ -2015,10 +2029,16 @@ Please provide a response that addresses both the original context and this foll
             
             console.log('📊 Admin Stats:', stats);
             
-            document.getElementById('totalUsers').textContent = stats.totalUsers || 0;
-            document.getElementById('verifiedUsers').textContent = stats.verifiedUsers || 0;
-            document.getElementById('subscribedUsers').textContent = stats.activeSubscriptions || 0;
-            document.getElementById('trialUsers').textContent = stats.trialUsers || 0;
+            // Update stats display with safety checks
+            const totalUsersEl = document.getElementById('totalUsers');
+            const verifiedUsersEl = document.getElementById('verifiedUsers');
+            const subscribedUsersEl = document.getElementById('subscribedUsers');
+            const trialUsersEl = document.getElementById('trialUsers');
+            
+            if (totalUsersEl) totalUsersEl.textContent = stats.totalUsers || 0;
+            if (verifiedUsersEl) verifiedUsersEl.textContent = stats.verifiedUsers || 0;
+            if (subscribedUsersEl) subscribedUsersEl.textContent = stats.activeSubscriptions || 0;
+            if (trialUsersEl) trialUsersEl.textContent = stats.trialUsers || 0;
         }
         
         // Load users and other data
@@ -2056,11 +2076,16 @@ Please provide a response that addresses both the original context and this foll
             return new Date(u.subscriptionExpiry).getTime() > now;
         });
         
-        // Update stats display - show all users including admins for total
-        document.getElementById('totalUsers').textContent = allUsers.length;
-        document.getElementById('verifiedUsers').textContent = verifiedUsers.length;
-        document.getElementById('subscribedUsers').textContent = activeSubscriptions.length;
-        document.getElementById('trialUsers').textContent = trialUsers.length;
+        // Update stats display with safety checks - show all users including admins for total
+        const totalUsersEl = document.getElementById('totalUsers');
+        const verifiedUsersEl = document.getElementById('verifiedUsers');
+        const subscribedUsersEl = document.getElementById('subscribedUsers');
+        const trialUsersEl = document.getElementById('trialUsers');
+        
+        if (totalUsersEl) totalUsersEl.textContent = allUsers.length;
+        if (verifiedUsersEl) verifiedUsersEl.textContent = verifiedUsers.length;
+        if (subscribedUsersEl) subscribedUsersEl.textContent = activeSubscriptions.length;
+        if (trialUsersEl) trialUsersEl.textContent = trialUsers.length;
         
         // Load users table (exclude admins from main table)
         this.populateUserTable(regularUsers);
@@ -2212,8 +2237,19 @@ Please provide a response that addresses both the original context and this foll
 
     populateUserTable(users) {
         const tbody = document.getElementById('usersTableBody');
+        
+        if (!tbody) {
+            console.error('❌ Users table body not found');
+            return;
+        }
+        
+        if (!users || !Array.isArray(users) || users.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="5" class="text-center">No users found</td></tr>';
+            return;
+        }
+        
         tbody.innerHTML = users.map(u => {
-            const status = u.status;
+            const status = this.getSubscriptionStatus(u);
             const statusIcon = u.emailVerified ? '✅' : '❌';
             const isAdmin = u.isAdmin;
             
@@ -2259,7 +2295,7 @@ Please provide a response that addresses both the original context and this foll
                             </div>
                             <div class="user-email">${u.email}</div>
                             <div class="user-meta">
-                                <span>Joined: ${new Date(u.createdAt).toLocaleDateString()}</span>
+                                <span>Joined: ${new Date(u.createdAt || Date.now()).toLocaleDateString()}</span>
                                 <span>Email: ${u.emailVerified ? 'Verified' : 'Pending'}</span>
                             </div>
                         </div>
@@ -2279,6 +2315,11 @@ Please provide a response that addresses both the original context and this foll
 
     displayPendingVerifications(pending) {
         const pendingDiv = document.getElementById('pendingList');
+        
+        if (!pendingDiv) {
+            console.error('❌ Pending list element not found');
+            return;
+        }
         
         // Handle undefined, null, or non-array values
         if (!pending || !Array.isArray(pending) || pending.length === 0) {
@@ -2387,7 +2428,30 @@ Please provide a response that addresses both the original context and this foll
                 updateData.password = newPassword;
             }
             
-            const response = await fetch(this.getApiUrl('user/profile'), {
+            const apiUrl = this.getApiUrl('user/profile');
+            
+            if (apiUrl === 'client-side' || !apiUrl) {
+                // Handle client-side profile update
+                // Update current user data
+                this.currentUser = { ...this.currentUser, ...updateData };
+                
+                // Update in users array
+                const userIndex = this.users.findIndex(u => u.id === this.currentUser.id);
+                if (userIndex !== -1) {
+                    this.users[userIndex] = { ...this.users[userIndex], ...updateData };
+                    this.saveUsers(this.users);
+                }
+                
+                // Update localStorage
+                localStorage.setItem('currentUser', JSON.stringify(this.currentUser));
+                
+                this.showSuccess('Profile updated successfully!');
+                this.showPage('adminDashboard');
+                return;
+            }
+            
+            // Server-side handling (localhost)
+            const response = await fetch(apiUrl, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
@@ -3210,7 +3274,41 @@ Please provide a response that addresses both the original context and this foll
                 return;
             }
             
-            const response = await fetch(this.getApiUrl('admin/generate-access-code'), {
+            const apiUrl = this.getApiUrl('admin/generate-access-code');
+            
+            if (apiUrl === 'client-side') {
+                // Handle client-side access code generation
+                const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+                let code = '';
+                for (let i = 0; i < parseInt(codeLength); i++) {
+                    code += characters.charAt(Math.floor(Math.random() * characters.length));
+                }
+                
+                // Load existing access codes from localStorage
+                const existingCodes = JSON.parse(localStorage.getItem('adminAccessCodes') || '[]');
+                
+                // Create new access code
+                const newCode = {
+                    code: code,
+                    description: description || '',
+                    duration: parseInt(duration),
+                    durationType: durationType,
+                    createdAt: Date.now(),
+                    usedCount: 0,
+                    active: true
+                };
+                
+                existingCodes.push(newCode);
+                localStorage.setItem('adminAccessCodes', JSON.stringify(existingCodes));
+                
+                this.showSuccess(`Access code generated: ${code}`);
+                this.loadAccessCodes();
+                document.getElementById('generateAccessCodeForm').reset();
+                return;
+            }
+            
+            // Server-side handling (localhost)
+            const response = await fetch(apiUrl, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -3243,7 +3341,17 @@ Please provide a response that addresses both the original context and this foll
 
     async loadAccessCodes() {
         try {
-            const response = await fetch(this.getApiUrl('admin/access-codes'), {
+            const apiUrl = this.getApiUrl('admin/access-codes');
+            
+            if (apiUrl === 'client-side') {
+                // Load from localStorage in production
+                const codes = JSON.parse(localStorage.getItem('adminAccessCodes') || '[]');
+                this.displayAccessCodes(codes);
+                return;
+            }
+            
+            // Server-side handling (localhost)
+            const response = await fetch(apiUrl, {
                 headers: { 'Authorization': `Bearer ${this.sessionToken}` }
             });
             
@@ -3300,7 +3408,21 @@ Please provide a response that addresses both the original context and this foll
         }
         
         try {
-            const response = await fetch(this.getApiUrl(`admin/access-codes/${code}`), {
+            const apiUrl = this.getApiUrl(`admin/access-codes/${code}`);
+            
+            if (apiUrl === 'client-side' || !apiUrl) {
+                // Handle client-side access code deletion
+                const existingCodes = JSON.parse(localStorage.getItem('adminAccessCodes') || '[]');
+                const filteredCodes = existingCodes.filter(c => c.code !== code);
+                localStorage.setItem('adminAccessCodes', JSON.stringify(filteredCodes));
+                
+                this.showSuccess('Access code deleted');
+                this.loadAccessCodes();
+                return;
+            }
+            
+            // Server-side handling (localhost)
+            const response = await fetch(apiUrl, {
                 method: 'DELETE',
                 headers: { 'Authorization': `Bearer ${this.sessionToken}` }
             });
@@ -3325,8 +3447,30 @@ Please provide a response that addresses both the original context and this foll
         
         try {
             const openaiApiKey = document.getElementById('systemOpenaiKey').value;
+            const apiUrl = this.getApiUrl('admin/api-settings');
             
-            const response = await fetch(this.getApiUrl('admin/api-settings'), {
+            if (apiUrl === 'client-side') {
+                // Handle client-side API settings storage
+                const apiSettings = {
+                    systemOpenaiKey: openaiApiKey,
+                    hasSystemOpenaiKey: !!openaiApiKey,
+                    lastUpdated: Date.now()
+                };
+                
+                localStorage.setItem('adminApiSettings', JSON.stringify(apiSettings));
+                
+                // Update payment config
+                this.paymentConfig = this.paymentConfig || {};
+                this.paymentConfig.systemOpenaiKey = openaiApiKey;
+                localStorage.setItem('paymentConfig', JSON.stringify(this.paymentConfig));
+                
+                this.showSuccess('API settings saved successfully');
+                this.updateApiStatus(!!openaiApiKey);
+                return;
+            }
+            
+            // Server-side handling (localhost)
+            const response = await fetch(apiUrl, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -3357,7 +3501,39 @@ Please provide a response that addresses both the original context and this foll
         this.showLoading();
         
         try {
-            const response = await fetch(this.getApiUrl('admin/test-api-key'), {
+            const apiUrl = this.getApiUrl('admin/test-api-key');
+            
+            if (apiUrl === 'client-side') {
+                // Client-side API key test
+                const openaiApiKey = document.getElementById('systemOpenaiKey').value;
+                
+                if (!openaiApiKey) {
+                    this.showError('Please enter an API key first');
+                    return;
+                }
+                
+                // Test the API key directly with OpenAI
+                try {
+                    const response = await fetch('https://api.openai.com/v1/models', {
+                        headers: {
+                            'Authorization': `Bearer ${openaiApiKey}`
+                        }
+                    });
+                    
+                    if (response.ok) {
+                        this.showSuccess('API key test successful!');
+                        this.updateApiStatus(true);
+                    } else {
+                        this.showError('API key test failed - invalid key or insufficient permissions');
+                    }
+                } catch (error) {
+                    this.showError('API key test failed - network error or invalid key');
+                }
+                return;
+            }
+            
+            // Server-side handling (localhost)
+            const response = await fetch(apiUrl, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -3468,7 +3644,31 @@ Please provide a response that addresses both the original context and this foll
 
     async loadApiSettings() {
         try {
-            const response = await fetch(this.getApiUrl('config'), {
+            const apiUrl = this.getApiUrl('config');
+            
+            if (apiUrl === 'client-side' || !apiUrl) {
+                // Handle client-side API settings loading
+                const apiSettings = JSON.parse(localStorage.getItem('adminApiSettings') || '{}');
+                const paymentConfig = JSON.parse(localStorage.getItem('paymentConfig') || '{}');
+                
+                // Update API settings form
+                const systemOpenaiKeyEl = document.getElementById('systemOpenaiKey');
+                if (systemOpenaiKeyEl && (apiSettings.systemOpenaiKey || paymentConfig.systemOpenaiKey)) {
+                    systemOpenaiKeyEl.value = apiSettings.systemOpenaiKey || paymentConfig.systemOpenaiKey || '';
+                }
+                
+                // Update API status
+                const hasKey = !!(apiSettings.systemOpenaiKey || paymentConfig.systemOpenaiKey);
+                this.updateApiStatus(hasKey);
+                
+                // Load usage stats (client-side defaults)
+                document.getElementById('totalRequests')?.textContent = '0';
+                document.getElementById('openaiRequests')?.textContent = '0';
+                return;
+            }
+            
+            // Server-side handling (localhost)
+            const response = await fetch(apiUrl, {
                 headers: { 'Authorization': `Bearer ${this.sessionToken}` }
             });
             
@@ -3495,7 +3695,20 @@ Please provide a response that addresses both the original context and this foll
 
     async loadApiUsageStats() {
         try {
-            const response = await fetch(this.getApiUrl('admin/api-usage'), {
+            const apiUrl = this.getApiUrl('admin/api-usage');
+            
+            if (apiUrl === 'client-side' || !apiUrl) {
+                // Client-side fallback - show default values
+                const totalRequestsEl = document.getElementById('totalRequests');
+                const openaiRequestsEl = document.getElementById('openaiRequests');
+                
+                if (totalRequestsEl) totalRequestsEl.textContent = '0';
+                if (openaiRequestsEl) openaiRequestsEl.textContent = '0';
+                return;
+            }
+            
+            // Server-side handling (localhost)
+            const response = await fetch(apiUrl, {
                 headers: { 'Authorization': `Bearer ${this.sessionToken}` }
             });
             
@@ -3503,8 +3716,11 @@ Please provide a response that addresses both the original context and this foll
                 const data = await response.json();
                 const usage = data.usage;
                 
-                document.getElementById('totalRequests').textContent = usage.totalRequests || 0;
-                document.getElementById('openaiRequests').textContent = usage.openaiRequests || 0;
+                const totalRequestsEl = document.getElementById('totalRequests');
+                const openaiRequestsEl = document.getElementById('openaiRequests');
+                
+                if (totalRequestsEl) totalRequestsEl.textContent = usage.totalRequests || 0;
+                if (openaiRequestsEl) openaiRequestsEl.textContent = usage.openaiRequests || 0;
             }
         } catch (error) {
             console.error('Load API usage stats error:', error);
@@ -3515,12 +3731,14 @@ Please provide a response that addresses both the original context and this foll
         const statusIcon = document.getElementById('apiStatusIcon');
         const statusText = document.getElementById('apiStatusText');
         
-        if (hasKey) {
-            statusIcon.className = 'fas fa-circle text-success';
-            statusText.textContent = 'API Key Configured';
-        } else {
-            statusIcon.className = 'fas fa-circle text-danger';
-            statusText.textContent = 'Not configured';
+        if (statusIcon && statusText) {
+            if (hasKey) {
+                statusIcon.className = 'fas fa-circle text-success';
+                statusText.textContent = 'API Key Configured';
+            } else {
+                statusIcon.className = 'fas fa-circle text-danger';
+                statusText.textContent = 'Not configured';
+            }
         }
     }
 
