@@ -1166,6 +1166,53 @@ Sent at: ${new Date().toLocaleString()}
     }
 });
 
+// Error logging endpoint
+app.post('/api/log-error', (req, res) => {
+    try {
+        const errorData = req.body;
+        const timestamp = new Date().toISOString();
+        
+        // Create error log entry
+        const logEntry = `[${timestamp}] ${errorData.context || 'Unknown Context'}
+Message: ${errorData.message || 'No message'}
+URL: ${errorData.url || 'Unknown URL'}
+User: ${errorData.user ? `${errorData.user.email} (${errorData.user.id})` : 'Anonymous'}
+User Agent: ${errorData.userAgent || 'Unknown'}
+Stack: ${errorData.stack || 'No stack trace'}
+Additional Info: ${JSON.stringify(errorData.additionalInfo || {})}
+${'='.repeat(80)}
+
+`;
+        
+        // Append to error.log file
+        const fs = require('fs');
+        const path = require('path');
+        const logPath = path.join(__dirname, 'error.log');
+        
+        fs.appendFile(logPath, logEntry, (err) => {
+            if (err) {
+                console.error('❌ Failed to write to error.log:', err);
+                // Try to create the file if it doesn't exist
+                fs.writeFile(logPath, logEntry, (writeErr) => {
+                    if (writeErr) {
+                        console.error('❌ Failed to create error.log:', writeErr);
+                        return res.status(500).json({ error: 'Failed to log error' });
+                    }
+                    console.log('✅ Created error.log and logged error');
+                    res.json({ success: true, message: 'Error logged successfully' });
+                });
+            } else {
+                console.log('✅ Error logged to error.log');
+                res.json({ success: true, message: 'Error logged successfully' });
+            }
+        });
+        
+    } catch (error) {
+        console.error('❌ Error logging endpoint failed:', error);
+        res.status(500).json({ error: 'Failed to process error log' });
+    }
+});
+
 app.get('/api/health', (req, res) => {
     res.json({ 
         status: 'OK', 
