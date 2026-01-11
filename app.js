@@ -240,8 +240,18 @@ class LeaveAssistantApp {
     toggleMobileMenu() {
         // Mobile menu toggle functionality
         const navMenu = document.querySelector('.nav-menu');
-        if (navMenu) {
+        const toggleButton = document.getElementById('mobileMenuToggle');
+        
+        if (navMenu && toggleButton) {
+            const isOpen = navMenu.classList.contains('mobile-open');
             navMenu.classList.toggle('mobile-open');
+            toggleButton.setAttribute('aria-expanded', !isOpen);
+            
+            // Update icon
+            const icon = toggleButton.querySelector('i');
+            if (icon) {
+                icon.className = isOpen ? 'fas fa-bars' : 'fas fa-times';
+            }
         }
     }
 

@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 120">
+  <!-- HR in blue -->
+  <text x="20" y="70" font-family="Arial, sans-serif" font-size="48" font-weight="800" fill="#0023F5">HR</text>
+  <!-- LA in green -->
+  <text x="180" y="70" font-family="Arial, sans-serif" font-size="48" font-weight="800" fill="#4FCD1A">LA</text>
+  
+  <!-- HR LEAVE ASSIST underneath in blue -->
+  <text x="20" y="105" font-family="Arial, sans-serif" font-size="18" font-weight="600" fill="#0023F5" letter-spacing="2px">HR LEAVE ASSIST</text>
+</svg>
