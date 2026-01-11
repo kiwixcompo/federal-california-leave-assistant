@@ -434,6 +434,7 @@ body {
     font-size: 0.875rem;
     line-height: 1.5;
     color: var(--gray-700);
+    border-left: 3px solid var(--primary-blue);
 }
 
 .demo-response p {

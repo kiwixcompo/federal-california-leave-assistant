@@ -1,195 +1,138 @@
-# GitHub Auto-Deployment Setup Guide
+# 🚀 HR Leave Assistant - Deployment Setup Guide (Optimized)
 
-This guide will help you set up automatic deployment from your GitHub repository to your hrleaveassist.com website using webhooks and PHP.
+This guide will help you set up automatic deployment from GitHub to your web hosting server with optimizations to prevent timeouts and improve reliability.
 
-## ✅ System Status
+## 📋 Overview
 
-The GitHub auto-deployment system has been successfully implemented with the following features:
+The deployment system automatically updates your website whenever you push changes to the GitHub repository. It works by:
 
-- ✅ PHP-based deployment script (`deploy.php`)
-- ✅ GitHub webhook integration
-- ✅ Manual deployment interface
-- ✅ Signature verification support
-- ✅ Branch filtering (only main/master)
-- ✅ GitHub API-based file download
-- ✅ Automatic backup system
-- ✅ Comprehensive error handling
-- ✅ Deployment logging
+1. **GitHub Webhook** → Triggers deployment when code is pushed
+2. **Deploy Script** → Downloads and extracts the latest code
+3. **File Replacement** → Updates your website with new files
 
-## Prerequisites
+## 🛠 Prerequisites
 
-1. Your project is on GitHub: `https://github.com/kiwixcompo/federal-california-leave-assistant`
-2. Your website is hosted on hrleaveassist.com (Namecheap hosting)
-3. PHP is available on your hosting (shared hosting compatible)
-4. You have FTP/cPanel access to upload files
+- Web hosting with PHP 7.0+ support
+- ZipArchive PHP extension enabled
+- Write permissions on your hosting directory
+- GitHub repository access
 
-## Step 1: Upload Deployment Script
+## 📁 Step 1: Upload Deployment Files
 
-1. **Upload the `deploy.php` file** to your website's root directory (public_html or www)
-2. **Set proper permissions**: Make sure the file is readable (644 or 755)
-3. **Test manual deployment**: Visit `https://hrleaveassist.com/deploy.php?manual=true`
+Upload these files to your web hosting root directory:
 
-## Step 2: Configure GitHub Webhook
+1. **`deploy.php`** - Main deployment script (optimized for shared hosting)
+2. **`test-deploy.php`** - Environment testing script
+
+## 🧪 Step 2: Test Your Environment
+
+Before setting up deployment, test if your server can handle it:
+
+1. Visit: `https://hrleaveassist.com/test-deploy.php`
+2. Check that all tests pass (especially ZipArchive and write permissions)
+3. If tests fail, contact your hosting provider
+
+## ⚙️ Step 3: Configure GitHub Webhook
 
 1. Go to your GitHub repository: `https://github.com/kiwixcompo/federal-california-leave-assistant`
-2. Click on **Settings** tab
-3. Click on **Webhooks** in the left sidebar
-4. Click **Add webhook** button
-5. Fill in the webhook form:
+2. Click **Settings** → **Webhooks** → **Add webhook**
+3. Configure the webhook:
    - **Payload URL**: `https://hrleaveassist.com/deploy.php`
    - **Content type**: `application/json`
-   - **Secret**: `HRLeaveAssist2026SecureKey!@#$%` (matches the secret in deploy.php)
-   - **Which events**: Select "Just the push event"
-   - **Active**: Make sure it's checked
-6. Click **Add webhook**
+   - **Secret**: `HRLeaveAssist2026SecureKey!@#$%`
+   - **Events**: Select "Just the push event"
+   - **Active**: ✅ Checked
 
-## Step 3: Test the Setup
+## 🔧 Step 4: Test Manual Deployment
 
-### Manual Testing:
-1. Visit `https://hrleaveassist.com/deploy.php?manual=true`
-2. You should see a deployment interface
-3. The script will download and extract the latest code from GitHub
-4. Check the deployment log for any errors
+Before relying on automatic deployment, test manually:
 
-### Webhook Testing:
-1. Make a small change to your repository (like updating README.txt)
-2. Commit and push to the main branch
-3. Check GitHub webhook deliveries in repository settings
-4. Visit your website to see if changes are applied
+1. Visit: `https://hrleaveassist.com/deploy.php?manual=true`
+2. Watch the deployment process in real-time
+3. Check for any errors in the log
+4. Verify your website updates correctly
 
-## How It Works
+## 🚨 Troubleshooting
 
-### PHP Deployment Process:
-1. **Webhook Trigger**: GitHub sends POST request to `deploy.php`
-2. **Security Check**: Verifies webhook signature using secret key
-3. **Branch Filter**: Only processes pushes to main branch
-4. **Backup Creation**: Creates backup of current files
-5. **Download**: Downloads latest code as ZIP from GitHub API
-6. **Extract**: Extracts ZIP to temporary directory
-7. **Copy Files**: Copies new files to website directory
-8. **Cleanup**: Removes temporary files
-9. **Logging**: Records all activities in `deploy.log`
+### Timeout Issues
+If deployment times out:
+- The script is optimized with progress updates to prevent timeouts
+- Shared hosting typically has 30-300 second limits
+- Large repositories may need multiple attempts
 
-### File Structure After Deployment:
-```
-hrleaveassist.com/
-├── deploy.php          (deployment script)
-├── deploy.log          (deployment logs)
-├── backups/            (automatic backups)
-├── index.html          (your app)
-├── app.js              (your app)
-├── server.js           (your app)
-├── styles.css          (your app)
-├── data/               (user data - preserved)
-└── ... (other app files)
-```
+### Common Issues
 
-## Email Configuration
+**"ZipArchive not available"**
+- Contact your hosting provider to enable the ZIP extension
+- This is required for extracting downloaded files
 
-Since you want emails to come from `noreply@hrleaveassist.com`, you'll need to:
+**"Cannot write to directory"**
+- Check file permissions (should be 755 or 775)
+- Ensure your hosting account has write access
 
-1. **Create the email account** in your Namecheap cPanel
-2. **Update server.js** with your email credentials:
-   ```javascript
-   // In server.js, update the email configuration
-   emailTransporter = nodemailer.createTransporter({
-       host: 'mail.hrleaveassist.com', // Your domain's mail server
-       port: 587,
-       secure: false,
-       auth: {
-           user: 'noreply@hrleaveassist.com',
-           pass: 'your-email-password'
-       }
-   });
-   ```
+**"Failed to download from GitHub"**
+- Check internet connectivity from your server
+- Verify the repository URL is correct
+- GitHub API may have rate limits
 
-## Security Features
+**"Deployment successful but website not updated"**
+- Wait 2-3 minutes for file system changes to propagate
+- Clear any caching (browser, CDN, hosting)
+- Check if files were actually copied
 
-- **Webhook Signature Verification**: Uses HMAC-SHA256 to verify requests from GitHub
-- **Branch Filtering**: Only deploys from main branch
-- **IP Filtering**: Can be configured to only accept requests from GitHub IPs
-- **Backup System**: Automatically creates backups before deployment
-- **Error Logging**: All activities are logged for debugging
+### Performance Optimizations
 
-## Monitoring and Maintenance
+The deployment script includes several optimizations:
 
-### Check Deployment Status:
-- **Manual Interface**: `https://hrleaveassist.com/deploy.php?manual=true`
-- **Log File**: Check `deploy.log` for detailed information
-- **GitHub Webhooks**: Check delivery status in repository settings
+1. **Timeout Prevention**: Regular progress updates prevent server timeouts
+2. **Memory Management**: Optimized file operations for shared hosting
+3. **Selective File Copying**: Skips unnecessary files (node_modules, .git, etc.)
+4. **Cleanup**: Automatic removal of temporary files
+5. **Progress Feedback**: Real-time status updates during manual deployment
 
-### Backup Management:
-- Backups are stored in `/backups/` directory
-- Only last 10 backups are kept automatically
-- Each backup includes timestamp and file count
+## 📊 Monitoring Deployments
 
-### Troubleshooting:
+### View Deployment Logs
+- Check `deploy.log` file on your server
+- Manual deployment page shows recent log entries
+- Logs include timestamps, errors, and success messages
 
-#### Webhook Not Triggering:
-1. Check GitHub webhook delivery logs
-2. Verify webhook URL is correct: `https://hrleaveassist.com/deploy.php`
-3. Ensure webhook secret matches: `HRLeaveAssist2026SecureKey!@#$%`
-4. Check server logs for PHP errors
+### Webhook Status
+- GitHub webhook page shows delivery history
+- Green checkmarks = successful deployments
+- Red X marks = failed deployments (check logs)
 
-#### Deployment Fails:
-1. Visit manual deployment page for detailed error messages
-2. Check `deploy.log` file
-3. Verify file permissions (deploy.php should be executable)
-4. Ensure ZipArchive PHP extension is available
+## 🔒 Security Features
 
-#### Files Not Updating:
-1. Check if deployment completed successfully
-2. Clear browser cache
-3. Verify file permissions on uploaded files
-4. Check if .htaccess rules are blocking access
+- **Webhook signature verification** prevents unauthorized deployments
+- **IP filtering** (optional) restricts access to GitHub IPs
+- **Branch filtering** only deploys from main branch
+- **File exclusions** prevents overwriting sensitive files
 
-## Advanced Configuration
+## 🎯 Best Practices
 
-### Custom Secret Key:
-Edit `deploy.php` and change the secret key:
-```php
-'secret_key' => 'YourCustomSecretKey123!@#',
-```
-Then update the GitHub webhook with the same secret.
+1. **Test First**: Always test manual deployment before relying on webhooks
+2. **Monitor Logs**: Check deployment logs regularly for issues
+3. **Backup Strategy**: The script creates automatic backups before deployment
+4. **Staging Environment**: Consider testing changes on a staging site first
+5. **File Permissions**: Ensure proper permissions after deployment
 
-### Email Notifications:
-Add email notifications to the deployment script by integrating with your email system.
+## 📞 Support
 
-### Multiple Environments:
-Create separate deployment scripts for different environments:
-- `deploy-staging.php` for staging branch
-- `deploy-production.php` for main branch
+If you encounter issues:
 
-## Production Checklist
+1. Check the test script results: `test-deploy.php`
+2. Review deployment logs: `deploy.log`
+3. Verify GitHub webhook delivery status
+4. Contact your hosting provider for server-specific issues
 
-- [ ] `deploy.php` uploaded to website root
-- [ ] GitHub webhook configured with correct URL
-- [ ] Webhook secret matches between GitHub and deploy.php
-- [ ] Manual deployment tested successfully
-- [ ] Webhook deployment tested with real commit
-- [ ] Email account `noreply@hrleaveassist.com` created
-- [ ] Server.js updated with correct email credentials
-- [ ] File permissions set correctly
-- [ ] Backup directory is writable
-- [ ] SSL certificate is active (HTTPS)
+## 🔄 Manual Deployment
 
-## Support Commands
-
-### Test Manual Deployment:
-```
-https://hrleaveassist.com/deploy.php?manual=true
-```
-
-### Check Deployment Logs:
-Access via FTP or cPanel file manager: `/deploy.log`
-
-### GitHub Webhook URL:
-```
-https://hrleaveassist.com/deploy.php
-```
+You can always trigger deployment manually:
+- Visit: `https://hrleaveassist.com/deploy.php?manual=true`
+- Useful for testing or when webhooks fail
+- Provides real-time progress feedback
 
 ---
 
-**Repository**: https://github.com/kiwixcompo/federal-california-leave-assistant.git  
-**Domain**: https://hrleaveassist.com  
-**Email**: noreply@hrleaveassist.com
+**✅ Once setup is complete, your website will automatically update whenever you push changes to GitHub!**
