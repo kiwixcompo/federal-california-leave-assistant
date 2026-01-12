@@ -457,6 +457,23 @@ class LeaveAssistantApp {
         if (showRegisterEl) showRegisterEl.onclick = () => this.showPage('registerPage');
         if (showLoginEl) showLoginEl.onclick = () => this.showPage('loginPage');
         
+        // Form submissions
+        const loginForm = document.getElementById('loginForm');
+        if (loginForm) {
+            loginForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                this.handleLogin(e);
+            });
+        }
+        
+        const registerForm = document.getElementById('registerForm');
+        if (registerForm) {
+            registerForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                this.handleRegister(e);
+            });
+        }
+        
         // Back to homepage buttons
         document.getElementById('backToHomepageFromLogin')?.addEventListener('click', () => {
             console.log('🔘 Back to homepage from login clicked');
@@ -830,6 +847,119 @@ class LeaveAssistantApp {
             localStorage.removeItem('currentUser');
             this.showPage('landingPage');
         }
+    }
+
+    async handleLogin(event) {
+        event.preventDefault();
+        
+        try {
+            this.showLoading();
+            
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+            
+            if (!email || !password) {
+                this.showError('Please enter both email and password');
+                return;
+            }
+            
+            // Try server login first
+            const apiUrl = this.getApiUrl('auth/login');
+            if (apiUrl && this.serverRunning) {
+                try {
+                    const response = await fetch(apiUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ email, password })
+                    });
+                    
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        this.sessionToken = data.sessionToken;
+                        this.currentUser = data.user;
+                        
+                        // Store session
+                        localStorage.setItem('sessionToken', this.sessionToken);
+                        localStorage.setItem('currentUser', JSON.stringify(this.currentUser));
+                        
+                        // Redirect based on user type
+                        if (this.currentUser.isAdmin) {
+                            this.showPage('adminDashboard');
+                        } else {
+                            this.showPage('dashboard');
+                        }
+                        
+                        this.showSuccess('Login successful!');
+                        return;
+                    } else {
+                        this.showError(data.message || 'Login failed');
+                        return;
+                    }
+                } catch (error) {
+                    console.warn('Server login failed, trying client-side:', error);
+                }
+            }
+            
+            // Fallback to client-side login
+            console.log('🔄 Falling back to client-side authentication');
+            const users = this.loadUsers(); // Use the method that creates default admin
+            
+            // Save users to localStorage if they were just created
+            if (!localStorage.getItem('users')) {
+                console.log('💾 Saving default users to localStorage');
+                this.saveUsers(users);
+            }
+            
+            console.log('👥 Available users:', users.map(u => ({ email: u.email, isAdmin: u.isAdmin })));
+            const user = users.find(u => u.email === email);
+            console.log('🔍 Looking for user with email:', email);
+            console.log('👤 Found user:', user ? { email: user.email, isAdmin: user.isAdmin } : 'Not found');
+            
+            if (!user) {
+                this.showError('User not found');
+                return;
+            }
+            
+            if (user.password !== password) {
+                this.showError('Invalid password');
+                return;
+            }
+            
+            if (!user.emailVerified) {
+                this.showError('Please verify your email before logging in');
+                return;
+            }
+            
+            // Set session
+            this.currentUser = user;
+            this.sessionToken = 'client_' + Date.now();
+            localStorage.setItem('sessionToken', this.sessionToken);
+            localStorage.setItem('currentUser', JSON.stringify(this.currentUser));
+            
+            // Redirect based on user type
+            if (user.isAdmin) {
+                this.showPage('adminDashboard');
+            } else {
+                this.showPage('dashboard');
+            }
+            
+            this.showSuccess('Login successful!');
+            
+        } catch (error) {
+            console.error('Login error:', error);
+            this.logError(error, 'Login', { email });
+            this.showError('Login failed. Please try again.');
+        } finally {
+            this.hideLoading();
+        }
+    }
+
+    async handleRegister(event) {
+        // Registration handler would go here
+        // For now, just prevent default
+        event.preventDefault();
+        this.showError('Registration functionality needs to be implemented');
     }
 }
 
