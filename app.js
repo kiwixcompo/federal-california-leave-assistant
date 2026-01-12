@@ -368,6 +368,11 @@ class LeaveAssistantApp {
         if (targetPage) {
             targetPage.classList.remove('hidden');
             console.log(`✅ Successfully showed page: ${id}`);
+            
+            // Initialize page-specific functionality
+            if (id === 'adminDashboard') {
+                this.initializeAdminDashboard();
+            }
         } else {
             console.error(`❌ Page not found: ${id}`);
         }
@@ -541,6 +546,9 @@ class LeaveAssistantApp {
                 }
             });
         });
+        
+        // Admin dashboard event handlers
+        this.bindAdminEvents();
         
         console.log('✅ All events bound successfully');
     }
@@ -960,6 +968,389 @@ class LeaveAssistantApp {
         // For now, just prevent default
         event.preventDefault();
         this.showError('Registration functionality needs to be implemented');
+    }
+
+    bindAdminEvents() {
+        console.log('🔧 Binding admin dashboard events...');
+        
+        // Admin tab switching
+        const tabButtons = document.querySelectorAll('.tab-btn[data-tab]');
+        tabButtons.forEach(button => {
+            button.addEventListener('click', (e) => {
+                const tabName = e.target.closest('.tab-btn').getAttribute('data-tab');
+                this.switchAdminTab(tabName);
+            });
+        });
+        
+        // Admin navigation buttons
+        document.getElementById('adminSettingsBtn')?.addEventListener('click', () => {
+            console.log('🔘 Admin settings clicked');
+            this.showPage('adminProfilePage');
+        });
+        
+        document.getElementById('adminLogoutBtn')?.addEventListener('click', () => {
+            console.log('🔘 Admin logout clicked');
+            this.logout();
+        });
+        
+        document.getElementById('adminLogoutBtn2')?.addEventListener('click', () => {
+            console.log('🔘 Admin logout 2 clicked');
+            this.logout();
+        });
+        
+        document.getElementById('backToAdminDashboard')?.addEventListener('click', () => {
+            console.log('🔘 Back to admin dashboard clicked');
+            this.showPage('adminDashboard');
+        });
+        
+        // Statistics cards (clickable filters)
+        const statCards = document.querySelectorAll('.stat-card.clickable-card');
+        statCards.forEach(card => {
+            card.addEventListener('click', (e) => {
+                const filter = e.target.closest('.stat-card').getAttribute('data-filter');
+                if (filter) {
+                    console.log('📊 Stat card clicked:', filter);
+                    this.filterUsers(filter);
+                }
+            });
+        });
+        
+        console.log('✅ Admin events bound successfully');
+    }
+
+    switchAdminTab(tabName) {
+        console.log('🔄 Switching to admin tab:', tabName);
+        
+        // Update tab buttons
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.classList.remove('active');
+        });
+        document.querySelector(`[data-tab="${tabName}"]`)?.classList.add('active');
+        
+        // Update tab content - convert kebab-case to camelCase + Tab
+        document.querySelectorAll('.tab-content').forEach(content => {
+            content.classList.remove('active');
+        });
+        
+        // Convert data-tab names to actual HTML IDs
+        const tabIdMap = {
+            'users': 'usersTab',
+            'payments': 'paymentsTab', 
+            'email': 'emailTab',
+            'system': 'systemTab',
+            'access-codes': 'accessCodesTab',
+            'api-settings': 'apiSettingsTab',
+            'deployment': 'deploymentTab'
+        };
+        
+        const targetTabId = tabIdMap[tabName];
+        const targetTab = document.getElementById(targetTabId);
+        
+        if (targetTab) {
+            targetTab.classList.add('active');
+            console.log('✅ Successfully switched to tab:', targetTabId);
+            
+            // Load tab-specific content
+            this.loadAdminTabContent(tabName);
+        } else {
+            console.warn('⚠️ Tab content not found:', targetTabId);
+        }
+    }
+
+    loadAdminTabContent(tabName) {
+        console.log('📄 Loading content for tab:', tabName);
+        
+        switch (tabName) {
+            case 'users':
+                this.loadUsersTab();
+                break;
+            case 'payments':
+                this.loadPaymentsTab();
+                break;
+            case 'email':
+                this.loadEmailTab();
+                break;
+            case 'system':
+                this.loadSystemTab();
+                break;
+            case 'access-codes':
+                this.loadAccessCodesTab();
+                break;
+            case 'api-settings':
+                this.loadApiSettingsTab();
+                break;
+            case 'deployment':
+                this.loadDeploymentTab();
+                break;
+            default:
+                console.warn('⚠️ Unknown tab:', tabName);
+        }
+    }
+
+    loadUsersTab() {
+        console.log('👥 Loading users tab...');
+        // Load users data and populate table
+        const users = this.loadUsers();
+        console.log('📊 Users loaded:', users.length);
+        // TODO: Populate users table
+    }
+
+    loadPaymentsTab() {
+        console.log('💳 Loading payments tab...');
+        // Load payment configuration
+        // TODO: Load payment settings
+    }
+
+    loadEmailTab() {
+        console.log('📧 Loading email tab...');
+        // Load email configuration
+        // TODO: Load email settings
+    }
+
+    loadSystemTab() {
+        console.log('⚙️ Loading system tab...');
+        // Load system settings
+        // TODO: Load system configuration
+    }
+
+    loadAccessCodesTab() {
+        console.log('🔑 Loading access codes tab...');
+        
+        // Load access codes from localStorage or create empty array
+        const accessCodes = JSON.parse(localStorage.getItem('accessCodes') || '[]');
+        console.log('📊 Access codes loaded:', accessCodes.length);
+        
+        // Update the table body
+        const tableBody = document.getElementById('accessCodesTableBody');
+        if (tableBody) {
+            if (accessCodes.length === 0) {
+                tableBody.innerHTML = '<tr><td colspan="6" class="text-center">No access codes generated yet</td></tr>';
+            } else {
+                tableBody.innerHTML = accessCodes.map(code => `
+                    <tr>
+                        <td><code>${code.code}</code></td>
+                        <td>${code.duration} ${code.durationType}</td>
+                        <td>${code.description || '-'}</td>
+                        <td>${code.uses || 0}</td>
+                        <td>${new Date(code.createdAt).toLocaleDateString()}</td>
+                        <td>
+                            <button class="btn btn-sm btn-danger" onclick="app.deleteAccessCode('${code.id}')">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </td>
+                    </tr>
+                `).join('');
+            }
+        }
+        
+        // Bind access code form if it exists
+        const form = document.getElementById('generateAccessCodeForm');
+        if (form) {
+            form.onsubmit = (e) => {
+                e.preventDefault();
+                this.generateAccessCode();
+            };
+        }
+    }
+
+    loadApiSettingsTab() {
+        console.log('🔧 Loading API settings tab...');
+        
+        // Load API configuration from localStorage
+        const config = JSON.parse(localStorage.getItem('apiConfig') || '{}');
+        console.log('📊 API config loaded:', Object.keys(config));
+        
+        // Update API key field if it exists
+        const apiKeyField = document.getElementById('systemOpenaiKey');
+        if (apiKeyField && config.openaiKey) {
+            apiKeyField.value = config.openaiKey;
+        }
+        
+        // Update API status
+        const statusIcon = document.getElementById('apiStatusIcon');
+        const statusText = document.getElementById('apiStatusText');
+        
+        if (statusIcon && statusText) {
+            if (config.openaiKey) {
+                statusIcon.className = 'fas fa-circle text-success';
+                statusText.textContent = 'API key configured';
+            } else {
+                statusIcon.className = 'fas fa-circle text-danger';
+                statusText.textContent = 'Not configured';
+            }
+        }
+        
+        // Update usage statistics
+        const totalRequests = document.getElementById('totalRequests');
+        const openaiRequests = document.getElementById('openaiRequests');
+        
+        if (totalRequests) totalRequests.textContent = config.totalRequests || '0';
+        if (openaiRequests) openaiRequests.textContent = config.openaiRequests || '0';
+        
+        // Bind API settings form
+        const form = document.getElementById('apiSettingsForm');
+        if (form) {
+            form.onsubmit = (e) => {
+                e.preventDefault();
+                this.saveApiSettings();
+            };
+        }
+        
+        // Bind test API key button
+        const testBtn = document.getElementById('testApiKey');
+        if (testBtn) {
+            testBtn.onclick = () => this.testApiKey();
+        }
+    }
+
+    loadDeploymentTab() {
+        console.log('🚀 Loading deployment tab...');
+        // Load deployment information
+        // TODO: Load deployment status
+    }
+
+    filterUsers(filter) {
+        console.log('🔍 Filtering users by:', filter);
+        // TODO: Implement user filtering
+        this.showSuccess(`Filtering users by: ${filter}`);
+    }
+
+    initializeAdminDashboard() {
+        console.log('🔧 Initializing admin dashboard...');
+        
+        // Load initial statistics
+        this.loadAdminStats();
+        
+        // Initialize with users tab active
+        this.switchAdminTab('users');
+        
+        console.log('✅ Admin dashboard initialized');
+    }
+
+    loadAdminStats() {
+        console.log('📊 Loading admin statistics...');
+        
+        const users = this.loadUsers();
+        const totalUsers = users.length;
+        const verifiedUsers = users.filter(u => u.emailVerified).length;
+        const adminUsers = users.filter(u => u.isAdmin).length;
+        const regularUsers = totalUsers - adminUsers;
+        
+        // Update stat cards
+        const totalUsersEl = document.getElementById('totalUsers');
+        const verifiedUsersEl = document.getElementById('verifiedUsers');
+        const subscribedUsersEl = document.getElementById('subscribedUsers');
+        const trialUsersEl = document.getElementById('trialUsers');
+        
+        if (totalUsersEl) totalUsersEl.textContent = totalUsers;
+        if (verifiedUsersEl) verifiedUsersEl.textContent = verifiedUsers;
+        if (subscribedUsersEl) subscribedUsersEl.textContent = '0'; // TODO: Calculate subscribed users
+        if (trialUsersEl) trialUsersEl.textContent = regularUsers;
+        
+        console.log('📊 Stats updated:', { totalUsers, verifiedUsers, adminUsers, regularUsers });
+    }
+
+    generateAccessCode() {
+        console.log('🔑 Generating new access code...');
+        
+        const length = document.getElementById('codeLength')?.value || '8';
+        const duration = document.getElementById('accessDuration')?.value || '30';
+        const durationType = document.getElementById('durationType')?.value || 'days';
+        const description = document.getElementById('codeDescription')?.value || '';
+        
+        // Generate random code
+        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+        let code = '';
+        for (let i = 0; i < parseInt(length); i++) {
+            code += chars.charAt(Math.floor(Math.random() * chars.length));
+        }
+        
+        // Create access code object
+        const accessCode = {
+            id: Date.now().toString(),
+            code: code,
+            duration: parseInt(duration),
+            durationType: durationType,
+            description: description,
+            uses: 0,
+            createdAt: Date.now()
+        };
+        
+        // Save to localStorage
+        const accessCodes = JSON.parse(localStorage.getItem('accessCodes') || '[]');
+        accessCodes.push(accessCode);
+        localStorage.setItem('accessCodes', JSON.stringify(accessCodes));
+        
+        // Refresh the tab
+        this.loadAccessCodesTab();
+        
+        // Clear form
+        document.getElementById('generateAccessCodeForm')?.reset();
+        
+        this.showSuccess(`Access code generated: ${code}`);
+        console.log('✅ Access code generated:', accessCode);
+    }
+
+    deleteAccessCode(codeId) {
+        console.log('🗑️ Deleting access code:', codeId);
+        
+        const accessCodes = JSON.parse(localStorage.getItem('accessCodes') || '[]');
+        const filteredCodes = accessCodes.filter(code => code.id !== codeId);
+        localStorage.setItem('accessCodes', JSON.stringify(filteredCodes));
+        
+        // Refresh the tab
+        this.loadAccessCodesTab();
+        
+        this.showSuccess('Access code deleted');
+    }
+
+    saveApiSettings() {
+        console.log('💾 Saving API settings...');
+        
+        const apiKey = document.getElementById('systemOpenaiKey')?.value;
+        
+        if (!apiKey) {
+            this.showError('Please enter an API key');
+            return;
+        }
+        
+        // Save to localStorage
+        const config = JSON.parse(localStorage.getItem('apiConfig') || '{}');
+        config.openaiKey = apiKey;
+        config.updatedAt = Date.now();
+        localStorage.setItem('apiConfig', JSON.stringify(config));
+        
+        // Refresh the tab
+        this.loadApiSettingsTab();
+        
+        this.showSuccess('API settings saved successfully');
+        console.log('✅ API settings saved');
+    }
+
+    testApiKey() {
+        console.log('🧪 Testing API key...');
+        
+        const config = JSON.parse(localStorage.getItem('apiConfig') || '{}');
+        
+        if (!config.openaiKey) {
+            this.showError('No API key configured');
+            return;
+        }
+        
+        // Simple test - just check if key format looks valid
+        if (config.openaiKey.startsWith('sk-') && config.openaiKey.length > 20) {
+            this.showSuccess('API key format appears valid');
+            
+            // Update usage stats (mock)
+            config.totalRequests = (config.totalRequests || 0) + 1;
+            config.openaiRequests = (config.openaiRequests || 0) + 1;
+            localStorage.setItem('apiConfig', JSON.stringify(config));
+            
+            // Refresh stats
+            this.loadApiSettingsTab();
+        } else {
+            this.showError('API key format appears invalid');
+        }
     }
 }
 
